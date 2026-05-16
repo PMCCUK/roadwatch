@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.7 -->
+<!-- roadwatch v2.7.1 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -196,7 +196,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 .news-outlet.google{background:#0a1520;color:#0EA5E9;border:1px solid #0EA5E933}
 .news-age{font-size:8px;color:var(--rw-muted2);margin-left:auto}
 .news-title-rw{font-size:11px;font-weight:500;color:#E2E8F0;line-height:1.4;margin-bottom:5px}
-.news-link-rw{font-size:9px;color:var(--rw-accent);text-decoration:none}
+.news-link-rw{font-size:9px;color:var(--rw-accent);text-decoration:none;font-weight:600}
 .news-rel{display:inline-flex;align-items:center;gap:3px;font-size:8px;padding:2px 6px;border-radius:3px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
 .news-skeleton{background:var(--rw-card);border:1px solid var(--rw-border);border-radius:9px;padding:12px;animation:shimmer 1.5s infinite}
 .skel-line{height:9px;background:var(--rw-border2);border-radius:3px;margin-bottom:7px}
@@ -330,7 +330,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 .ro-news-outlet.google{background:#051015;color:#06B6D4;border:1px solid #06B6D433}
 .ro-news-outlet.police{background:#05100a;color:#10B981;border:1px solid #10B98133}
 .ro-news-title{font-size:11px;font-weight:500;color:var(--ro-text);line-height:1.4;margin-bottom:5px}
-.ro-news-link{font-size:9px;color:var(--ro-accent);text-decoration:none}
+.ro-news-link{font-size:9px;color:var(--ro-accent);text-decoration:none;font-weight:600}
 
 /* State */
 .state-panel-ro{text-align:center;padding:44px 18px;grid-column:1/-1}
@@ -822,11 +822,11 @@ function rwRenderNews(){
   list.innerHTML=rwNews.map(n=>{
     const rel=n.score>=5?{c:'#DC2626',bg:'#1F0A0A',t:'⚠ High'}:n.score>=3?{c:'#F59E0B',bg:'#1a1205',t:'● Relevant'}:{c:'#6B7280',bg:'#111827',t:'○ Related'};
     const outlet=n.outlet==='BBC News'?'BBC News':(n.source&&n.source!==n.outlet?n.source:n.outlet);
-    return`<div class="news-card-rw" onclick="window.open(${JSON.stringify(n.link)},'_blank')">
+    return`<div class="news-card-rw" onclick="window.open(${JSON.stringify(n.link)},'_blank','noopener noreferrer')">
       <div class="news-src-row"><span class="news-outlet ${n.outletCls}">${esc(outlet)}</span><span class="news-age">${timeAgo(n.pubDate)}</span></div>
       <span class="news-rel" style="background:${rel.bg};color:${rel.c};border:1px solid ${rel.c}33">${rel.t}</span>
       <div class="news-title-rw">${esc(n.title)}</div>
-      <a class="news-link-rw" href="${esc(n.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Read →</a>
+      <a class="news-link-rw" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Read →</a>
     </div>`}).join('');
 }
 
@@ -1001,11 +1001,11 @@ function roRenderRoNews(){
     const fwdBadge=n.forward?`<span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:8px;font-weight:600;background:#051015;color:#06B6D4;border:1px solid #06B6D433;margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">📅 Forward-looking</span><br>`:'';
     const outlet=n.outlet==='BBC News'?'BBC News':(n.source&&n.source!==n.outlet?n.source:n.outlet);
     const cls=n.outletCls==='police'?'police':n.outletCls;
-    return`<div class="ro-news-card" onclick="window.open(${JSON.stringify(n.link)},'_blank')">
+    return`<div class="ro-news-card" onclick="window.open(${JSON.stringify(n.link)},'_blank','noopener noreferrer')">
       <div class="news-src-row"><span class="ro-news-outlet ${cls}">${esc(outlet)}</span><span class="news-age" style="color:var(--ro-muted2)">${timeAgo(n.pubDate)}</span></div>
       ${fwdBadge}
       <div class="ro-news-title">${esc(n.title)}</div>
-      <a class="ro-news-link" href="${esc(n.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Read →</a>
+      <a class="ro-news-link" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Read →</a>
     </div>`}).join('');
 }
 
