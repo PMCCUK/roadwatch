@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.3 -->
+<!-- roadwatch v2.7 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -477,13 +477,10 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
   <!-- Legend -->
   <div class="rw-legend" id="rw-legend">
     <span style="font-size:9px;color:var(--rw-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
-    <span class="src-pill"><span class="src-dot" style="background:#F59E0B"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">TfL Traffic Status</a></span>
-    <span class="src-pill"><span class="src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/travel-alerts/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">National Highways</a></span>
-    <span class="src-pill"><span class="src-dot" style="background:#06B6D4"></span><a href="https://public.londonworks.gov.uk/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">London Works Register</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#F59E0B"></span>TfL Live</span>
     <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span>BBC News</span>
     <span class="src-pill"><span class="src-dot" style="background:#0EA5E9"></span>Google News</span>
-    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Met Police</span>
-    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Every 2 min</span>
+    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Every 5 min</span>
   </div>
 
   <!-- Stats -->
@@ -582,13 +579,11 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
   <!-- Legend -->
   <div class="ro-legend" id="ro-legend">
     <span style="font-size:9px;color:var(--ro-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#F59E0B"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">TfL Traffic Status</a></span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/travel-alerts/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">National Highways</a></span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#06B6D4"></span><a href="https://public.londonworks.gov.uk/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">London Works Register</a></span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-accent)"></span>TfL Planned Works</span>
     <span class="ro-src-pill"><span class="ro-src-dot" style="background:#EF4444"></span>BBC News</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#0EA5E9"></span>Google News</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#10B981"></span>Met Police</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#10B981"></span>Every 2 min</span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-accent)"></span>Google News</span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#10B981"></span>Police.uk</span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#10B981"></span>Every 5 min</span>
   </div>
 
   <!-- Stats -->
@@ -759,8 +754,8 @@ function rwStartCd(){rwCdSecs=120;clearInterval(rwCdTimer);rwCdTimer=setInterval
 
 function rwMapCat(c){if(!c)return'default';c=c.toLowerCase();if(c.includes('closure'))return'RoadClosure';if(c.includes('event')||c.includes('special'))return'SpecialEvent';if(c.includes('incident'))return'Incident';return'Works'}
 function rwMapSev(s){if(!s)return'low';s=s.toLowerCase();if(s==='serious'||s==='blocker')return'critical';if(s==='moderate'||s==='significant')return'high';if(s==='minimal'||s==='minor')return'medium';return'low'}
-function rwNormActive(d){const roads=(d.roads||[]).map(r=>r.displayName||r.id).filter(Boolean);const desc=[d.comments,d.additionalInfo].filter(Boolean).join(' ').trim()||d.description||'';const _id=d.id||d.disruptionId||'';return{id:_id||rnd(),category:rwMapCat(d.category),title:d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Traffic Control',sourceUrl:_id?'https://tfl.gov.uk/traffic/status/?disruptionIds='+_id:'https://tfl.gov.uk/traffic/status/',hasDiversion:d.hasDiversions||false,isActive:true}}
-function rwNormPlanned(d){const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);return{id:d.id||rnd(),category:'Works',title:d.description||'Planned works',desc:d.additionalInfo||d.description||'',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Street Works',sourceUrl:d.id?'https://tfl.gov.uk/traffic/status/?disruptionIds='+d.id:'https://tfl.gov.uk/status-updates/major-works-and-events',hasDiversion:false,isActive:false}}
+function rwNormActive(d){const roads=(d.roads||[]).map(r=>r.displayName||r.id).filter(Boolean);const desc=[d.comments,d.additionalInfo].filter(Boolean).join(' ').trim()||d.description||'';return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Traffic Control',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:d.hasDiversions||false,isActive:true}}
+function rwNormPlanned(d){const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);return{id:d.id||rnd(),category:'Works',title:d.description||'Planned works',desc:d.additionalInfo||d.description||'',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:false,isActive:false}}
 
 async function rwFetchTfl(){
   const grid=document.getElementById('rw-grid');
@@ -773,22 +768,6 @@ async function rwFetchTfl(){
     if(r2.status==='fulfilled'&&r2.value.ok){const d=await r2.value.json();if(Array.isArray(d)){const ids=new Set(list.map(x=>x.id));list=list.concat(d.map(rwNormPlanned).filter(x=>!ids.has(x.id)))}}
     list=list.filter((item,index,self)=>index===self.findIndex(x=>x.id===item.id));
     const seen=new Set();list=list.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().trim();if(seen.has(key))return false;seen.add(key);return true});
-    // ── National Highways travel alerts ──
-    try{
-      const nhRes=await fetch(RSS_PROXY+encodeURIComponent('https://nationalhighways.co.uk/travel-updates/travel-alerts/'));
-      if(nhRes.ok){
-        const nhData=await nhRes.json();
-        const html=nhData.contents||'';
-        const items=[...html.matchAll(/<item[^>]*>([\s\S]*?)<\/item>/gi)];
-        items.forEach(m=>{
-          const b=m[1];
-          const title=((b.match(/<title[^>]*><!\[CDATA\[(.*?)\]\]><\/title>/s)||b.match(/<title[^>]*>(.*?)<\/title>/s))||[])[1]?.trim()||'';
-          const desc=((b.match(/<description[^>]*><!\[CDATA\[(.*?)\]\]><\/description>/s)||b.match(/<description[^>]*>(.*?)<\/description>/s))||[])[1]?.replace(/<[^>]+>/g,'').trim()||'';
-          if(title)list.push({id:'nh-'+rnd(),category:'Incident',title,desc:desc||title,location:'England — National Highways',startDate:isoNow(),startTime:'',endDate:'',endTime:'',severity:'medium',roads:[],source:'National Highways',sourceUrl:'https://nationalhighways.co.uk/travel-updates/travel-alerts/',hasDiversion:false,isActive:true});
-        });
-      }
-    }catch{}
-
     list.sort((a,b)=>{const o={critical:0,high:1,medium:2,low:3};const dd=(o[a.severity]??4)-(o[b.severity]??4);return dd!==0?dd:(a.startDate||'').localeCompare(b.startDate||'')});
 
     // ── Inject verified today's protests (sourced from Westminster Council, Met Police, PSC) ──
@@ -816,26 +795,18 @@ async function rwFetchNews(){
 }
 
 function rwRenderDisruptions(){
-  const f=rwDisruptions.filter(d=>
-    (rwFilters.type==='all'||d.category===rwFilters.type)&&
-    (rwFilters.sev==='all'||d.severity===rwFilters.sev)
-  );
+  const f=rwDisruptions.filter(d=>(rwFilters.type==='all'||d.category===rwFilters.type)&&(rwFilters.sev==='all'||d.severity===rwFilters.sev));
   document.getElementById('rw-disrupt-cnt').textContent=`${f.length} disruption${f.length!==1?'s':''}`;
   const grid=document.getElementById('rw-grid');
   if(!f.length){grid.innerHTML=`<div class="state-panel"><div class="state-icon">${rwDisruptions.length?'🔍':'✅'}</div><div class="state-title-rw">${rwDisruptions.length?'No matches':'No active disruptions'}</div><div class="state-sub-rw">${rwDisruptions.length?'Adjust filters.':'TfL reports no disruptions right now.'}</div></div>`;return}
-  const nowMs=Date.now();
   grid.innerHTML=f.map((d,i)=>{
     const tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default,sc=RW_SEV_CFG[d.severity]||RW_SEV_CFG.low;
     const du=daysUntil(d.startDate),duc=du==='Now'||du==='Today'?'#EF4444':du==='Tomorrow'?'#F59E0B':'#6B7280';
     const rtags=(d.roads||[]).slice(0,4).map(r=>`<span class="road-tag-rw">${esc(r)}</span>`).join('')+((d.roads||[]).length>4?`<span class="road-tag-rw">+${d.roads.length-4}</span>`:'');
     const ds=d.startDate?fmtDate(d.startDate)+(d.startTime?` · ${d.startTime}`:'')+(d.endDate&&d.endDate!==d.startDate?` → ${fmtDate(d.endDate)}`:''):'Ongoing';
-    const sMs=d.startDate?new Date(d.startDate+'T00:00:00').getTime():null;
-    const eMs=d.endDate?new Date(d.endDate+'T00:00:00').getTime():null;
-    const isLongTerm=sMs&&sMs<(nowMs-14*24*60*60*1000)&&eMs&&eMs>(nowMs+7*24*60*60*1000);
-    const ltBadge=isLongTerm?'<span style="font-size:7px;color:#4B5563;background:#1F2937;padding:1px 5px;border-radius:3px;letter-spacing:.08em;text-transform:uppercase;margin-left:4px">LONG TERM</span>':'';
     return`<div class="d-card-rw" style="animation-delay:${i*.04}s" onclick='rwOpenModal(${JSON.stringify(JSON.stringify(d))})'>
       <div class="card-top"><div class="badge-row"><span class="badge" style="background:${tc.bg};color:${tc.color}">${tc.icon} ${tc.label}</span><span class="badge" style="background:#1F2937;color:${sc.color};border:1px solid ${sc.color}33">● ${sc.label}</span>${d.isActive?'<span class="badge" style="background:#0f2617;color:#10B981;border:1px solid #10B98133">● LIVE</span>':''}</div>${du?`<span class="days-lbl" style="color:${duc}">${du}</span>`:''}</div>
-      <div class="card-title-rw">${esc(d.title)}${ltBadge}</div>
+      <div class="card-title-rw">${esc(d.title)}</div>
       <div class="card-loc-rw">📍 ${esc(d.location)}</div>
       <div class="card-desc-rw">${esc(trunc(d.desc||d.title,140))}</div>
       ${rtags?`<div class="road-tags">${rtags}</div>`:''}
@@ -945,32 +916,33 @@ function roSetLive(s){const dot=document.getElementById('ro-live-dot'),txt=docum
 function roStartCd(){roCdSecs=120;clearInterval(roCdTimer);roCdTimer=setInterval(()=>{roCdSecs--;if(roCdSecs<=0){clearInterval(roCdTimer);return}const m=Math.floor(roCdSecs/60),s=String(roCdSecs%60).padStart(2,'0');document.getElementById('ro-cd').textContent=`${m}:${s}`},1000)}
 
 async function roFetchTfl(){
-  console.log('[roFetchTfl] API key:', roApiKey?'present ('+roApiKey.slice(0,6)+'…)':'MISSING — check localStorage tfl_api_key');
-  // Always inject today's protests regardless of API availability
-  const todayRo=isoNow();
-  const roProtests=[
-    {id:'protest-unite-kingdom-160526',type:'protest',title:'"Unite the Kingdom" March',desc:'Large-scale demonstration Parliament Square → Whitehall → Trafalgar Square. 4,000 Met Police officers deployed. Major closures across Westminster.',location:'Parliament Square → Whitehall → Trafalgar Square, SW1',startDate:todayRo,startTime:'10:00',endDate:todayRo,endTime:'17:00',roads:['Whitehall','Parliament Square','Trafalgar Square','Victoria Street'],source:'Westminster City Council / Met Police',sourceUrl:'https://news.met.police.uk/news/4000-officers-prepare-for-day-of-protest-in-central-london-509274',srcCls:'police'},
-    {id:'protest-nakba-march-160526',type:'march',title:'Nakba 78 March for Palestine',desc:'March starting Exhibition Road SW7 at 12pm. Very large attendance expected. Route through central London with significant road closures and bus diversions in place.',location:'Exhibition Road SW7 → Central London',startDate:todayRo,startTime:'12:00',endDate:todayRo,endTime:'18:00',roads:['Exhibition Road','Cromwell Road','Park Lane','Piccadilly'],source:'Palestine Solidarity Campaign / Met Police',sourceUrl:'https://palestinecampaign.org/events/nakba-78-march-for-palestine-2/',srcCls:'police'},
-  ];
-  roProtests.forEach(p=>{if(!roItems.find(x=>x.id===p.id))roItems.unshift(p)});
-  if(!roApiKey){roRenderItems();roRenderRoStats();roRenderRoTicker();return}
+  if(!roApiKey){roRenderItems();return}
   try{
     // Planned street works for next 10 days — forward looking
     const res=await fetch(`${TFL_BASE}/Road/all/Street/Disruption?startDate=${isoNow()}&endDate=${isoFuture(10)}&app_key=${roApiKey}`);
-    if(!res.ok){roRenderItems();roRenderRoStats();roRenderRoTicker();return}
+    if(!res.ok){roRenderItems();return}
     const data=await res.json();
     if(Array.isArray(data)){
       let tflItems=data.map(d=>{
         const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);
-        return{id:d.id||rnd(),type:'roadworks',title:d.description||'Planned street works',desc:d.additionalInfo||d.description||'Planned works on London road network.',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),roads,source:'TfL Street Works',sourceUrl:d.id?'https://tfl.gov.uk/traffic/status/?disruptionIds='+d.id:'https://tfl.gov.uk/traffic/status/',srcCls:'tfl'};
+        return{id:d.id||rnd(),type:'roadworks',title:d.description||'Planned street works',desc:d.additionalInfo||d.description||'Planned works on London road network.',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',srcCls:'tfl'};
       }).filter(d=>daysUntilNum(d.startDate)<=parseInt(roFilters.days));
       tflItems=[...new Map(tflItems.map(d=>[d.id,d])).values()];
       const seenRo=new Set();const dedupedTfl=tflItems.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seenRo.has(key))return false;seenRo.add(key);return true});
+      // Merge with existing (don't duplicate)
       const existIds=new Set(roItems.map(x=>x.id));
       dedupedTfl.forEach(it=>{if(!existIds.has(it.id))roItems.push(it)});
       const seenAll=new Set();roItems=roItems.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seenAll.has(key))return false;seenAll.add(key);return true});
+
+      // Inject confirmed today's protests into Roadworks too
+      const todayRo=isoNow();
+      const roProtests=[
+        {id:'protest-unite-kingdom-160526',type:'protest',title:'"Unite the Kingdom" March',desc:'Large-scale demonstration Parliament Square → Whitehall → Trafalgar Square. 4,000 Met Police officers deployed. Major closures across Westminster.',location:'Parliament Square → Whitehall → Trafalgar Square, SW1',startDate:todayRo,startTime:'10:00',endDate:todayRo,endTime:'17:00',roads:['Whitehall','Parliament Square','Trafalgar Square','Victoria Street'],source:'Westminster City Council / Met Police',sourceUrl:'https://news.met.police.uk/news/4000-officers-prepare-for-day-of-protest-in-central-london-509274',srcCls:'police'},
+        {id:'protest-nakba-march-160526',type:'march',title:'Nakba 78 March for Palestine',desc:'March starting Exhibition Road SW7 at 12pm. Very large attendance expected. Route through central London with significant road closures and bus diversions in place.',location:'Exhibition Road SW7 → Central London',startDate:todayRo,startTime:'12:00',endDate:todayRo,endTime:'18:00',roads:['Exhibition Road','Cromwell Road','Park Lane','Piccadilly'],source:'Palestine Solidarity Campaign / Met Police',sourceUrl:'https://palestinecampaign.org/events/nakba-78-march-for-palestine-2/',srcCls:'police'},
+      ];
+      roProtests.forEach(p=>{if(!roItems.find(x=>x.id===p.id))roItems.unshift(p)});
     }
-  }catch(e){console.error('[roFetchTfl] error:',e)}
+  }catch{}
   roRenderItems();roRenderRoStats();roRenderRoTicker();
 }
 
@@ -994,14 +966,6 @@ function roGetTimlineBadge(startDate){
 
 function roRenderItems(){
   const days=parseInt(roFilters.days);
-  const _now=Date.now(),_3ago=_now-(3*24*60*60*1000);
-  roItems=roItems.filter(d=>{
-    const start=d.startDate?new Date(d.startDate+'T00:00:00').getTime():null;
-    const end=d.endDate?new Date(d.endDate+'T00:00:00').getTime():null;
-    if(end&&end<_now)return false;
-    if(start&&start<_3ago&&!end)return false;
-    return true;
-  });
   const f=roItems.filter(d=>(roFilters.type==='all'||d.type===roFilters.type)&&daysUntilNum(d.startDate)<=days);
   f.sort((a,b)=>daysUntilNum(a.startDate)-daysUntilNum(b.startDate));
   document.getElementById('ro-main-cnt').textContent=`${f.length} item${f.length!==1?'s':''}`;
@@ -1011,7 +975,6 @@ function roRenderItems(){
     grid.innerHTML=`<div class="state-panel-ro"><div class="state-icon">🚧</div><div class="state-title-ro">${noKey?'TfL key needed':'No planned items found'}</div><div class="state-sub-ro">${noKey?'Go to ROADWATCH tab and enter your TfL API key first — it\'s shared between both dashboards.':'No planned works or events found in the next '+days+' days. News articles shown on the right.'}</div></div>`;
     return;
   }
-  const nowMs=Date.now();
   grid.innerHTML=f.map((d,i)=>{
     const tc=RO_TYPE_CFG[d.type]||RO_TYPE_CFG.default;
     const srcColor=d.srcCls==='tfl'?'#EAB308':d.srcCls==='police'?'#10B981':'#06B6D4';
@@ -1019,13 +982,9 @@ function roRenderItems(){
     const srcBorder=d.srcCls==='tfl'?'#EAB30833':d.srcCls==='police'?'#10B98133':'#06B6D433';
     const ds=d.startDate?fmtDate(d.startDate)+(d.startTime?` · ${d.startTime}`:'')+(d.endDate&&d.endDate!==d.startDate?` → ${fmtDate(d.endDate)}`:''):'TBC';
     const rtags=(d.roads||[]).slice(0,3).map(r=>`<span class="ro-road-tag">${esc(r)}</span>`).join('')+((d.roads||[]).length>3?`<span class="ro-road-tag">+${d.roads.length-3}</span>`:'');
-    const sMs=d.startDate?new Date(d.startDate+'T00:00:00').getTime():null;
-    const eMs=d.endDate?new Date(d.endDate+'T00:00:00').getTime():null;
-    const isLongTerm=sMs&&sMs<(nowMs-14*24*60*60*1000)&&eMs&&eMs>(nowMs+7*24*60*60*1000);
-    const ltBadge=isLongTerm?'<span style="font-size:7px;color:#4B5563;background:#1F2937;padding:1px 5px;border-radius:3px;letter-spacing:.08em;text-transform:uppercase;margin-left:4px">LONG TERM</span>':'';
     return`<div class="ro-card" style="animation-delay:${i*.04}s" onclick='roOpenModal(${JSON.stringify(JSON.stringify(d))})'>
       <div class="card-top"><div class="badge-row"><span class="ro-badge" style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.color}33">${tc.icon} ${tc.label}</span></div>${roGetTimlineBadge(d.startDate)}</div>
-      <div class="ro-card-title">${esc(d.title)}${ltBadge}</div>
+      <div class="ro-card-title">${esc(d.title)}</div>
       <div class="ro-card-loc">📍 ${esc(d.location)}</div>
       <div class="ro-card-desc">${esc(trunc(d.desc||d.title,140))}</div>
       ${rtags?`<div class="ro-road-tags">${rtags}</div>`:''}
