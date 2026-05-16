@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.8 -->
+<!-- roadwatch v2.9 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -477,8 +477,9 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
   <!-- Legend -->
   <div class="rw-legend" id="rw-legend">
     <span style="font-size:9px;color:var(--rw-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
-    <span class="src-pill"><span class="src-dot" style="background:#F59E0B"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">TfL Live</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#F59E0B"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">TfL Traffic Status</a></span>
     <span class="src-pill"><span class="src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/travel-alerts/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">National Highways</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#06B6D4"></span><a href="https://public.londonworks.gov.uk/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">London Works Register</a></span>
     <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span>BBC News</span>
     <span class="src-pill"><span class="src-dot" style="background:#0EA5E9"></span>Google News</span>
     <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Met Police</span>
@@ -581,8 +582,9 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
   <!-- Legend -->
   <div class="ro-legend" id="ro-legend">
     <span style="font-size:9px;color:var(--ro-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#F59E0B"></span>TfL Live</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#F97316"></span>National Highways</span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#F59E0B"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">TfL Traffic Status</a></span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/travel-alerts/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">National Highways</a></span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#06B6D4"></span><a href="https://public.londonworks.gov.uk/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">London Works Register</a></span>
     <span class="ro-src-pill"><span class="ro-src-dot" style="background:#EF4444"></span>BBC News</span>
     <span class="ro-src-pill"><span class="ro-src-dot" style="background:#0EA5E9"></span>Google News</span>
     <span class="ro-src-pill"><span class="ro-src-dot" style="background:#10B981"></span>Met Police</span>
@@ -757,8 +759,8 @@ function rwStartCd(){rwCdSecs=120;clearInterval(rwCdTimer);rwCdTimer=setInterval
 
 function rwMapCat(c){if(!c)return'default';c=c.toLowerCase();if(c.includes('closure'))return'RoadClosure';if(c.includes('event')||c.includes('special'))return'SpecialEvent';if(c.includes('incident'))return'Incident';return'Works'}
 function rwMapSev(s){if(!s)return'low';s=s.toLowerCase();if(s==='serious'||s==='blocker')return'critical';if(s==='moderate'||s==='significant')return'high';if(s==='minimal'||s==='minor')return'medium';return'low'}
-function rwNormActive(d){const roads=(d.roads||[]).map(r=>r.displayName||r.id).filter(Boolean);const desc=[d.comments,d.additionalInfo].filter(Boolean).join(' ').trim()||d.description||'';return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Traffic Control',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:d.hasDiversions||false,isActive:true}}
-function rwNormPlanned(d){const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);return{id:d.id||rnd(),category:'Works',title:d.description||'Planned works',desc:d.additionalInfo||d.description||'',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:false,isActive:false}}
+function rwNormActive(d){const roads=(d.roads||[]).map(r=>r.displayName||r.id).filter(Boolean);const desc=[d.comments,d.additionalInfo].filter(Boolean).join(' ').trim()||d.description||'';return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Traffic Control',sourceUrl:'https://tfl.gov.uk/traffic/status/',hasDiversion:d.hasDiversions||false,isActive:true}}
+function rwNormPlanned(d){const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);return{id:d.id||rnd(),category:'Works',title:d.description||'Planned works',desc:d.additionalInfo||d.description||'',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/status-updates/major-works-and-events',hasDiversion:false,isActive:false}}
 
 async function rwFetchTfl(){
   const grid=document.getElementById('rw-grid');
@@ -944,7 +946,7 @@ async function roFetchTfl(){
     if(Array.isArray(data)){
       let tflItems=data.map(d=>{
         const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);
-        return{id:d.id||rnd(),type:'roadworks',title:d.description||'Planned street works',desc:d.additionalInfo||d.description||'Planned works on London road network.',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',srcCls:'tfl'};
+        return{id:d.id||rnd(),type:'roadworks',title:d.description||'Planned street works',desc:d.additionalInfo||d.description||'Planned works on London road network.',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/status-updates/major-works-and-events',srcCls:'tfl'};
       }).filter(d=>daysUntilNum(d.startDate)<=parseInt(roFilters.days));
       tflItems=[...new Map(tflItems.map(d=>[d.id,d])).values()];
       const seenRo=new Set();const dedupedTfl=tflItems.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seenRo.has(key))return false;seenRo.add(key);return true});
