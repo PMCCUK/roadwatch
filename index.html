@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.7 -->
+<!-- roadwatch v2.8 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -477,10 +477,12 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
   <!-- Legend -->
   <div class="rw-legend" id="rw-legend">
     <span style="font-size:9px;color:var(--rw-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
-    <span class="src-pill"><span class="src-dot" style="background:#F59E0B"></span>TfL Live</span>
+    <span class="src-pill"><span class="src-dot" style="background:#F59E0B"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">TfL Live</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/travel-alerts/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">National Highways</a></span>
     <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span>BBC News</span>
     <span class="src-pill"><span class="src-dot" style="background:#0EA5E9"></span>Google News</span>
-    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Every 5 min</span>
+    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Met Police</span>
+    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Every 2 min</span>
   </div>
 
   <!-- Stats -->
@@ -579,11 +581,12 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
   <!-- Legend -->
   <div class="ro-legend" id="ro-legend">
     <span style="font-size:9px;color:var(--ro-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-accent)"></span>TfL Planned Works</span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#F59E0B"></span>TfL Live</span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#F97316"></span>National Highways</span>
     <span class="ro-src-pill"><span class="ro-src-dot" style="background:#EF4444"></span>BBC News</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-accent)"></span>Google News</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#10B981"></span>Police.uk</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#10B981"></span>Every 5 min</span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#0EA5E9"></span>Google News</span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#10B981"></span>Met Police</span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#10B981"></span>Every 2 min</span>
   </div>
 
   <!-- Stats -->
@@ -768,6 +771,22 @@ async function rwFetchTfl(){
     if(r2.status==='fulfilled'&&r2.value.ok){const d=await r2.value.json();if(Array.isArray(d)){const ids=new Set(list.map(x=>x.id));list=list.concat(d.map(rwNormPlanned).filter(x=>!ids.has(x.id)))}}
     list=list.filter((item,index,self)=>index===self.findIndex(x=>x.id===item.id));
     const seen=new Set();list=list.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().trim();if(seen.has(key))return false;seen.add(key);return true});
+    // ── National Highways travel alerts ──
+    try{
+      const nhRes=await fetch(RSS_PROXY+encodeURIComponent('https://nationalhighways.co.uk/travel-updates/travel-alerts/'));
+      if(nhRes.ok){
+        const nhData=await nhRes.json();
+        const html=nhData.contents||'';
+        const items=[...html.matchAll(/<item[^>]*>([\s\S]*?)<\/item>/gi)];
+        items.forEach(m=>{
+          const b=m[1];
+          const title=((b.match(/<title[^>]*><!\[CDATA\[(.*?)\]\]><\/title>/s)||b.match(/<title[^>]*>(.*?)<\/title>/s))||[])[1]?.trim()||'';
+          const desc=((b.match(/<description[^>]*><!\[CDATA\[(.*?)\]\]><\/description>/s)||b.match(/<description[^>]*>(.*?)<\/description>/s))||[])[1]?.replace(/<[^>]+>/g,'').trim()||'';
+          if(title)list.push({id:'nh-'+rnd(),category:'Incident',title,desc:desc||title,location:'England — National Highways',startDate:isoNow(),startTime:'',endDate:'',endTime:'',severity:'medium',roads:[],source:'National Highways',sourceUrl:'https://nationalhighways.co.uk/travel-updates/travel-alerts/',hasDiversion:false,isActive:true});
+        });
+      }
+    }catch{}
+
     list.sort((a,b)=>{const o={critical:0,high:1,medium:2,low:3};const dd=(o[a.severity]??4)-(o[b.severity]??4);return dd!==0?dd:(a.startDate||'').localeCompare(b.startDate||'')});
 
     // ── Inject verified today's protests (sourced from Westminster Council, Met Police, PSC) ──
