@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.3 -->
+<!-- roadwatch v2.4 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -91,7 +91,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 
 /* Ticker */
 .rw-ticker{background:var(--rw-accent);padding:6px 0;overflow:hidden;white-space:nowrap;display:none}
-.ticker-track{display:inline-flex;animation:tickscroll 300s linear infinite}
+.ticker-track{display:inline-flex;animation:tickscroll linear infinite}
 .ticker-track:hover{animation-play-state:paused}
 .rw-ticker-item{color:#0A0E1A;font-size:11px;font-weight:600;letter-spacing:.04em;padding:0 28px}
 @keyframes tickscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
@@ -766,6 +766,7 @@ async function rwFetchTfl(){
     if(r1.status==='fulfilled'&&r1.value.ok){const d=await r1.value.json();if(Array.isArray(d))list=list.concat(d.map(rwNormActive))}
     if(r2.status==='fulfilled'&&r2.value.ok){const d=await r2.value.json();if(Array.isArray(d)){const ids=new Set(list.map(x=>x.id));list=list.concat(d.map(rwNormPlanned).filter(x=>!ids.has(x.id)))}}
     list=list.filter((item,index,self)=>index===self.findIndex(x=>x.id===item.id));
+    const seen=new Set();list=list.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().trim();if(seen.has(key))return false;seen.add(key);return true});
     list.sort((a,b)=>{const o={critical:0,high:1,medium:2,low:3};const dd=(o[a.severity]??4)-(o[b.severity]??4);return dd!==0?dd:(a.startDate||'').localeCompare(b.startDate||'')});
 
     // ── Inject verified today's protests (sourced from Westminster Council, Met Police, PSC) ──
@@ -839,7 +840,9 @@ function rwRenderStats(){
 
 function rwRenderTicker(){
   const bar=document.getElementById('rw-ticker');if(!rwDisruptions.length){bar.style.display='none';return}
-  document.getElementById('rw-ticker-track').innerHTML=[...rwDisruptions,...rwDisruptions].map(d=>{const tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default;return`<span class="rw-ticker-item">${tc.icon} ${d.title} — ${d.location}</span>`}).join('');
+  const track=document.getElementById('rw-ticker-track');
+  track.innerHTML=[...rwDisruptions,...rwDisruptions].map(d=>{const tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default;return`<span class="rw-ticker-item">${tc.icon} ${d.title} — ${d.location}</span>`}).join('');
+  const duration=Math.max(rwDisruptions.length*3,30);track.style.animationDuration=duration+'s';
   bar.style.display='block';
 }
 
@@ -1015,7 +1018,9 @@ function roRenderRoStats(){
 
 function roRenderRoTicker(){
   const bar=document.getElementById('ro-ticker');if(!roItems.length){bar.style.display='none';return}
-  document.getElementById('ro-ticker-track').innerHTML=[...roItems,...roItems].map(d=>{const tc=RO_TYPE_CFG[d.type]||RO_TYPE_CFG.default;return`<span class="ro-ticker-item">${tc.icon} ${d.title} — ${d.location} [${fmtDate(d.startDate)}]</span>`}).join('');
+  const track=document.getElementById('ro-ticker-track');
+  track.innerHTML=[...roItems,...roItems].map(d=>{const tc=RO_TYPE_CFG[d.type]||RO_TYPE_CFG.default;return`<span class="ro-ticker-item">${tc.icon} ${d.title} — ${d.location} [${fmtDate(d.startDate)}]</span>`}).join('');
+  const duration=Math.max(roItems.length*3,30);track.style.animationDuration=duration+'s';
   bar.style.display='block';
 }
 
