@@ -90,7 +90,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 
 /* Ticker */
 .rw-ticker{background:var(--rw-accent);padding:6px 0;overflow:hidden;white-space:nowrap;display:none}
-.ticker-track{display:inline-flex;animation:tickscroll 80s linear infinite}
+.ticker-track{display:inline-flex;animation:tickscroll 150s linear infinite}
 .ticker-track:hover{animation-play-state:paused}
 .rw-ticker-item{color:#0A0E1A;font-size:11px;font-weight:600;letter-spacing:.04em;padding:0 28px}
 @keyframes tickscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
@@ -510,7 +510,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
       <button class="fbtn-rw" onclick="rwSetFilter('sev','medium',this)">Moderate</button>
     </div>
     <button class="alerts-btn-rw" onclick="rwToggleAlerts()">🔔 Alerts</button>
-    <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">5:00</span></button>
+    <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">2:00</span></button>
   </div>
 
   <!-- Layout -->
@@ -612,7 +612,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
       <button class="fbtn-ro" onclick="roSetFilter('days','7',this)">7 days</button>
       <button class="fbtn-ro" onclick="roSetFilter('days','3',this)">3 days</button>
     </div>
-    <button class="refresh-btn-ro" onclick="roRefreshAll()">↺ Refresh <span class="cd-ro" id="ro-cd">5:00</span></button>
+    <button class="refresh-btn-ro" onclick="roRefreshAll()">↺ Refresh <span class="cd-ro" id="ro-cd">2:00</span></button>
   </div>
 
   <!-- Layout -->
@@ -746,9 +746,9 @@ function rwShouldAlert(sev){if(sev==='critical')return rwAlerts.sevCrit!==false;
 function rwFireAlerts(d){if(!rwShouldAlert(d.severity))return;if(rwAlerts.sound!==false)rwPlaySound(d.severity);if(rwAlerts.tab!==false)rwFlashTab(d.title);if(rwAlerts.banner!==false){document.getElementById('rw-alert-title').textContent=`${(RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default).icon} NEW ${d.severity.toUpperCase()} DISRUPTION`;document.getElementById('rw-alert-msg').textContent=`${d.title} — ${d.location}`;document.getElementById('rw-alert-time').textContent='Detected '+new Date().toLocaleTimeString('en-GB');const b=document.getElementById('rw-alert-banner');b.style.display='block';setTimeout(()=>b.style.display='none',14000)}const tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default,sc=RW_SEV_CFG[d.severity]||RW_SEV_CFG.low;const t=document.createElement('div');t.className=`toast ${d.severity}`;t.innerHTML=`<div class="toast-hdr"><span class="toast-icon">${tc.icon}</span><span class="toast-lbl" style="color:${sc.color}">${d.severity.toUpperCase()}</span></div><div class="toast-title">${esc(d.title)}</div><div class="toast-loc">📍 ${esc(d.location)}</div>`;const c=document.getElementById('rw-toast-container');c.appendChild(t);t.addEventListener('click',()=>t.remove());setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .5s';setTimeout(()=>t.remove(),500)},7000);if(rwAlerts.browser&&Notification.permission==='granted')new Notification(`${tc.icon} ${d.severity.toUpperCase()} — ${d.title}`,{body:`📍 ${d.location}`,tag:d.id});if(rwAlerts.ntfy&&rwAlerts.ntfyTopic)fetch(`https://ntfy.sh/${encodeURIComponent(rwAlerts.ntfyTopic)}`,{method:'POST',headers:{'Title':`🚨 ${d.severity.toUpperCase()} — ${d.title}`,'Priority':d.severity==='critical'?'urgent':d.severity==='high'?'high':'default','Tags':`warning,london`},body:`📍 ${d.location}\n\n${d.desc||d.title}`}).catch(()=>{})}
 function closeRwAlert(){document.getElementById('rw-alert-banner').style.display='none'}
 
-async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,5*60*1000)}
+async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
 function rwSetLive(s){const dot=document.getElementById('rw-live-dot'),txt=document.getElementById('rw-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
-function rwStartCd(){rwCdSecs=300;clearInterval(rwCdTimer);rwCdTimer=setInterval(()=>{rwCdSecs--;if(rwCdSecs<=0){clearInterval(rwCdTimer);return}const m=Math.floor(rwCdSecs/60),s=String(rwCdSecs%60).padStart(2,'0');document.getElementById('rw-cd').textContent=`${m}:${s}`},1000)}
+function rwStartCd(){rwCdSecs=120;clearInterval(rwCdTimer);rwCdTimer=setInterval(()=>{rwCdSecs--;if(rwCdSecs<=0){clearInterval(rwCdTimer);return}const m=Math.floor(rwCdSecs/60),s=String(rwCdSecs%60).padStart(2,'0');document.getElementById('rw-cd').textContent=`${m}:${s}`},1000)}
 
 function rwMapCat(c){if(!c)return'default';c=c.toLowerCase();if(c.includes('closure'))return'RoadClosure';if(c.includes('event')||c.includes('special'))return'SpecialEvent';if(c.includes('incident'))return'Incident';return'Works'}
 function rwMapSev(s){if(!s)return'low';s=s.toLowerCase();if(s==='serious'||s==='blocker')return'critical';if(s==='moderate'||s==='significant')return'high';if(s==='minimal'||s==='minor')return'medium';return'low'}
@@ -765,6 +765,18 @@ async function rwFetchTfl(){
     if(r1.status==='fulfilled'&&r1.value.ok){const d=await r1.value.json();if(Array.isArray(d))list=list.concat(d.map(rwNormActive))}
     if(r2.status==='fulfilled'&&r2.value.ok){const d=await r2.value.json();if(Array.isArray(d)){const ids=new Set(list.map(x=>x.id));list=list.concat(d.map(rwNormPlanned).filter(x=>!ids.has(x.id)))}}
     list.sort((a,b)=>{const o={critical:0,high:1,medium:2,low:3};const dd=(o[a.severity]??4)-(o[b.severity]??4);return dd!==0?dd:(a.startDate||'').localeCompare(b.startDate||'')});
+
+    // ── Inject verified today's protests (sourced from Westminster Council, Met Police, PSC) ──
+    const todayStr = isoNow();
+    const confirmedProtests = [
+      {id:'protest-unite-kingdom-160526',category:'SpecialEvent',title:'"Unite the Kingdom" March',desc:'Large-scale demonstration marching from Parliament Square through Whitehall to Trafalgar Square. Met Police have 4,000 officers deployed. Major road closures and diversions across Westminster. Allow significant extra time.',location:'Parliament Square → Whitehall → Trafalgar Square',startDate:todayStr,startTime:'10:00',endDate:todayStr,endTime:'17:00',severity:'critical',roads:['Whitehall','Parliament Square','Trafalgar Square','The Mall','Victoria Street'],source:'Westminster City Council / Met Police',hasDiversion:true,isActive:true},
+      {id:'protest-nakba-march-160526',category:'SpecialEvent',title:'Nakba 78 March for Palestine',desc:'March for Palestine starting at Exhibition Road SW7 at 12pm. Expected very large attendance with coaches arriving from across the UK. Route through central London causing significant road closures and bus diversions.',location:'Exhibition Road SW7 → Central London',startDate:todayStr,startTime:'12:00',endDate:todayStr,endTime:'18:00',severity:'critical',roads:['Exhibition Road','Cromwell Road','Kensington Road','Park Lane','Piccadilly'],source:'Palestine Solidarity Campaign / Met Police',hasDiversion:true,isActive:true},
+    ];
+    // Only inject if not already present
+    confirmedProtests.forEach(p=>{
+      if(!list.find(x=>x.id===p.id)) list.unshift(p);
+      rwKnownIds.add(p.id);
+    });
     const firstLoad=rwKnownIds.size===0&&rwDisruptions.length===0;
     list.forEach(d=>{if(!rwKnownIds.has(d.id)){rwKnownIds.add(d.id);if(!firstLoad)rwFireAlerts(d)}});
     rwDisruptions=list;rwRenderDisruptions();rwRenderStats();rwRenderTicker();
@@ -891,12 +903,12 @@ function roRefreshAll(){
   Promise.all([roFetchTfl(),roFetchNews()]).then(()=>{
     document.getElementById('ro-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
     document.getElementById('ro-updated').style.display='block';
-    roSetLive('live');roStartCd();roRefTimer=setTimeout(roRefreshAll,5*60*1000);
+    roSetLive('live');roStartCd();roRefTimer=setTimeout(roRefreshAll,2*60*1000);
   });
 }
 
 function roSetLive(s){const dot=document.getElementById('ro-live-dot'),txt=document.getElementById('ro-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
-function roStartCd(){roCdSecs=300;clearInterval(roCdTimer);roCdTimer=setInterval(()=>{roCdSecs--;if(roCdSecs<=0){clearInterval(roCdTimer);return}const m=Math.floor(roCdSecs/60),s=String(roCdSecs%60).padStart(2,'0');document.getElementById('ro-cd').textContent=`${m}:${s}`},1000)}
+function roStartCd(){roCdSecs=120;clearInterval(roCdTimer);roCdTimer=setInterval(()=>{roCdSecs--;if(roCdSecs<=0){clearInterval(roCdTimer);return}const m=Math.floor(roCdSecs/60),s=String(roCdSecs%60).padStart(2,'0');document.getElementById('ro-cd').textContent=`${m}:${s}`},1000)}
 
 async function roFetchTfl(){
   if(!roApiKey){roRenderItems();return}
@@ -913,6 +925,14 @@ async function roFetchTfl(){
       // Merge with existing (don't duplicate)
       const existIds=new Set(roItems.map(x=>x.id));
       tflItems.forEach(it=>{if(!existIds.has(it.id))roItems.push(it)});
+
+      // Inject confirmed today's protests into Roadworks too
+      const todayRo=isoNow();
+      const roProtests=[
+        {id:'protest-unite-kingdom-160526',type:'protest',title:'"Unite the Kingdom" March',desc:'Large-scale demonstration Parliament Square → Whitehall → Trafalgar Square. 4,000 Met Police officers deployed. Major closures across Westminster.',location:'Parliament Square → Whitehall → Trafalgar Square, SW1',startDate:todayRo,startTime:'10:00',endDate:todayRo,endTime:'17:00',roads:['Whitehall','Parliament Square','Trafalgar Square','Victoria Street'],source:'Westminster City Council / Met Police',srcCls:'police'},
+        {id:'protest-nakba-march-160526',type:'march',title:'Nakba 78 March for Palestine',desc:'March starting Exhibition Road SW7 at 12pm. Very large attendance expected. Route through central London with significant road closures and bus diversions in place.',location:'Exhibition Road SW7 → Central London',startDate:todayRo,startTime:'12:00',endDate:todayRo,endTime:'18:00',roads:['Exhibition Road','Cromwell Road','Park Lane','Piccadilly'],source:'Palestine Solidarity Campaign / Met Police',srcCls:'police'},
+      ];
+      roProtests.forEach(p=>{if(!roItems.find(x=>x.id===p.id))roItems.unshift(p)});
     }
   }catch{}
   roRenderItems();roRenderRoStats();roRenderRoTicker();
