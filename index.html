@@ -90,7 +90,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 
 /* Ticker */
 .rw-ticker{background:var(--rw-accent);padding:6px 0;overflow:hidden;white-space:nowrap;display:none}
-.ticker-track{display:inline-flex;animation:tickscroll 150s linear infinite}
+.ticker-track{display:inline-flex;animation:tickscroll 300s linear infinite}
 .ticker-track:hover{animation-play-state:paused}
 .rw-ticker-item{color:#0A0E1A;font-size:11px;font-weight:600;letter-spacing:.04em;padding:0 28px}
 @keyframes tickscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
@@ -786,7 +786,7 @@ async function rwFetchTfl(){
 async function rwFetchNews(){
   const results=await Promise.allSettled(RW_RSS_FEEDS.map(f=>fetchRss(f)));
   let items=[];results.forEach(r=>{if(r.status==='fulfilled')items=items.concat(r.value)});
-  items=dedupeNews(items).map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>0).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,25);
+  const cutoff14=Date.now()-14*24*60*60*1000;items=dedupeNews(items).map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>0&&(it.pubDate||0)>=cutoff14).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,25);
   rwNews=items;rwRenderNews();rwRenderStats();
 }
 
@@ -943,8 +943,8 @@ async function roFetchNews(){
   let items=[];results.forEach(r=>{if(r.status==='fulfilled')items=items.concat(r.value)});
   // For roadworks we specifically want FORWARD-LOOKING news — filter by future keywords
   const futureKw=['planned','upcoming','next week','will be','is set','scheduled','announced','this weekend','coming','ahead'];
-  items=dedupeNews(items).map(it=>({...it,score:scoreRelevance(it),forward:futureKw.some(k=>(it.title+' '+it.desc).toLowerCase().includes(k))}))
-    .filter(it=>it.score>0).sort((a,b)=>{if(a.forward&&!b.forward)return-1;if(!a.forward&&b.forward)return 1;return b.score-a.score}).slice(0,25);
+  const cutoff14=Date.now()-14*24*60*60*1000;items=dedupeNews(items).map(it=>({...it,score:scoreRelevance(it),forward:futureKw.some(k=>(it.title+' '+it.desc).toLowerCase().includes(k))}))
+    .filter(it=>it.score>0&&(it.pubDate||0)>=cutoff14).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,25);
   roNews=items;roRenderRoNews();roRenderRoStats();
 }
 
