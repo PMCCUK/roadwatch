@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.0 -->
+<!-- roadwatch v3.1 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -171,6 +171,10 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 .d-card-rw{background:var(--rw-card);border:1px solid var(--rw-border);border-radius:11px;padding:15px;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s;animation:fadeUp .3s ease both}
 .d-card-rw:hover{transform:translateY(-2px);border-color:var(--rw-border2);box-shadow:0 4px 16px rgba(0,0,0,.35)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes newGlow{0%,100%{box-shadow:0 0 8px rgba(245,158,11,0.3)}50%{box-shadow:0 0 20px rgba(245,158,11,0.8),0 0 40px rgba(245,158,11,0.4)}}
+@keyframes nowGlow{0%,100%{box-shadow:0 0 6px rgba(239,68,68,0.2)}50%{box-shadow:0 0 16px rgba(239,68,68,0.6)}}
+.card-new-today{animation:newGlow 2s infinite!important;border-color:#F59E0B!important}
+.card-now{animation:nowGlow 1.5s infinite!important}
 .badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:8px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
 .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;gap:5px}
 .badge-row{display:flex;gap:4px;flex-wrap:wrap}
@@ -816,18 +820,38 @@ async function rwFetchNews(){
 }
 
 function rwRenderDisruptions(){
-  const f=rwDisruptions.filter(d=>(rwFilters.type==='all'||d.category===rwFilters.type)&&(rwFilters.sev==='all'||d.severity===rwFilters.sev));
+  const cutoffPast=Date.now()-(30*24*60*60*1000);
+  const f=rwDisruptions.filter(d=>{
+    if(!(rwFilters.type==='all'||d.category===rwFilters.type))return false;
+    if(!(rwFilters.sev==='all'||d.severity===rwFilters.sev))return false;
+    if(!d.startDate)return true;
+    const start=new Date(d.startDate).getTime(),end=d.endDate?new Date(d.endDate).getTime():null;
+    if(start<cutoffPast)return end&&end>Date.now();
+    return true;
+  });
   document.getElementById('rw-disrupt-cnt').textContent=`${f.length} disruption${f.length!==1?'s':''}`;
   const grid=document.getElementById('rw-grid');
   if(!f.length){grid.innerHTML=`<div class="state-panel"><div class="state-icon">${rwDisruptions.length?'🔍':'✅'}</div><div class="state-title-rw">${rwDisruptions.length?'No matches':'No active disruptions'}</div><div class="state-sub-rw">${rwDisruptions.length?'Adjust filters.':'TfL reports no disruptions right now.'}</div></div>`;return}
+  const today=isoNow(),nowMs=Date.now();
   grid.innerHTML=f.map((d,i)=>{
     const tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default,sc=RW_SEV_CFG[d.severity]||RW_SEV_CFG.low;
     const du=daysUntil(d.startDate),duc=du==='Now'||du==='Today'?'#EF4444':du==='Tomorrow'?'#F59E0B':'#6B7280';
     const rtags=(d.roads||[]).slice(0,4).map(r=>`<span class="road-tag-rw">${esc(r)}</span>`).join('')+((d.roads||[]).length>4?`<span class="road-tag-rw">+${d.roads.length-4}</span>`:'');
     const ds=d.startDate?fmtDate(d.startDate)+(d.startTime?` · ${d.startTime}`:'')+(d.endDate&&d.endDate!==d.startDate?` → ${fmtDate(d.endDate)}`:''):'Ongoing';
-    return`<div class="d-card-rw" style="animation-delay:${i*.04}s" onclick='rwOpenModal(${JSON.stringify(JSON.stringify(d))})'>
+    const sMs=d.startDate?new Date(d.startDate+'T00:00:00').getTime():null;
+    const eMs=d.endDate?new Date(d.endDate+'T00:00:00').getTime():null;
+    const dStart=daysUntilNum(d.startDate);
+    const isNewToday=d.startDate===today;
+    const isLongTerm=!isNewToday&&sMs&&sMs<(nowMs-14*24*60*60*1000)&&eMs&&eMs>(nowMs+7*24*60*60*1000);
+    const isNow=!isNewToday&&!isLongTerm&&sMs&&sMs<=nowMs&&(!eMs||eMs>=nowMs);
+    const isUpcoming=!isNewToday&&!isNow&&!isLongTerm&&dStart>=1&&dStart<=3;
+    const cardCls=isNewToday?' card-new-today':isNow?' card-now':'';
+    const cardExtra=isLongTerm?';border-left:3px solid #374151':isUpcoming?';border-color:#06B6D4':'';
+    const ltBadge=isLongTerm?'<span style="font-size:7px;color:#4B5563;background:#1F2937;padding:1px 5px;border-radius:3px;letter-spacing:.08em;text-transform:uppercase;margin-left:4px">LONG TERM</span>':'';
+    const soonBadge=isUpcoming?'<span style="font-size:7px;color:#06B6D4;background:#051015;padding:1px 5px;border-radius:3px;letter-spacing:.08em;text-transform:uppercase;margin-left:4px">SOON</span>':'';
+    return`<div class="d-card-rw${cardCls}" style="animation-delay:${i*.04}s${cardExtra}" onclick='rwOpenModal(${JSON.stringify(JSON.stringify(d))})'>
       <div class="card-top"><div class="badge-row"><span class="badge" style="background:${tc.bg};color:${tc.color}">${tc.icon} ${tc.label}</span><span class="badge" style="background:#1F2937;color:${sc.color};border:1px solid ${sc.color}33">● ${sc.label}</span>${d.isActive?'<span class="badge" style="background:#0f2617;color:#10B981;border:1px solid #10B98133">● LIVE</span>':''}</div>${du?`<span class="days-lbl" style="color:${duc}">${du}</span>`:''}</div>
-      <div class="card-title-rw">${esc(d.title)}</div>
+      <div class="card-title-rw">${esc(d.title)}${ltBadge}${soonBadge}</div>
       <div class="card-loc-rw">📍 ${esc(d.location)}</div>
       <div class="card-desc-rw">${esc(trunc(d.desc||d.title,140))}</div>
       ${rtags?`<div class="road-tags">${rtags}</div>`:''}
@@ -987,7 +1011,14 @@ function roGetTimlineBadge(startDate){
 
 function roRenderItems(){
   const days=parseInt(roFilters.days);
-  const f=roItems.filter(d=>(roFilters.type==='all'||d.type===roFilters.type)&&daysUntilNum(d.startDate)<=days);
+  const cutoffPast=Date.now()-(30*24*60*60*1000);
+  const f=roItems.filter(d=>{
+    if(!((roFilters.type==='all'||d.type===roFilters.type)&&daysUntilNum(d.startDate)<=days))return false;
+    if(!d.startDate)return true;
+    const start=new Date(d.startDate).getTime(),end=d.endDate?new Date(d.endDate).getTime():null;
+    if(start<cutoffPast)return end&&end>Date.now();
+    return true;
+  });
   f.sort((a,b)=>daysUntilNum(a.startDate)-daysUntilNum(b.startDate));
   document.getElementById('ro-main-cnt').textContent=`${f.length} item${f.length!==1?'s':''}`;
   const grid=document.getElementById('ro-grid');
@@ -996,6 +1027,7 @@ function roRenderItems(){
     grid.innerHTML=`<div class="state-panel-ro"><div class="state-icon">🚧</div><div class="state-title-ro">${noKey?'TfL key needed':'No planned items found'}</div><div class="state-sub-ro">${noKey?'Go to ROADWATCH tab and enter your TfL API key first — it\'s shared between both dashboards.':'No planned works or events found in the next '+days+' days. News articles shown on the right.'}</div></div>`;
     return;
   }
+  const today=isoNow(),nowMs=Date.now();
   grid.innerHTML=f.map((d,i)=>{
     const tc=RO_TYPE_CFG[d.type]||RO_TYPE_CFG.default;
     const srcColor=d.srcCls==='tfl'?'#EAB308':d.srcCls==='police'?'#10B981':'#06B6D4';
@@ -1003,9 +1035,20 @@ function roRenderItems(){
     const srcBorder=d.srcCls==='tfl'?'#EAB30833':d.srcCls==='police'?'#10B98133':'#06B6D433';
     const ds=d.startDate?fmtDate(d.startDate)+(d.startTime?` · ${d.startTime}`:'')+(d.endDate&&d.endDate!==d.startDate?` → ${fmtDate(d.endDate)}`:''):'TBC';
     const rtags=(d.roads||[]).slice(0,3).map(r=>`<span class="ro-road-tag">${esc(r)}</span>`).join('')+((d.roads||[]).length>3?`<span class="ro-road-tag">+${d.roads.length-3}</span>`:'');
-    return`<div class="ro-card" style="animation-delay:${i*.04}s" onclick='roOpenModal(${JSON.stringify(JSON.stringify(d))})'>
+    const sMs=d.startDate?new Date(d.startDate+'T00:00:00').getTime():null;
+    const eMs=d.endDate?new Date(d.endDate+'T00:00:00').getTime():null;
+    const dStart=daysUntilNum(d.startDate);
+    const isNewToday=d.startDate===today;
+    const isLongTerm=!isNewToday&&sMs&&sMs<(nowMs-14*24*60*60*1000)&&eMs&&eMs>(nowMs+7*24*60*60*1000);
+    const isNow=!isNewToday&&!isLongTerm&&sMs&&sMs<=nowMs&&(!eMs||eMs>=nowMs);
+    const isUpcoming=!isNewToday&&!isNow&&!isLongTerm&&dStart>=1&&dStart<=3;
+    const cardCls=isNewToday?' card-new-today':isNow?' card-now':'';
+    const cardExtra=isLongTerm?';border-left:3px solid #374151':isUpcoming?';border-color:#06B6D4':'';
+    const ltBadge=isLongTerm?'<span style="font-size:7px;color:#4B5563;background:#1F2937;padding:1px 5px;border-radius:3px;letter-spacing:.08em;text-transform:uppercase;margin-left:4px">LONG TERM</span>':'';
+    const soonBadge=isUpcoming?'<span style="font-size:7px;color:#06B6D4;background:#051015;padding:1px 5px;border-radius:3px;letter-spacing:.08em;text-transform:uppercase;margin-left:4px">SOON</span>':'';
+    return`<div class="ro-card${cardCls}" style="animation-delay:${i*.04}s${cardExtra}" onclick='roOpenModal(${JSON.stringify(JSON.stringify(d))})'>
       <div class="card-top"><div class="badge-row"><span class="ro-badge" style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.color}33">${tc.icon} ${tc.label}</span></div>${roGetTimlineBadge(d.startDate)}</div>
-      <div class="ro-card-title">${esc(d.title)}</div>
+      <div class="ro-card-title">${esc(d.title)}${ltBadge}${soonBadge}</div>
       <div class="ro-card-loc">📍 ${esc(d.location)}</div>
       <div class="ro-card-desc">${esc(trunc(d.desc||d.title,140))}</div>
       ${rtags?`<div class="ro-road-tags">${rtags}</div>`:''}
