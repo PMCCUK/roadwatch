@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.4 -->
+<!-- roadwatch v2.7 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -717,6 +717,7 @@ const RW_RSS_FEEDS=[
   {name:'BBC News',cls:'bbc',url:'https://feeds.bbci.co.uk/news/england/london/rss.xml'},
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+disruption+traffic&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+protest+march+road+closed&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
 
 let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all'},rwApiKey='';
@@ -753,8 +754,8 @@ function rwStartCd(){rwCdSecs=120;clearInterval(rwCdTimer);rwCdTimer=setInterval
 
 function rwMapCat(c){if(!c)return'default';c=c.toLowerCase();if(c.includes('closure'))return'RoadClosure';if(c.includes('event')||c.includes('special'))return'SpecialEvent';if(c.includes('incident'))return'Incident';return'Works'}
 function rwMapSev(s){if(!s)return'low';s=s.toLowerCase();if(s==='serious'||s==='blocker')return'critical';if(s==='moderate'||s==='significant')return'high';if(s==='minimal'||s==='minor')return'medium';return'low'}
-function rwNormActive(d){const roads=(d.roads||[]).map(r=>r.displayName||r.id).filter(Boolean);const desc=[d.comments,d.additionalInfo].filter(Boolean).join(' ').trim()||d.description||'';return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Traffic Control',hasDiversion:d.hasDiversions||false,isActive:true}}
-function rwNormPlanned(d){const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);return{id:d.id||rnd(),category:'Works',title:d.description||'Planned works',desc:d.additionalInfo||d.description||'',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Street Works',hasDiversion:false,isActive:false}}
+function rwNormActive(d){const roads=(d.roads||[]).map(r=>r.displayName||r.id).filter(Boolean);const desc=[d.comments,d.additionalInfo].filter(Boolean).join(' ').trim()||d.description||'';return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Traffic Control',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:d.hasDiversions||false,isActive:true}}
+function rwNormPlanned(d){const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);return{id:d.id||rnd(),category:'Works',title:d.description||'Planned works',desc:d.additionalInfo||d.description||'',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:false,isActive:false}}
 
 async function rwFetchTfl(){
   const grid=document.getElementById('rw-grid');
@@ -810,7 +811,7 @@ function rwRenderDisruptions(){
       <div class="card-desc-rw">${esc(trunc(d.desc||d.title,140))}</div>
       ${rtags?`<div class="road-tags">${rtags}</div>`:''}
       <div class="card-foot-rw"><div class="card-date-rw">${ds}</div>${d.hasDiversion?'<span class="div-tag">↪ Diversion</span>':''}</div>
-      <div class="card-src-rw"><span class="src-badge-rw" style="background:#1a1205;color:#F59E0B;border:1px solid #F59E0B33">TfL</span>${esc(d.source)}</div>
+      <div class="card-src-rw"><span class="src-badge-rw" style="background:#1a1205;color:#F59E0B;border:1px solid #F59E0B33">TfL</span>${d.sourceUrl?`<a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener" style="color:#F59E0B;text-decoration:none">${esc(d.source)}</a>`:esc(d.source)}</div>
     </div>`}).join('');
 }
 
@@ -883,10 +884,9 @@ const RO_TYPE_CFG={
 const RO_RSS_FEEDS=[
   {name:'BBC News',cls:'bbc',url:'https://feeds.bbci.co.uk/news/england/london/rss.xml'},
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+next+week+planned&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+protest+march+planned+2025&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+protest+march+planned+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+event+road+closure+diversion+upcoming&hl=en-GB&gl=GB&ceid=GB:en'},
-  // Police.uk London events/marches feed
-  {name:'Police.uk',cls:'police',url:'https://news.google.com/rss/search?q=site:met.police.uk+march+OR+protest+OR+procession+London&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=site:met.police.uk+OR+Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
 
 let roItems=[],roNews=[],roFilters={type:'all',days:'10'};
@@ -923,13 +923,16 @@ async function roFetchTfl(){
     if(!res.ok){roRenderItems();return}
     const data=await res.json();
     if(Array.isArray(data)){
-      const tflItems=data.map(d=>{
+      let tflItems=data.map(d=>{
         const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);
-        return{id:d.id||rnd(),type:'roadworks',title:d.description||'Planned street works',desc:d.additionalInfo||d.description||'Planned works on London road network.',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),roads,source:'TfL Street Works',srcCls:'tfl'};
+        return{id:d.id||rnd(),type:'roadworks',title:d.description||'Planned street works',desc:d.additionalInfo||d.description||'Planned works on London road network.',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',srcCls:'tfl'};
       }).filter(d=>daysUntilNum(d.startDate)<=parseInt(roFilters.days));
+      tflItems=[...new Map(tflItems.map(d=>[d.id,d])).values()];
+      const seenRo=new Set();const dedupedTfl=tflItems.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seenRo.has(key))return false;seenRo.add(key);return true});
       // Merge with existing (don't duplicate)
       const existIds=new Set(roItems.map(x=>x.id));
-      tflItems.forEach(it=>{if(!existIds.has(it.id))roItems.push(it)});
+      dedupedTfl.forEach(it=>{if(!existIds.has(it.id))roItems.push(it)});
+      const seenAll=new Set();roItems=roItems.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seenAll.has(key))return false;seenAll.add(key);return true});
 
       // Inject confirmed today's protests into Roadworks too
       const todayRo=isoNow();
@@ -986,7 +989,7 @@ function roRenderItems(){
       <div class="ro-card-desc">${esc(trunc(d.desc||d.title,140))}</div>
       ${rtags?`<div class="ro-road-tags">${rtags}</div>`:''}
       <div class="ro-card-foot"><div class="ro-card-date">${ds}</div></div>
-      <div class="ro-card-src"><span class="ro-src-badge" style="background:${srcBg};color:${srcColor};border:1px solid ${srcBorder}">${esc(d.source)}</span></div>
+      <div class="ro-card-src">${d.sourceUrl?`<a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener" style="text-decoration:none"><span class="ro-src-badge" style="background:${srcBg};color:${srcColor};border:1px solid ${srcBorder}">${esc(d.source)}</span></a>`:`<span class="ro-src-badge" style="background:${srcBg};color:${srcColor};border:1px solid ${srcBorder}">${esc(d.source)}</span>`}</div>
     </div>`}).join('');
 }
 
