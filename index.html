@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- roadwatch v2.3 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -764,13 +765,14 @@ async function rwFetchTfl(){
     let list=[];
     if(r1.status==='fulfilled'&&r1.value.ok){const d=await r1.value.json();if(Array.isArray(d))list=list.concat(d.map(rwNormActive))}
     if(r2.status==='fulfilled'&&r2.value.ok){const d=await r2.value.json();if(Array.isArray(d)){const ids=new Set(list.map(x=>x.id));list=list.concat(d.map(rwNormPlanned).filter(x=>!ids.has(x.id)))}}
+    list=list.filter((item,index,self)=>index===self.findIndex(x=>x.id===item.id));
     list.sort((a,b)=>{const o={critical:0,high:1,medium:2,low:3};const dd=(o[a.severity]??4)-(o[b.severity]??4);return dd!==0?dd:(a.startDate||'').localeCompare(b.startDate||'')});
 
     // ── Inject verified today's protests (sourced from Westminster Council, Met Police, PSC) ──
     const todayStr = isoNow();
     const confirmedProtests = [
-      {id:'protest-unite-kingdom-160526',category:'SpecialEvent',title:'"Unite the Kingdom" March',desc:'Large-scale demonstration marching from Parliament Square through Whitehall to Trafalgar Square. Met Police have 4,000 officers deployed. Major road closures and diversions across Westminster. Allow significant extra time.',location:'Parliament Square → Whitehall → Trafalgar Square',startDate:todayStr,startTime:'10:00',endDate:todayStr,endTime:'17:00',severity:'critical',roads:['Whitehall','Parliament Square','Trafalgar Square','The Mall','Victoria Street'],source:'Westminster City Council / Met Police',hasDiversion:true,isActive:true},
-      {id:'protest-nakba-march-160526',category:'SpecialEvent',title:'Nakba 78 March for Palestine',desc:'March for Palestine starting at Exhibition Road SW7 at 12pm. Expected very large attendance with coaches arriving from across the UK. Route through central London causing significant road closures and bus diversions.',location:'Exhibition Road SW7 → Central London',startDate:todayStr,startTime:'12:00',endDate:todayStr,endTime:'18:00',severity:'critical',roads:['Exhibition Road','Cromwell Road','Kensington Road','Park Lane','Piccadilly'],source:'Palestine Solidarity Campaign / Met Police',hasDiversion:true,isActive:true},
+      {id:'protest-unite-kingdom-160526',category:'SpecialEvent',title:'"Unite the Kingdom" March',desc:'Large-scale demonstration marching from Parliament Square through Whitehall to Trafalgar Square. Met Police have 4,000 officers deployed. Major road closures and diversions across Westminster. Allow significant extra time.',location:'Parliament Square → Whitehall → Trafalgar Square',startDate:todayStr,startTime:'10:00',endDate:todayStr,endTime:'17:00',severity:'critical',roads:['Whitehall','Parliament Square','Trafalgar Square','The Mall','Victoria Street'],source:'Westminster City Council / Met Police',sourceUrl:'https://news.met.police.uk/news/4000-officers-prepare-for-day-of-protest-in-central-london-509274',hasDiversion:true,isActive:true},
+      {id:'protest-nakba-march-160526',category:'SpecialEvent',title:'Nakba 78 March for Palestine',desc:'March for Palestine starting at Exhibition Road SW7 at 12pm. Expected very large attendance with coaches arriving from across the UK. Route through central London causing significant road closures and bus diversions.',location:'Exhibition Road SW7 → Central London',startDate:todayStr,startTime:'12:00',endDate:todayStr,endTime:'18:00',severity:'critical',roads:['Exhibition Road','Cromwell Road','Kensington Road','Park Lane','Piccadilly'],source:'Palestine Solidarity Campaign / Met Police',sourceUrl:'https://palestinecampaign.org/events/nakba-78-march-for-palestine-2/',hasDiversion:true,isActive:true},
     ];
     // Only inject if not already present
     confirmedProtests.forEach(p=>{
@@ -786,7 +788,7 @@ async function rwFetchTfl(){
 async function rwFetchNews(){
   const results=await Promise.allSettled(RW_RSS_FEEDS.map(f=>fetchRss(f)));
   let items=[];results.forEach(r=>{if(r.status==='fulfilled')items=items.concat(r.value)});
-  const cutoff14=Date.now()-14*24*60*60*1000;items=dedupeNews(items).map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>0&&(it.pubDate||0)>=cutoff14).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,25);
+  items=dedupeNews(items);const cutoff=Date.now()-(14*24*60*60*1000);items=items.filter(it=>it.pubDate&&it.pubDate>cutoff);items=items.map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>0).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,25);
   rwNews=items;rwRenderNews();rwRenderStats();
 }
 
@@ -855,7 +857,7 @@ function rwOpenModal(jsonStr){
   document.getElementById('rw-m-roads-wrap').style.display=(d.roads||[]).length?'':'none';
   const de=document.getElementById('rw-m-div');de.textContent=d.hasDiversion?'✓ In place':'None reported';de.style.color=d.hasDiversion?'#10B981':'#6B7280';
   const se=document.getElementById('rw-m-sev');se.textContent=sc.label;se.style.color=sc.color;
-  document.getElementById('rw-m-src').textContent='SOURCE: '+(d.source||'TfL').toUpperCase();
+  document.getElementById('rw-m-src').innerHTML=d.sourceUrl?`SOURCE: <a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener" style="color:#F59E0B;text-decoration:none">${esc((d.source||'TfL').toUpperCase())} →</a>`:`SOURCE: ${esc((d.source||'TfL').toUpperCase())}`;
   document.getElementById('rw-modal-overlay').classList.add('open');document.body.style.overflow='hidden';
 }
 function rwCloseModal(e){if(e.target===document.getElementById('rw-modal-overlay'))rwCloseModalNow()}
@@ -929,8 +931,8 @@ async function roFetchTfl(){
       // Inject confirmed today's protests into Roadworks too
       const todayRo=isoNow();
       const roProtests=[
-        {id:'protest-unite-kingdom-160526',type:'protest',title:'"Unite the Kingdom" March',desc:'Large-scale demonstration Parliament Square → Whitehall → Trafalgar Square. 4,000 Met Police officers deployed. Major closures across Westminster.',location:'Parliament Square → Whitehall → Trafalgar Square, SW1',startDate:todayRo,startTime:'10:00',endDate:todayRo,endTime:'17:00',roads:['Whitehall','Parliament Square','Trafalgar Square','Victoria Street'],source:'Westminster City Council / Met Police',srcCls:'police'},
-        {id:'protest-nakba-march-160526',type:'march',title:'Nakba 78 March for Palestine',desc:'March starting Exhibition Road SW7 at 12pm. Very large attendance expected. Route through central London with significant road closures and bus diversions in place.',location:'Exhibition Road SW7 → Central London',startDate:todayRo,startTime:'12:00',endDate:todayRo,endTime:'18:00',roads:['Exhibition Road','Cromwell Road','Park Lane','Piccadilly'],source:'Palestine Solidarity Campaign / Met Police',srcCls:'police'},
+        {id:'protest-unite-kingdom-160526',type:'protest',title:'"Unite the Kingdom" March',desc:'Large-scale demonstration Parliament Square → Whitehall → Trafalgar Square. 4,000 Met Police officers deployed. Major closures across Westminster.',location:'Parliament Square → Whitehall → Trafalgar Square, SW1',startDate:todayRo,startTime:'10:00',endDate:todayRo,endTime:'17:00',roads:['Whitehall','Parliament Square','Trafalgar Square','Victoria Street'],source:'Westminster City Council / Met Police',sourceUrl:'https://news.met.police.uk/news/4000-officers-prepare-for-day-of-protest-in-central-london-509274',srcCls:'police'},
+        {id:'protest-nakba-march-160526',type:'march',title:'Nakba 78 March for Palestine',desc:'March starting Exhibition Road SW7 at 12pm. Very large attendance expected. Route through central London with significant road closures and bus diversions in place.',location:'Exhibition Road SW7 → Central London',startDate:todayRo,startTime:'12:00',endDate:todayRo,endTime:'18:00',roads:['Exhibition Road','Cromwell Road','Park Lane','Piccadilly'],source:'Palestine Solidarity Campaign / Met Police',sourceUrl:'https://palestinecampaign.org/events/nakba-78-march-for-palestine-2/',srcCls:'police'},
       ];
       roProtests.forEach(p=>{if(!roItems.find(x=>x.id===p.id))roItems.unshift(p)});
     }
@@ -943,8 +945,8 @@ async function roFetchNews(){
   let items=[];results.forEach(r=>{if(r.status==='fulfilled')items=items.concat(r.value)});
   // For roadworks we specifically want FORWARD-LOOKING news — filter by future keywords
   const futureKw=['planned','upcoming','next week','will be','is set','scheduled','announced','this weekend','coming','ahead'];
-  const cutoff14=Date.now()-14*24*60*60*1000;items=dedupeNews(items).map(it=>({...it,score:scoreRelevance(it),forward:futureKw.some(k=>(it.title+' '+it.desc).toLowerCase().includes(k))}))
-    .filter(it=>it.score>0&&(it.pubDate||0)>=cutoff14).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,25);
+  items=dedupeNews(items);const cutoff=Date.now()-(14*24*60*60*1000);items=items.filter(it=>it.pubDate&&it.pubDate>cutoff);items=items.map(it=>({...it,score:scoreRelevance(it),forward:futureKw.some(k=>(it.title+' '+it.desc).toLowerCase().includes(k))}))
+    .filter(it=>it.score>0).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,25);
   roNews=items;roRenderRoNews();roRenderRoStats();
 }
 
@@ -1032,7 +1034,7 @@ function roOpenModal(jsonStr){
   document.getElementById('ro-m-source').textContent=d.source||'TfL';
   document.getElementById('ro-m-source').style.color='var(--ro-accent)';
   const dn=daysUntilNum(d.startDate);document.getElementById('ro-m-days').textContent=dn<=0?'Now / Ongoing':dn===1?'Tomorrow':`${dn} days`;
-  document.getElementById('ro-m-src').textContent='SOURCE: '+(d.source||'').toUpperCase();
+  document.getElementById('ro-m-src').innerHTML=d.sourceUrl?`SOURCE: <a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener" style="color:#06B6D4;text-decoration:none">${esc((d.source||'').toUpperCase())} →</a>`:`SOURCE: ${esc((d.source||'').toUpperCase())}`;
   document.getElementById('ro-modal-overlay').classList.add('open');document.body.style.overflow='hidden';
 }
 function roCloseModal(e){if(e.target===document.getElementById('ro-modal-overlay'))roCloseModalNow()}
