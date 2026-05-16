@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.1 -->
+<!-- roadwatch v3.2 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -820,15 +820,10 @@ async function rwFetchNews(){
 }
 
 function rwRenderDisruptions(){
-  const cutoffPast=Date.now()-(30*24*60*60*1000);
-  const f=rwDisruptions.filter(d=>{
-    if(!(rwFilters.type==='all'||d.category===rwFilters.type))return false;
-    if(!(rwFilters.sev==='all'||d.severity===rwFilters.sev))return false;
-    if(!d.startDate)return true;
-    const start=new Date(d.startDate).getTime(),end=d.endDate?new Date(d.endDate).getTime():null;
-    if(start<cutoffPast)return end&&end>Date.now();
-    return true;
-  });
+  const f=rwDisruptions.filter(d=>
+    (rwFilters.type==='all'||d.category===rwFilters.type)&&
+    (rwFilters.sev==='all'||d.severity===rwFilters.sev)
+  );
   document.getElementById('rw-disrupt-cnt').textContent=`${f.length} disruption${f.length!==1?'s':''}`;
   const grid=document.getElementById('rw-grid');
   if(!f.length){grid.innerHTML=`<div class="state-panel"><div class="state-icon">${rwDisruptions.length?'🔍':'✅'}</div><div class="state-title-rw">${rwDisruptions.length?'No matches':'No active disruptions'}</div><div class="state-sub-rw">${rwDisruptions.length?'Adjust filters.':'TfL reports no disruptions right now.'}</div></div>`;return}
@@ -1011,14 +1006,13 @@ function roGetTimlineBadge(startDate){
 
 function roRenderItems(){
   const days=parseInt(roFilters.days);
-  const cutoffPast=Date.now()-(30*24*60*60*1000);
-  const f=roItems.filter(d=>{
-    if(!((roFilters.type==='all'||d.type===roFilters.type)&&daysUntilNum(d.startDate)<=days))return false;
+  roItems=roItems.filter(d=>{
     if(!d.startDate)return true;
-    const start=new Date(d.startDate).getTime(),end=d.endDate?new Date(d.endDate).getTime():null;
-    if(start<cutoffPast)return end&&end>Date.now();
+    const end=d.endDate?new Date(d.endDate+'T00:00:00').getTime():null;
+    if(end&&end<Date.now())return false;
     return true;
   });
+  const f=roItems.filter(d=>(roFilters.type==='all'||d.type===roFilters.type)&&daysUntilNum(d.startDate)<=days);
   f.sort((a,b)=>daysUntilNum(a.startDate)-daysUntilNum(b.startDate));
   document.getElementById('ro-main-cnt').textContent=`${f.length} item${f.length!==1?'s':''}`;
   const grid=document.getElementById('ro-grid');
