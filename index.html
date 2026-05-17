@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.7.2 -->
+<!-- roadwatch v2.7.4 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -806,16 +806,17 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 
   <!-- Setup -->
   <div class="fl-setup" id="fl-setup">
-    <h2>✈️ Connect AviationStack API key</h2>
-    <p>Live Asia→London flight data requires a free AviationStack API key.</p>
+    <h2>✈️ Connect AirLabs API Key — Free</h2>
+    <p>Live Asia→London flight data requires a free AirLabs API key.</p>
     <ol>
-      <li>Go to <a href="https://aviationstack.com/" target="_blank" rel="noopener">aviationstack.com</a> and sign up for a free account</li>
-      <li>Copy your API Access Key from the dashboard</li>
-      <li>Paste it below — saved only in your browser</li>
+      <li>Go to <a href="https://airlabs.co" target="_blank" rel="noopener">airlabs.co</a> and click "Get Free API Key"</li>
+      <li>Sign up with email — instant, no credit card needed</li>
+      <li>Copy your API key from the dashboard</li>
+      <li>Paste below and click Connect</li>
     </ol>
-    <p style="font-size:10px;color:var(--fl-muted2);margin-bottom:12px">Note: Free tier requires HTTP. This app uses a CORS proxy so it works in the browser.</p>
+    <p style="font-size:10px;color:var(--fl-muted2);margin-bottom:12px">Free tier includes real-time arrivals and departures. No call limits on basic plan.</p>
     <div class="key-row">
-      <input type="password" class="key-input-fl" id="fl-key-input" placeholder="Paste AviationStack access_key…" autocomplete="off">
+      <input type="password" class="key-input-fl" id="fl-key-input" placeholder="Paste AirLabs api_key…" autocomplete="off">
       <button class="btn-fl" onclick="flSaveKey()">Save &amp; Connect</button>
     </div>
     <div style="margin-top:12px">
@@ -830,7 +831,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
     <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-amber)"></span>Delayed &lt;60min</span>
     <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-red)"></span>Delayed 60min+</span>
     <span class="fl-src-pill"><span class="fl-src-dot" style="background:#6B7280"></span>Cancelled</span>
-    <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-accent)"></span>AviationStack</span>
+    <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-accent)"></span>AirLabs</span>
     <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-accent)"></span>Every 2 min</span>
   </div>
 
@@ -1281,33 +1282,34 @@ function roCloseModal(e){if(e.target===document.getElementById('ro-modal-overlay
 function roCloseModalNow(){document.getElementById('ro-modal-overlay').classList.remove('open');document.body.style.overflow=''}
 
 // ════════════════════════════════════════════════════════════
-//  FLIGHTS
+//  FLIGHTS  (AirLabs API)
 // ════════════════════════════════════════════════════════════
 const FL_AIRPORTS=['LHR','LGW','STN','LCY','LTN'];
-const FL_COUNTRIES=['China','Japan','Thailand','Malaysia','Taiwan'];
-const FL_COUNTRY_CODE={CN:'🇨🇳',JP:'🇯🇵',TH:'🇹🇭',MY:'🇲🇾',TW:'🇹🇼',GB:'🇬🇧'};
-const FL_COUNTRY_MAP={'China':'CN','Japan':'JP','Thailand':'TH','Malaysia':'MY','Taiwan':'TW'};
+const FL_ASIAN_COUNTRIES=new Set(['CN','JP','TH','MY','TW','HK']);
+const FL_ASIAN_AIRPORTS=new Set(['PEK','PVG','SHA','CAN','SZX','CTU','HKG','NRT','HND','KIX','NGO','BKK','DMK','CNX','HKT','KUL','PEN','BKI','TPE','KHH','RMQ']);
+const FL_COUNTRY_CODE={CN:'🇨🇳',JP:'🇯🇵',TH:'🇹🇭',MY:'🇲🇾',TW:'🇹🇼',GB:'🇬🇧',HK:'🇭🇰'};
+const FL_AIRLINE_NAMES={CX:'Cathay Pacific',JL:'Japan Airlines',NH:'ANA',TG:'Thai Airways',MH:'Malaysia Airlines',CI:'China Airlines',CA:'Air China',MU:'China Eastern',CZ:'China Southern',BR:'EVA Air',SQ:'Singapore Airlines',BA:'British Airways',VS:'Virgin Atlantic',AF:'Air France',KL:'KLM',EK:'Emirates',QR:'Qatar Airways',TK:'Turkish Airlines',AY:'Finnair',LH:'Lufthansa'};
 const FL_RSS_FEEDS=[
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=Heathrow+flight+delay+cancellation+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+airport+disruption+delays+2026&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
 
 const FL_MOCK=[
-  {flightNum:'CX234',airline:'Cathay Pacific',direction:'arrival',originIata:'HKG',originCity:'Hong Kong',originCountry:'China',destIata:'LHR',destCity:'London Heathrow',destCountry:'GB',scheduled:'08:45',actual:'09:32',delayMins:47,status:'delayed',aircraft:'Boeing 777-300ER',terminal:'T3',countryCode:'CN',mock:true},
-  {flightNum:'JL402',airline:'Japan Airlines',direction:'arrival',originIata:'NRT',originCity:'Tokyo Narita',originCountry:'Japan',destIata:'LHR',destCity:'London Heathrow',destCountry:'GB',scheduled:'11:15',actual:'11:15',delayMins:0,status:'active',aircraft:'Boeing 787-9',terminal:'T3',countryCode:'JP',mock:true},
-  {flightNum:'TG910',airline:'Thai Airways',direction:'arrival',originIata:'BKK',originCity:'Bangkok',originCountry:'Thailand',destIata:'LHR',destCity:'London Heathrow',destCountry:'GB',scheduled:'06:30',actual:null,delayMins:0,status:'cancelled',aircraft:'Airbus A380',terminal:'T2',countryCode:'TH',mock:true},
-  {flightNum:'MH002',airline:'Malaysia Airlines',direction:'arrival',originIata:'KUL',originCity:'Kuala Lumpur',originCountry:'Malaysia',destIata:'LHR',destCity:'London Heathrow',destCountry:'GB',scheduled:'14:20',actual:'14:20',delayMins:0,status:'active',aircraft:'Airbus A350-900',terminal:'T4',countryCode:'MY',mock:true},
+  {flightNum:'CX234',airline:'Cathay Pacific',direction:'arrival',originIata:'HKG',destIata:'LHR',scheduled:'08:45',actual:'09:32',delayMins:47,status:'delayed',aircraft:'B773',countryCode:'HK',mock:true},
+  {flightNum:'JL402',airline:'Japan Airlines',direction:'arrival',originIata:'NRT',destIata:'LHR',scheduled:'11:15',actual:null,delayMins:0,status:'active',aircraft:'B789',countryCode:'JP',mock:true},
+  {flightNum:'TG910',airline:'Thai Airways',direction:'arrival',originIata:'BKK',destIata:'LHR',scheduled:'06:30',actual:null,delayMins:0,status:'cancelled',aircraft:'A380',countryCode:'TH',mock:true},
+  {flightNum:'MH002',airline:'Malaysia Airlines',direction:'arrival',originIata:'KUL',destIata:'LHR',scheduled:'14:20',actual:null,delayMins:0,status:'active',aircraft:'A359',countryCode:'MY',mock:true},
 ];
 
 let flFlights=[],flNews=[],flApiKey='',flFilters={dir:'all',country:'all',status:'all'};
 let flRefTimer=null,flCdTimer=null,flCdSecs=120,flMockMode=false;
 
 (function flInit(){
-  flApiKey=localStorage.getItem('aviation_api_key')||'';
-  if(flApiKey){flShowDash();/* defer fetch until tab is opened */}
+  flApiKey=localStorage.getItem('airlabs_api_key')||'';
+  if(flApiKey){flShowDash();}
 })();
 
-function flSaveKey(){const v=(document.getElementById('fl-key-input').value||'').trim();if(!v){alert('Please paste your AviationStack API key.');return}flApiKey=v;localStorage.setItem('aviation_api_key',flApiKey);flMockMode=false;flShowDash();flRefreshAll()}
+function flSaveKey(){const v=(document.getElementById('fl-key-input').value||'').trim();if(!v){alert('Please paste your AirLabs API key.');return}flApiKey=v;localStorage.setItem('airlabs_api_key',flApiKey);flMockMode=false;flShowDash();flRefreshAll()}
 function flShowMockData(){flMockMode=true;flShowDash();flRefreshAll()}
 function flShowDash(){document.getElementById('fl-setup').style.display='none';document.getElementById('fl-legend').style.display='flex';document.getElementById('fl-controls').style.display='flex';document.getElementById('fl-stats').style.display='grid'}
 
@@ -1321,62 +1323,59 @@ async function flRefreshAll(){
 function flSetLive(s){const dot=document.getElementById('fl-live-dot'),txt=document.getElementById('fl-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
 function flStartCd(){flCdSecs=120;clearInterval(flCdTimer);flCdTimer=setInterval(()=>{flCdSecs--;if(flCdSecs<=0){clearInterval(flCdTimer);return}const m=Math.floor(flCdSecs/60),s=String(flCdSecs%60).padStart(2,'0');document.getElementById('fl-cd').textContent=`${m}:${s}`},1000)}
 
+async function flFetchOne(url,dir){
+  try{
+    const r=await fetch(RSS_PROXY+encodeURIComponent(url));
+    if(!r.ok)return[];
+    const json=await r.json();
+    const body=typeof json.contents==='string'?JSON.parse(json.contents):json;
+    if(!body||!Array.isArray(body.response))return[];
+    return body.response.map(f=>({...f,_dir:dir}));
+  }catch{return[]}
+}
+
 async function flFetchFlights(){
   const grid=document.getElementById('fl-grid');
   if(flMockMode||!flApiKey){flFlights=FL_MOCK;flRenderFlights();flRenderStats();return}
   grid.innerHTML='<div class="state-panel-fl"><div class="spinner-fl"></div><div class="state-title-fl">Fetching live flights…</div></div>';
   try{
-    const fetches=FL_AIRPORTS.map(ap=>
-      fetch(`${RSS_PROXY}${encodeURIComponent('http://api.aviationstack.com/v1/flights?access_key='+flApiKey+'&arr_iata='+ap+'&limit=100')}`)
-        .then(r=>r.ok?r.json():null).catch(()=>null)
-    );
+    const fetches=[
+      ...FL_AIRPORTS.map(ap=>flFetchOne('https://airlabs.co/api/v9/flights?arr_iata='+ap+'&api_key='+flApiKey,'arrival')),
+      ...FL_AIRPORTS.map(ap=>flFetchOne('https://airlabs.co/api/v9/flights?dep_iata='+ap+'&api_key='+flApiKey,'departure')),
+    ];
     const results=await Promise.allSettled(fetches);
     let all=[];
-    results.forEach(r=>{
-      if(r.status==='fulfilled'&&r.value){
-        try{
-          const body=typeof r.value.contents==='string'?JSON.parse(r.value.contents):r.value;
-          if(body&&Array.isArray(body.data))all=all.concat(body.data);
-        }catch{}
-      }
-    });
-    const seenNums=new Set();
+    results.forEach(r=>{if(r.status==='fulfilled')all=all.concat(r.value)});
+
+    // Filter to Asia-relevant flights only
     all=all.filter(f=>{
-      const num=f.flight?.iata||f.flight?.icao||'';
-      if(!num||seenNums.has(num))return false;
-      seenNums.add(num);
-      const depCountry=f.departure?.country||'';
-      const arrCountry=f.arrival?.country||'';
-      return FL_COUNTRIES.some(c=>depCountry.includes(c)||arrCountry.includes(c));
+      if(f._dir==='arrival'){return FL_ASIAN_COUNTRIES.has(f.dep_country)||FL_ASIAN_AIRPORTS.has(f.dep_iata)}
+      return FL_ASIAN_COUNTRIES.has(f.arr_country)||FL_ASIAN_AIRPORTS.has(f.arr_iata);
     });
+
+    // Deduplicate by flight_iata
+    const seen=new Set();
+    all=all.filter(f=>{const n=f.flight_iata||f.flight_icao||'';if(!n||seen.has(n))return false;seen.add(n);return true});
+
+    // Normalise
     flFlights=all.map(f=>{
-      const depDelay=f.departure?.delay||0,arrDelay=f.arrival?.delay||0;
-      const delayMins=Math.max(depDelay,arrDelay);
-      const rawStatus=(f.flight_status||'').toLowerCase();
+      const delayMins=f.delayed||0;
+      const rawStatus=(f.status||'').toLowerCase();
       const status=rawStatus==='cancelled'?'cancelled':delayMins>=30?'delayed':rawStatus==='active'||rawStatus==='landed'?'active':'scheduled';
-      const depCountry=f.departure?.country||'';
-      const ccEntry=Object.entries(FL_COUNTRY_MAP).find(([,name])=>depCountry.includes(name));
-      const countryCode=ccEntry?ccEntry[0]:'';
-      return{
-        flightNum:f.flight?.iata||f.flight?.icao||'???',
-        airline:f.airline?.name||'Unknown',
-        direction:'arrival',
-        originIata:f.departure?.iata||'???',
-        originCity:f.departure?.airport||f.departure?.iata||'',
-        originCountry:depCountry,
-        destIata:f.arrival?.iata||'???',
-        destCity:f.arrival?.airport||f.arrival?.iata||'',
-        destCountry:f.arrival?.country||'',
-        scheduled:f.arrival?.scheduled?f.arrival.scheduled.slice(11,16):'',
-        actual:f.arrival?.actual?f.arrival.actual.slice(11,16):(f.arrival?.estimated?f.arrival.estimated.slice(11,16):null),
-        delayMins,status,countryCode,
-        aircraft:f.aircraft?.registration||'',
-        terminal:f.arrival?.terminal||'',
-        mock:false
-      };
+      const dir=f._dir;
+      const asianIata=dir==='arrival'?f.dep_iata:f.arr_iata;
+      const londonIata=dir==='arrival'?f.arr_iata:f.dep_iata;
+      const countryCode=dir==='arrival'?(f.dep_country||''):(f.arr_country||'');
+      const airlineCode=f.airline_iata||'';
+      const airline=FL_AIRLINE_NAMES[airlineCode]||airlineCode||'Unknown';
+      // Scheduled time: arrivals use arr_time, departures use dep_time
+      const timeStr=dir==='arrival'?f.arr_time:f.dep_time;
+      const scheduled=timeStr?String(timeStr).slice(11,16):'';
+      return{flightNum:f.flight_iata||f.flight_icao||'???',airline,airlineCode,direction:dir,originIata:dir==='arrival'?asianIata:londonIata,destIata:dir==='arrival'?londonIata:asianIata,scheduled,actual:null,delayMins,status,countryCode,aircraft:f.aircraft_icao||'',mock:false};
     });
-    flFlights.sort((a,b)=>{const o={cancelled:0,delayed:1,scheduled:2,active:3};return(o[a.status]??4)-(o[b.status]??4)});
-    if(!flFlights.length){grid.innerHTML='<div class="state-panel-fl"><div class="state-icon">✈️</div><div class="state-title-fl">No Asia→London flights found</div><div class="state-sub-fl">Check your API key or try again. Free tier may have limited data.</div></div>';return}
+
+    flFlights.sort((a,b)=>{const o={cancelled:0,delayed:1,scheduled:2,active:3,landed:3};return(o[a.status]??4)-(o[b.status]??4)});
+    if(!flFlights.length){grid.innerHTML='<div class="state-panel-fl"><div class="state-icon">✈️</div><div class="state-title-fl">No Asia→London flights found</div><div class="state-sub-fl">Check your AirLabs API key or try again.</div></div>';return}
   }catch(e){grid.innerHTML=`<div class="state-panel-fl"><div class="state-icon">⚠️</div><div class="state-title-fl">Fetch error</div><div class="state-sub-fl">${esc(e.message)}</div></div>`;return}
   flRenderFlights();flRenderStats();
 }
@@ -1387,22 +1386,25 @@ function flRenderFlights(){
     if(flFilters.country!=='all'&&d.countryCode!==flFilters.country)return false;
     if(flFilters.status==='delayed'&&d.status!=='delayed')return false;
     if(flFilters.status==='cancelled'&&d.status!=='cancelled')return false;
-    if(flFilters.status==='active'&&(d.status!=='active'&&d.status!=='scheduled'))return false;
+    if(flFilters.status==='active'&&d.status!=='active'&&d.status!=='scheduled'&&d.status!=='landed')return false;
     return true;
   });
   document.getElementById('fl-main-cnt').textContent=`${f.length} flight${f.length!==1?'s':''}`;
   const grid=document.getElementById('fl-grid');
   if(!f.length){grid.innerHTML='<div class="state-panel-fl"><div class="state-icon">🔍</div><div class="state-title-fl">No matches</div><div class="state-sub-fl">Adjust the filters above.</div></div>';return}
   grid.innerHTML=f.map((d,i)=>{
-    const statusCfg=d.status==='cancelled'?{label:'CANCELLED',bg:'#1a0a0a',c:'#9CA3AF'}:d.status==='delayed'?{label:`DELAYED +${d.delayMins}min`,bg:'#1a1205',c:d.delayMins>=60?'#F87171':'#FBBF24'}:{label:'ON TIME',bg:'#061a0f',c:'#34D399'};
+    const statusCfg=d.status==='cancelled'?{label:'CANCELLED',bg:'#1a0a0a',c:'#9CA3AF'}
+      :d.status==='delayed'?{label:`DELAYED +${d.delayMins}min`,bg:'#1a1205',c:d.delayMins>=60?'#F87171':'#FBBF24'}
+      :d.status==='scheduled'?{label:'SCHEDULED',bg:'#050e1a',c:'#60A5FA'}
+      :{label:'ON TIME',bg:'#061a0f',c:'#34D399'};
     const dirCfg=d.direction==='arrival'?{label:'🛬 Arrival',bg:'#05101e',c:'#60A5FA'}:{label:'🛫 Departure',bg:'#0a0510',c:'#A78BFA'};
-    const oFlag=FL_COUNTRY_CODE[d.countryCode]||'🌏';
-    const dFlag=FL_COUNTRY_CODE[d.countryCode]==='🇬🇧'?FL_COUNTRY_CODE[d.countryCode]:FL_COUNTRY_CODE['GB'];
-    const [fromFlag,toFlag]=d.direction==='arrival'?[oFlag,'🇬🇧']:['🇬🇧',oFlag];
+    const asiFlag=FL_COUNTRY_CODE[d.countryCode]||'🌏';
+    const fromFlag=d.direction==='arrival'?asiFlag:'🇬🇧';
+    const toFlag=d.direction==='arrival'?'🇬🇧':asiFlag;
     const borderCls=d.status==='cancelled'?'cancelled':d.status==='delayed'?(d.delayMins>=60?'delayed-bad':'delayed-mild'):'on-time';
-    const sched=d.scheduled?`<div class="fl-time-sched">Sched: ${esc(d.scheduled)}</div>`:'';
-    const actual=d.actual?`<div class="fl-time-val">${esc(d.actual)}</div>`:`<div class="fl-time-val" style="color:var(--fl-muted2)">—</div>`;
-    const mockLabel=d.mock?'<span class="fl-mock-label">Example data</span>':'';
+    const actualRow=d.actual?`<div class="fl-time-val">${esc(d.actual)}</div><div class="fl-time-sched">Sched: ${esc(d.scheduled)}</div>`:`<div class="fl-time-val">${esc(d.scheduled||'—')}</div>`;
+    const delayRow=d.delayMins>0?`<span class="fl-delay-pill" style="background:#1a1205;color:${d.delayMins>=60?'#F87171':'#FBBF24'}">+${d.delayMins} min</span>`:'';
+    const mockLabel=d.mock?'<span class="fl-mock-label">Example</span>':'';
     const fr24=`https://www.flightradar24.com/${d.flightNum.replace(/\s/g,'')}`;
     return`<div class="fl-card ${borderCls}${d.mock?' mock':''}" style="animation-delay:${i*.04}s">
       <div class="fl-card-head">
@@ -1413,16 +1415,16 @@ function flRenderFlights(){
         </div>
       </div>
       <div class="fl-route">
-        <div class="fl-airport"><div class="fl-iata">${fromFlag} ${esc(d.direction==='arrival'?d.originIata:d.destIata)}</div><div class="fl-city">${esc(d.direction==='arrival'?d.originCity:d.destCity)}</div></div>
+        <div class="fl-airport"><div class="fl-iata">${fromFlag} ${esc(d.direction==='arrival'?d.originIata:d.destIata)}</div></div>
         <div class="fl-arrow">→</div>
-        <div class="fl-airport"><div class="fl-iata">${toFlag} ${esc(d.direction==='arrival'?d.destIata:d.originIata)}</div><div class="fl-city">${esc(d.direction==='arrival'?d.destCity:d.originCity)}</div></div>
+        <div class="fl-airport"><div class="fl-iata">${toFlag} ${esc(d.direction==='arrival'?d.destIata:d.originIata)}</div></div>
       </div>
       <div class="fl-times">
-        <div class="fl-time-block"><div class="fl-time-lbl">Scheduled</div><div class="fl-time-val">${esc(d.scheduled||'—')}</div></div>
-        <div class="fl-time-block"><div class="fl-time-lbl">Actual / Est</div>${actual}${sched}</div>
+        <div class="fl-time-block"><div class="fl-time-lbl">${d.direction==='arrival'?'Arrives':'Departs'}</div>${actualRow}</div>
+        <div class="fl-time-block"><div class="fl-time-lbl">Delay</div>${delayRow||'<div class="fl-time-val" style="color:var(--fl-green);font-size:11px">None</div>'}</div>
       </div>
       <div class="fl-card-foot">
-        <div class="fl-meta">${d.terminal?'Terminal '+esc(d.terminal):''}</div>
+        <div class="fl-meta" style="color:var(--fl-muted2)">${d.aircraft||''}</div>
         <div style="display:flex;align-items:center;gap:8px">${mockLabel}<a class="fl-src-link" href="${esc(fr24)}" target="_blank" rel="noopener noreferrer">FR24 →</a></div>
       </div>
     </div>`}).join('');
@@ -1433,7 +1435,7 @@ function flRenderStats(){
   const dep=flFlights.filter(f=>f.direction==='departure').length;
   const delayed=flFlights.filter(f=>f.status==='delayed').length;
   const cancelled=flFlights.filter(f=>f.status==='cancelled').length;
-  const ontime=flFlights.filter(f=>f.status==='active'||f.status==='scheduled').length;
+  const ontime=flFlights.filter(f=>f.status==='active'||f.status==='scheduled'||f.status==='landed').length;
   document.getElementById('fl-s-total').textContent=flFlights.length;
   document.getElementById('fl-s-arr').textContent=arr;
   document.getElementById('fl-s-dep').textContent=dep;
