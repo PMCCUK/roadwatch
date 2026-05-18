@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.8.8 -->
+<!-- roadwatch v2.8.9 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -785,6 +785,8 @@ const RW_RSS_FEEDS=[
   {name:'This is Local London',cls:'google',url:'https://news.google.com/rss/search?q=M25+roadworks+closure+junction+overnight+London+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Tube Strike',cls:'google',url:'https://news.google.com/rss/search?q=London+tube+strike+underground+RMT+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'London Events',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+event+march+protest+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Motorway News',cls:'google',url:'https://news.google.com/rss/search?q=M25+London+closure+delay&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Traffic News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+accident+today&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
 
 let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all'},rwApiKey='';
@@ -841,10 +843,18 @@ async function rwFetchTfl(){
   const grid=document.getElementById('rw-grid');
   grid.innerHTML='<div class="state-panel"><div class="spinner"></div><div class="state-title-rw">Connecting to TfL…</div></div>';
   try{
-    const[r1,r2]=await Promise.allSettled([fetch(`${TFL_BASE}/Road/all/Disruption?stripContent=false&severities=Serious,Moderate,Minimal&categories=RoadClosure,Works,SpecialEvent,Incident&app_key=${rwApiKey}`),fetch(`${TFL_BASE}/Road/all/Street/Disruption?startDate=${isoNow()}&endDate=${isoFuture(10)}&app_key=${rwApiKey}`)]);
+    const testRes=await fetch(`${TFL_BASE}/Road/all?app_key=${rwApiKey}`);
+    console.log('TfL key test status:',testRes.status,testRes.ok);
+    if(testRes.status===400||testRes.status===401){console.log('TfL key invalid - showing setup');document.getElementById('rw-setup').style.display='block';return;}
+    const[r1,r2]=await Promise.allSettled([fetch(`${TFL_BASE}/Road/all/Disruption?categories=RoadClosure,Works,SpecialEvent,Incident&app_key=${rwApiKey}`),fetch(`${TFL_BASE}/Road/all/Street/Disruption?startDate=${isoNow()}&endDate=${isoFuture(10)}&app_key=${rwApiKey}`)]);
     if(r1.status==='fulfilled'&&r1.value.status===401){grid.innerHTML='<div class="state-panel"><div class="state-icon">🔑</div><div class="state-title-rw" style="color:#EF4444">Invalid API Key</div></div>';document.getElementById('rw-setup').style.display='block';localStorage.removeItem('tfl_api_key');rwApiKey='';return}
     let list=[];
     if(r1.status==='fulfilled'&&r1.value.ok){const d=await r1.value.json();if(Array.isArray(d))list=list.concat(d.map(rwNormActive))}
+    else if(r1.status==='fulfilled'&&(r1.value.status===400||r1.value.status===404)){
+      const fallbackRes=await fetch(`${TFL_BASE}/Road/all/Disruption?app_key=${rwApiKey}`);
+      console.log('TfL fallback status:',fallbackRes.status);
+      if(fallbackRes.ok){const d=await fallbackRes.json();if(Array.isArray(d))list=list.concat(d.map(rwNormActive));}
+    }
     if(r2.status==='fulfilled'&&r2.value.ok){const d=await r2.value.json();if(Array.isArray(d)){const ids=new Set(list.map(x=>x.id));list=list.concat(d.map(rwNormPlanned).filter(x=>!ids.has(x.id)))}}
     list=list.filter((item,index,self)=>index===self.findIndex(x=>x.id===item.id));
     const seen=new Set();list=list.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().trim();if(seen.has(key))return false;seen.add(key);return true});
@@ -874,8 +884,12 @@ async function fetchNationalHighways(){
       const res=await fetch(`https://corsproxy.io/?${encodeURIComponent(endpoint)}`);
       console.log('NH corsproxy status:',res.status,endpoint.includes('unplanned')?'unplanned':'planned');
       if(!res.ok){console.log('NH error body:',await res.text().catch(()=>''));continue;}
-      const data=await res.json();
-      console.log('NH data keys:',Object.keys(data),'length:',JSON.stringify(data).length);
+      const text=await res.text();
+      console.log('NH raw text length:',text.length,'slice:',text.slice(0,500));
+      if(!text||text.length<10){console.log('NH empty response');continue;}
+      let data;
+      try{data=JSON.parse(text);}catch(e){console.log('NH JSON parse error:',e.message,'text:',text.slice(0,200));continue;}
+      console.log('NH data keys:',Object.keys(data),'length:',text.length);
       nhProcessResponse(data,endpoint.includes('unplanned'));
     }catch(e){console.log('NH corsproxy error:',e.message);}
   }
@@ -910,38 +924,7 @@ function nhProcessResponse(data,isUnplanned){
 }
 
 async function fetchTrafficDelays(){
-  const feeds=[
-    'https://m.highwaysengland.co.uk/feeds/rss/UnplannedEvents.xml',
-    'https://m.highwaysengland.co.uk/feeds/rss/PlannedEvents.xml'
-  ];
-  for(const feedUrl of feeds){
-    try{
-      const proxies=[
-        `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`,
-        `https://corsproxy.io/?${encodeURIComponent(feedUrl)}`,
-        `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`
-      ];
-      for(const proxyUrl of proxies){
-        try{
-          const res=await fetch(proxyUrl);
-          if(!res.ok)continue;
-          const json=await res.json();
-          const xmlStr=json.contents||json.xml||'';
-          const items=json.items||[];
-          if(items.length>0){processTrafficItems(items.map(i=>({title:i.title,desc:i.description?.replace(/<[^>]+>/g,' '),link:i.link})));break;}
-          if(xmlStr){
-            const doc=new DOMParser().parseFromString(xmlStr,'text/xml');
-            const xmlItems=Array.from(doc.querySelectorAll('item')).map(i=>({
-              title:i.querySelector('title')?.textContent||'',
-              desc:(i.querySelector('description')?.textContent||'').replace(/<[^>]+>/g,' '),
-              link:i.querySelector('link')?.textContent||feedUrl
-            }));
-            processTrafficItems(xmlItems);break;
-          }
-        }catch{}
-      }
-    }catch(e){console.log('Traffic feed error:',e.message);}
-  }
+  // Highways England RSS feeds are blocked by all proxies — motorway news now covered by RW_RSS_FEEDS Google News entries
 }
 
 function processTrafficItems(items){
