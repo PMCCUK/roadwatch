@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.8.1 -->
+<!-- roadwatch v2.8.2 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -783,13 +783,24 @@ function rwShouldAlert(sev){if(sev==='critical')return rwAlerts.sevCrit!==false;
 function rwFireAlerts(d){if(!rwShouldAlert(d.severity))return;if(rwAlerts.sound!==false)rwPlaySound(d.severity);if(rwAlerts.tab!==false)rwFlashTab(d.title);if(rwAlerts.banner!==false){document.getElementById('rw-alert-title').textContent=`${(RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default).icon} NEW ${d.severity.toUpperCase()} DISRUPTION`;document.getElementById('rw-alert-msg').textContent=`${d.title} — ${d.location}`;document.getElementById('rw-alert-time').textContent='Detected '+new Date().toLocaleTimeString('en-GB');const b=document.getElementById('rw-alert-banner');b.style.display='block';setTimeout(()=>b.style.display='none',14000)}const tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default,sc=RW_SEV_CFG[d.severity]||RW_SEV_CFG.low;const t=document.createElement('div');t.className=`toast ${d.severity}`;t.innerHTML=`<div class="toast-hdr"><span class="toast-icon">${tc.icon}</span><span class="toast-lbl" style="color:${sc.color}">${d.severity.toUpperCase()}</span></div><div class="toast-title">${esc(d.title)}</div><div class="toast-loc">📍 ${esc(d.location)}</div>`;const c=document.getElementById('rw-toast-container');c.appendChild(t);t.addEventListener('click',()=>t.remove());setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .5s';setTimeout(()=>t.remove(),500)},7000);if(rwAlerts.browser&&Notification.permission==='granted')new Notification(`${tc.icon} ${d.severity.toUpperCase()} — ${d.title}`,{body:`📍 ${d.location}`,tag:d.id});if(rwAlerts.ntfy&&rwAlerts.ntfyTopic)fetch(`https://ntfy.sh/${encodeURIComponent(rwAlerts.ntfyTopic)}`,{method:'POST',headers:{'Title':`🚨 ${d.severity.toUpperCase()} — ${d.title}`,'Priority':d.severity==='critical'?'urgent':d.severity==='high'?'high':'default','Tags':`warning,london`},body:`📍 ${d.location}\n\n${d.desc||d.title}`}).catch(()=>{})}
 function closeRwAlert(){document.getElementById('rw-alert-banner').style.display='none'}
 
-async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
+async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);fetchNationalHighways();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
 function rwSetLive(s){const dot=document.getElementById('rw-live-dot'),txt=document.getElementById('rw-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
 function rwStartCd(){rwCdSecs=120;clearInterval(rwCdTimer);rwCdTimer=setInterval(()=>{rwCdSecs--;if(rwCdSecs<=0){clearInterval(rwCdTimer);return}const m=Math.floor(rwCdSecs/60),s=String(rwCdSecs%60).padStart(2,'0');document.getElementById('rw-cd').textContent=`${m}:${s}`},1000)}
 
 function rwMapCat(c){if(!c)return'default';c=c.toLowerCase();if(c.includes('closure'))return'RoadClosure';if(c.includes('event')||c.includes('special'))return'SpecialEvent';if(c.includes('incident'))return'Incident';return'Works'}
 function rwMapSev(s){if(!s)return'low';s=s.toLowerCase();if(s==='serious'||s==='blocker')return'critical';if(s==='moderate'||s==='significant')return'high';if(s==='minimal'||s==='minor')return'medium';return'low'}
-function rwNormActive(d){const roads=(d.roads||[]).map(r=>r.displayName||r.id).filter(Boolean);const desc=[d.comments,d.additionalInfo].filter(Boolean).join(' ').trim()||d.description||'';return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Traffic Control',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:d.hasDiversions||false,isActive:true}}
+function rwNormActive(d){
+  const roads=(d.roads||[]).map(r=>r.displayName||r.id).filter(Boolean);
+  const desc=[d.comments,d.additionalInfo].filter(Boolean).join(' ').trim()||d.description||'';
+  const dl=desc.toLowerCase();
+  let sev=rwMapSev(d.severity);
+  if(d.levelOfInterest==='High'||d.severity==='Serious'){sev='critical';}
+  else if(dl.includes('severe')||dl.includes('major delay')||dl.includes('long delays')){sev='critical';}
+  else{const em=dl.match(/expect delays of\s+(\d+)/);if(em&&parseInt(em[1])>30)sev='critical';}
+  let delayMinutes=0;
+  const dm=dl.match(/(\d+)\s*(?:minute|min)/);if(dm)delayMinutes=parseInt(dm[1]);
+  return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:sev,roads,source:'TfL Traffic Control',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:d.hasDiversions||false,isActive:true,delayMinutes}
+}
 function rwNormPlanned(d){const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);return{id:d.id||rnd(),category:'Planned',title:d.description||'Planned works',desc:d.additionalInfo||d.description||'',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:false,isActive:false}}
 
 async function rwFetchTfl(){
@@ -803,7 +814,7 @@ async function rwFetchTfl(){
     if(r2.status==='fulfilled'&&r2.value.ok){const d=await r2.value.json();if(Array.isArray(d)){const ids=new Set(list.map(x=>x.id));list=list.concat(d.map(rwNormPlanned).filter(x=>!ids.has(x.id)))}}
     list=list.filter((item,index,self)=>index===self.findIndex(x=>x.id===item.id));
     const seen=new Set();list=list.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().trim();if(seen.has(key))return false;seen.add(key);return true});
-    list.sort((a,b)=>{const o={critical:0,high:1,medium:2,low:3};const dd=(o[a.severity]??4)-(o[b.severity]??4);return dd!==0?dd:(a.startDate||'').localeCompare(b.startDate||'')});
+    list.sort((a,b)=>{const o={critical:0,high:1,medium:2,low:3};const dd=(o[a.severity]??4)-(o[b.severity]??4);if(dd!==0)return dd;if(a.isActive!==b.isActive)return a.isActive?-1:1;return(a.startDate||'').localeCompare(b.startDate||'')});
 
     // ── Inject verified ongoing disruptions (add items here when needed) ──
     const confirmedProtests = [];
@@ -815,29 +826,45 @@ async function rwFetchTfl(){
     const firstLoad=rwKnownIds.size===0&&rwDisruptions.length===0;
     list.forEach(d=>{if(!rwKnownIds.has(d.id)){rwKnownIds.add(d.id);if(!firstLoad)rwFireAlerts(d)}});
     rwDisruptions=list;rwRenderDisruptions();rwRenderStats();rwRenderTicker();
-
-    // Fire-and-forget: National Highways closure report
-    const nhUrl=RSS_PROXY+encodeURIComponent('https://nationalhighways.co.uk/travel-updates/road-closure-report/');
-    fetch(nhUrl).then(r=>r.json()).then(data=>{
-      const html=data.contents||'';
-      const roadPattern=/(M25|M1|M3|M4|M11|M23|M26|A1|A2|A3|A13|A40|A406|A316)([\s\S]{0,300}?)(\d{2}\/\d{2}\/\d{4})/gi;
-      const matches=[...html.matchAll(roadPattern)];
-      let added=0;
-      matches.slice(0,20).forEach((m,i)=>{
-        const road=m[1];
-        const context=m[2].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,200);
-        const parts=m[3].split('/');
-        const isoDate=parts[2]+'-'+parts[1]+'-'+parts[0];
-        const nhId='nh-'+road+'-'+i;
-        if(!rwDisruptions.find(d=>d.id===nhId)){
-          rwDisruptions.push({id:nhId,category:'RoadClosure',title:road+' Closure — National Highways',desc:context||road+' road closure. Check National Highways for full details.',location:road+' — London/South East',startDate:isoDate,startTime:'22:00',endDate:null,endTime:'06:00',severity:'high',roads:[road],source:'National Highways',sourceUrl:'https://nationalhighways.co.uk/travel-updates/road-closure-report/',hasDiversion:true,isActive:true});
-          added++;
-        }
-      });
-      if(added>0){rwRenderDisruptions();rwRenderStats();rwRenderTicker();}
-    }).catch(()=>{});
-
   }catch(e){grid.innerHTML=`<div class="state-panel"><div class="state-icon">⚠️</div><div class="state-title-rw" style="color:#EF4444">Error</div><div class="state-sub-rw">${esc(e.message)}</div></div>`}
+}
+
+async function fetchNationalHighways(){
+  try{
+    const url=RSS_PROXY+encodeURIComponent('https://nationalhighways.co.uk/travel-updates/road-closure-report/');
+    const res=await fetch(url);
+    const json=await res.json();
+    const html=json.contents||'';
+    const text=html.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&nbsp;/g,' ').replace(/\s+/g,' ');
+    const roads=['M25','M1','M2','M3','M4','M11','M20','M23','M26','A1','A2','A3','A13','A40','A102','A316','A406'];
+    const newItems=[];
+    roads.forEach(road=>{
+      let idx=0;
+      while((idx=text.indexOf(road,idx))!==-1){
+        const snippet=text.slice(Math.max(0,idx-20),idx+300);
+        const hasDate=/\d{2}\/\d{2}\/\d{4}|\d+ May|\d+ June|\d+ July/.test(snippet);
+        const hasClosure=/clos|carriageway|junction|jct|slip road|lane/i.test(snippet);
+        if(hasDate&&hasClosure){
+          let startDate=isoNow();
+          const dateMatch=snippet.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+          if(dateMatch)startDate=dateMatch[3]+'-'+dateMatch[2]+'-'+dateMatch[1];
+          const timeMatch=snippet.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+          const startTime=timeMatch?timeMatch[0].trim():'22:00';
+          const id='nh-'+road+'-'+idx;
+          if(!rwDisruptions.find(d=>d.id===id)&&!newItems.find(d=>d.id===id)){
+            newItems.push({id,category:'RoadClosure',title:road+' Closure — National Highways',desc:snippet.trim().slice(0,250),location:road+' — London/South East',startDate,startTime,endDate:null,endTime:'06:00',severity:'high',roads:[road],source:'National Highways',sourceUrl:'https://nationalhighways.co.uk/travel-updates/road-closure-report/',hasDiversion:true,isActive:true,delayMinutes:0});
+          }
+        }
+        idx+=road.length;
+      }
+    });
+    if(newItems.length>0){
+      rwDisruptions=[...newItems,...rwDisruptions];
+      const seen=new Set();
+      rwDisruptions=rwDisruptions.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seen.has(key))return false;seen.add(key);return true});
+      rwRenderDisruptions();rwRenderStats();rwRenderTicker();
+    }
+  }catch(e){console.log('NH fetch error:',e);}
 }
 
 async function rwFetchNews(){
@@ -859,7 +886,7 @@ function rwRenderDisruptions(){
     const rtags=(d.roads||[]).slice(0,4).map(r=>`<span class="road-tag-rw">${esc(r)}</span>`).join('')+((d.roads||[]).length>4?`<span class="road-tag-rw">+${d.roads.length-4}</span>`:'');
     const ds=d.startDate?fmtDate(d.startDate)+(d.startTime?` · ${d.startTime}`:'')+(d.endDate&&d.endDate!==d.startDate?` → ${fmtDate(d.endDate)}`:''):'Ongoing';
     return`<div class="d-card-rw" style="animation-delay:${i*.04}s" onclick='rwOpenModal(${JSON.stringify(JSON.stringify(d))})'>
-      <div class="card-top"><div class="badge-row"><span class="badge" style="background:${tc.bg};color:${tc.color}">${tc.icon} ${tc.label}</span><span class="badge" style="background:#1F2937;color:${sc.color};border:1px solid ${sc.color}33">● ${sc.label}</span>${d.isActive?'<span class="badge" style="background:#0f2617;color:#10B981;border:1px solid #10B98133">● LIVE</span>':''}</div>${du?`<span class="days-lbl" style="color:${duc}">${du}</span>`:''}</div>
+      <div class="card-top"><div class="badge-row"><span class="badge" style="background:${tc.bg};color:${tc.color}">${tc.icon} ${tc.label}</span><span class="badge" style="background:#1F2937;color:${sc.color};border:1px solid ${sc.color}33">● ${sc.label}</span>${d.isActive?'<span class="badge" style="background:#0f2617;color:#10B981;border:1px solid #10B98133">● LIVE</span>':''}${d.delayMinutes>30?`<span class="badge" style="background:#1a0505;color:#EF4444;border:1px solid #EF444433">⏱ +${d.delayMinutes}min</span>`:''}</div>${du?`<span class="days-lbl" style="color:${duc}">${du}</span>`:''}</div>
       <div class="card-title-rw">${esc(d.title)}</div>
       <div class="card-loc-rw">📍 ${esc(d.location)}</div>
       <div class="card-desc-rw">${esc(trunc(d.desc||d.title,140))}</div>
