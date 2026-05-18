@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.7.4 -->
+<!-- roadwatch v2.7.5 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -951,6 +951,8 @@ const RW_RSS_FEEDS=[
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+disruption+traffic&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+protest+march+road+closed&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=London+M25+road+closure+motorway+disruption+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+London+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
 
 let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all'},rwApiKey='';
@@ -1003,11 +1005,10 @@ async function rwFetchTfl(){
     const seen=new Set();list=list.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().trim();if(seen.has(key))return false;seen.add(key);return true});
     list.sort((a,b)=>{const o={critical:0,high:1,medium:2,low:3};const dd=(o[a.severity]??4)-(o[b.severity]??4);return dd!==0?dd:(a.startDate||'').localeCompare(b.startDate||'')});
 
-    // ── Inject verified today's protests (sourced from Westminster Council, Met Police, PSC) ──
-    const todayStr = isoNow();
+    // ── Inject verified ongoing disruptions ──
     const confirmedProtests = [
-      {id:'protest-unite-kingdom-160526',category:'SpecialEvent',title:'"Unite the Kingdom" March',desc:'Large-scale demonstration marching from Parliament Square through Whitehall to Trafalgar Square. Met Police have 4,000 officers deployed. Major road closures and diversions across Westminster. Allow significant extra time.',location:'Parliament Square → Whitehall → Trafalgar Square',startDate:todayStr,startTime:'10:00',endDate:todayStr,endTime:'17:00',severity:'critical',roads:['Whitehall','Parliament Square','Trafalgar Square','The Mall','Victoria Street'],source:'Westminster City Council / Met Police',sourceUrl:'https://news.met.police.uk/news/4000-officers-prepare-for-day-of-protest-in-central-london-509274',hasDiversion:true,isActive:true},
-      {id:'protest-nakba-march-160526',category:'SpecialEvent',title:'Nakba 78 March for Palestine',desc:'March for Palestine starting at Exhibition Road SW7 at 12pm. Expected very large attendance with coaches arriving from across the UK. Route through central London causing significant road closures and bus diversions.',location:'Exhibition Road SW7 → Central London',startDate:todayStr,startTime:'12:00',endDate:todayStr,endTime:'18:00',severity:'critical',roads:['Exhibition Road','Cromwell Road','Kensington Road','Park Lane','Piccadilly'],source:'Palestine Solidarity Campaign / Met Police',sourceUrl:'https://palestinecampaign.org/events/nakba-78-march-for-palestine-2/',hasDiversion:true,isActive:true},
+      {id:'m25-closures-may26',category:'RoadClosure',title:'M25 Multi-Junction Overnight Closures',desc:'National Highways planned maintenance closures across multiple M25 junctions. Clockwise J16-J17, J10-J11, J3-M20 J1 and anti-clockwise J27-J25, J11-J10, J7-J8, J2-J1A, J25-J23 affected. Closures between 10pm-6am nightly. Signed diversions in place.',location:'M25 Motorway — Multiple Junctions',startDate:'2026-05-15',startTime:'22:00',endDate:'2026-05-19',endTime:'06:00',severity:'high',roads:['M25 J16-J17','M25 J10-J11','M25 J27-J25','M25 J7-J8','M25 J2-J1A','M25 J29-J30'],source:'National Highways',sourceUrl:'https://uk.news.yahoo.com/m25-closures-weekend-next-week-093118559.html',hasDiversion:true,isActive:true},
+      {id:'tube-strike-may26',category:'SpecialEvent',title:'RMT Tube Strike — London Underground',desc:'RMT union Tube strikes planned for May 2026 causing major disruption across London Underground. Bus and road traffic will see significantly increased demand. Allow extra journey time across all routes.',location:'London Underground Network — All Lines',startDate:'2026-05-01',startTime:'00:00',endDate:'2026-05-31',endTime:'23:59',severity:'high',roads:['All London bus routes','A roads into Central London'],source:'RMT / TfL',sourceUrl:'https://www.london-now.co.uk/news/26094589.may-tube-strikes',hasDiversion:false,isActive:true},
     ];
     // Only inject if not already present
     confirmedProtests.forEach(p=>{
@@ -1120,6 +1121,8 @@ const RO_RSS_FEEDS=[
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+protest+march+planned+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+event+road+closure+diversion+upcoming&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=site:met.police.uk+OR+Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=London+M25+road+closure+motorway+disruption+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+London+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
 
 let roItems=[],roNews=[],roFilters={type:'all',days:'10'};
@@ -1167,11 +1170,9 @@ async function roFetchTfl(){
       dedupedTfl.forEach(it=>{if(!existIds.has(it.id))roItems.push(it)});
       const seenAll=new Set();roItems=roItems.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seenAll.has(key))return false;seenAll.add(key);return true});
 
-      // Inject confirmed today's protests into Roadworks too
-      const todayRo=isoNow();
+      // Inject confirmed ongoing disruptions into Roadworks
       const roProtests=[
-        {id:'protest-unite-kingdom-160526',type:'protest',title:'"Unite the Kingdom" March',desc:'Large-scale demonstration Parliament Square → Whitehall → Trafalgar Square. 4,000 Met Police officers deployed. Major closures across Westminster.',location:'Parliament Square → Whitehall → Trafalgar Square, SW1',startDate:todayRo,startTime:'10:00',endDate:todayRo,endTime:'17:00',roads:['Whitehall','Parliament Square','Trafalgar Square','Victoria Street'],source:'Westminster City Council / Met Police',sourceUrl:'https://news.met.police.uk/news/4000-officers-prepare-for-day-of-protest-in-central-london-509274',srcCls:'police'},
-        {id:'protest-nakba-march-160526',type:'march',title:'Nakba 78 March for Palestine',desc:'March starting Exhibition Road SW7 at 12pm. Very large attendance expected. Route through central London with significant road closures and bus diversions in place.',location:'Exhibition Road SW7 → Central London',startDate:todayRo,startTime:'12:00',endDate:todayRo,endTime:'18:00',roads:['Exhibition Road','Cromwell Road','Park Lane','Piccadilly'],source:'Palestine Solidarity Campaign / Met Police',sourceUrl:'https://palestinecampaign.org/events/nakba-78-march-for-palestine-2/',srcCls:'police'},
+        {id:'m25-closures-may26-ro',type:'closure',title:'M25 Multi-Junction Overnight Closures',desc:'National Highways planned maintenance closures across multiple M25 junctions. Clockwise J16-J17, J10-J11 and anti-clockwise J27-J25, J11-J10, J7-J8, J2-J1A, J25-J23 affected nightly 10pm-6am. Signed diversions in place. Commuters urged to allow extra time.',location:'M25 Motorway — Multiple Junctions',startDate:'2026-05-15',startTime:'22:00',endDate:'2026-05-19',endTime:'06:00',roads:['M25 J16-J17','M25 J10-J11','M25 J27-J25','M25 J7-J8','M25 J2-J1A','M25 J29-J30'],source:'National Highways / Yahoo News',sourceUrl:'https://uk.news.yahoo.com/m25-closures-weekend-next-week-093118559.html',srcCls:'tfl'},
       ];
       roProtests.forEach(p=>{if(!roItems.find(x=>x.id===p.id))roItems.unshift(p)});
     }
