@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.7.5 -->
+<!-- roadwatch v2.7.7 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -900,7 +900,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 const TFL_BASE  = 'https://api.tfl.gov.uk';
 const RSS_PROXY = 'https://api.allorigins.win/get?url=';
 
-const ROAD_KW = ['road closure','closed','roadworks','diversion','disruption','traffic','march','protest','demonstration','parade','event','works','tfl','transport for london','bus diversion','lane closure','bridge','accident','incident','flooding'];
+const ROAD_KW = ['road closure','closed','roadworks','diversion','disruption','traffic','march','protest','demonstration','parade','event','works','tfl','transport for london','bus diversion','lane closure','bridge','accident','incident','flooding','m25','m1','m3','m4','m11','motorway','junction','overnight closure','carriageway','slip road','national highways','tube strike','underground strike','rmt','diversion route','link road'];
 
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
 function trunc(s,n){return s&&s.length>n?s.slice(0,n)+'…':(s||'')}
@@ -953,6 +953,11 @@ const RW_RSS_FEEDS=[
   {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=London+M25+road+closure+motorway+disruption+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+London+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=M25+closure+London+road+disruption&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+M4+M11+London+closure&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'London Roads',cls:'google',url:'https://news.google.com/rss/search?q=London+motorway+closure+roadworks+overnight+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Tube Strike',cls:'google',url:'https://news.google.com/rss/search?q=London+tube+strike+underground+RMT+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'London Events',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+event+march+protest+2026&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
 
 let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all'},rwApiKey='';
@@ -1005,11 +1010,8 @@ async function rwFetchTfl(){
     const seen=new Set();list=list.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().trim();if(seen.has(key))return false;seen.add(key);return true});
     list.sort((a,b)=>{const o={critical:0,high:1,medium:2,low:3};const dd=(o[a.severity]??4)-(o[b.severity]??4);return dd!==0?dd:(a.startDate||'').localeCompare(b.startDate||'')});
 
-    // ── Inject verified ongoing disruptions ──
-    const confirmedProtests = [
-      {id:'m25-closures-may26',category:'RoadClosure',title:'M25 Multi-Junction Overnight Closures',desc:'National Highways planned maintenance closures across multiple M25 junctions. Clockwise J16-J17, J10-J11, J3-M20 J1 and anti-clockwise J27-J25, J11-J10, J7-J8, J2-J1A, J25-J23 affected. Closures between 10pm-6am nightly. Signed diversions in place.',location:'M25 Motorway — Multiple Junctions',startDate:'2026-05-15',startTime:'22:00',endDate:'2026-05-19',endTime:'06:00',severity:'high',roads:['M25 J16-J17','M25 J10-J11','M25 J27-J25','M25 J7-J8','M25 J2-J1A','M25 J29-J30'],source:'National Highways',sourceUrl:'https://uk.news.yahoo.com/m25-closures-weekend-next-week-093118559.html',hasDiversion:true,isActive:true},
-      {id:'tube-strike-may26',category:'SpecialEvent',title:'RMT Tube Strike — London Underground',desc:'RMT union Tube strikes planned for May 2026 causing major disruption across London Underground. Bus and road traffic will see significantly increased demand. Allow extra journey time across all routes.',location:'London Underground Network — All Lines',startDate:'2026-05-01',startTime:'00:00',endDate:'2026-05-31',endTime:'23:59',severity:'high',roads:['All London bus routes','A roads into Central London'],source:'RMT / TfL',sourceUrl:'https://www.london-now.co.uk/news/26094589.may-tube-strikes',hasDiversion:false,isActive:true},
-    ];
+    // ── Inject verified ongoing disruptions (add items here when needed) ──
+    const confirmedProtests = [];
     // Only inject if not already present
     confirmedProtests.forEach(p=>{
       if(!list.find(x=>x.id===p.id)) list.unshift(p);
@@ -1024,7 +1026,7 @@ async function rwFetchTfl(){
 async function rwFetchNews(){
   const results=await Promise.allSettled(RW_RSS_FEEDS.map(f=>fetchRss(f)));
   let items=[];results.forEach(r=>{if(r.status==='fulfilled')items=items.concat(r.value)});
-  items=dedupeNews(items);const cutoff=Date.now()-(14*24*60*60*1000);items=items.filter(it=>it.pubDate&&it.pubDate>cutoff);items=items.map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>0).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,25);
+  items=dedupeNews(items);const cutoff=Date.now()-(14*24*60*60*1000);items=items.filter(it=>it.pubDate&&it.pubDate>cutoff);items=items.map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>0).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,40);
   rwNews=items;rwRenderNews();rwRenderStats();
 }
 
@@ -1054,7 +1056,7 @@ function rwRenderNews(){
   const list=document.getElementById('rw-news-list');
   if(!rwNews.length){list.innerHTML='<div style="text-align:center;padding:24px;color:var(--rw-muted);font-size:11px">No news items.</div>';return}
   list.innerHTML=rwNews.map(n=>{
-    const rel=n.score>=5?{c:'#DC2626',bg:'#1F0A0A',t:'⚠ High'}:n.score>=3?{c:'#F59E0B',bg:'#1a1205',t:'● Relevant'}:{c:'#6B7280',bg:'#111827',t:'○ Related'};
+    const rel=n.score>=6?{c:'#DC2626',bg:'#1a0505',t:'🚨 HIGH IMPACT'}:n.score>=5?{c:'#EF4444',bg:'#1F0A0A',t:'⚠ High'}:n.score>=3?{c:'#F59E0B',bg:'#1a1205',t:'● Relevant'}:{c:'#6B7280',bg:'#111827',t:'○ Related'};
     const outlet=n.outlet==='BBC News'?'BBC News':(n.source&&n.source!==n.outlet?n.source:n.outlet);
     return`<div class="news-card-rw" onclick="window.open(${JSON.stringify(n.link)},'_blank','noopener noreferrer')">
       <div class="news-src-row"><span class="news-outlet ${n.outletCls}">${esc(outlet)}</span><span class="news-age">${timeAgo(n.pubDate)}</span></div>
@@ -1123,6 +1125,11 @@ const RO_RSS_FEEDS=[
   {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=site:met.police.uk+OR+Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=London+M25+road+closure+motorway+disruption+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+London+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=M25+closure+London+road+disruption&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+M4+M11+London+closure&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'London Roads',cls:'google',url:'https://news.google.com/rss/search?q=London+motorway+closure+roadworks+overnight+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Tube Strike',cls:'google',url:'https://news.google.com/rss/search?q=London+tube+strike+underground+RMT+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'London Events',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+event+march+protest+2026&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
 
 let roItems=[],roNews=[],roFilters={type:'all',days:'10'};
@@ -1170,10 +1177,8 @@ async function roFetchTfl(){
       dedupedTfl.forEach(it=>{if(!existIds.has(it.id))roItems.push(it)});
       const seenAll=new Set();roItems=roItems.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seenAll.has(key))return false;seenAll.add(key);return true});
 
-      // Inject confirmed ongoing disruptions into Roadworks
-      const roProtests=[
-        {id:'m25-closures-may26-ro',type:'closure',title:'M25 Multi-Junction Overnight Closures',desc:'National Highways planned maintenance closures across multiple M25 junctions. Clockwise J16-J17, J10-J11 and anti-clockwise J27-J25, J11-J10, J7-J8, J2-J1A, J25-J23 affected nightly 10pm-6am. Signed diversions in place. Commuters urged to allow extra time.',location:'M25 Motorway — Multiple Junctions',startDate:'2026-05-15',startTime:'22:00',endDate:'2026-05-19',endTime:'06:00',roads:['M25 J16-J17','M25 J10-J11','M25 J27-J25','M25 J7-J8','M25 J2-J1A','M25 J29-J30'],source:'National Highways / Yahoo News',sourceUrl:'https://uk.news.yahoo.com/m25-closures-weekend-next-week-093118559.html',srcCls:'tfl'},
-      ];
+      // Inject confirmed ongoing disruptions into Roadworks (add items here when needed)
+      const roProtests=[];
       roProtests.forEach(p=>{if(!roItems.find(x=>x.id===p.id))roItems.unshift(p)});
     }
   }catch{}
@@ -1184,9 +1189,9 @@ async function roFetchNews(){
   const results=await Promise.allSettled(RO_RSS_FEEDS.map(f=>fetchRss(f)));
   let items=[];results.forEach(r=>{if(r.status==='fulfilled')items=items.concat(r.value)});
   // For roadworks we specifically want FORWARD-LOOKING news — filter by future keywords
-  const futureKw=['planned','upcoming','next week','will be','is set','scheduled','announced','this weekend','coming','ahead'];
+  const futureKw=['planned','upcoming','next week','will be','is set','scheduled','announced','this weekend','coming','ahead','overnight','junction','carriageway','planned maintenance','m25','motorway','will be closed','set to close','closures between'];
   items=dedupeNews(items);const cutoff=Date.now()-(14*24*60*60*1000);items=items.filter(it=>it.pubDate&&it.pubDate>cutoff);items=items.map(it=>({...it,score:scoreRelevance(it),forward:futureKw.some(k=>(it.title+' '+it.desc).toLowerCase().includes(k))}))
-    .filter(it=>it.score>0).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,25);
+    .filter(it=>it.score>0).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,40);
   roNews=items;roRenderRoNews();roRenderRoStats();
 }
 
@@ -1233,11 +1238,12 @@ function roRenderRoNews(){
   if(!roNews.length){list.innerHTML='<div style="text-align:center;padding:24px;color:var(--ro-muted);font-size:11px">No news found.</div>';return}
   list.innerHTML=roNews.map(n=>{
     const fwdBadge=n.forward?`<span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:8px;font-weight:600;background:#051015;color:#06B6D4;border:1px solid #06B6D433;margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">📅 Forward-looking</span><br>`:'';
+    const impactBadge=n.score>=6?`<span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:8px;font-weight:600;background:#1a0505;color:#DC2626;border:1px solid #DC262633;margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">🚨 HIGH IMPACT</span><br>`:'';
     const outlet=n.outlet==='BBC News'?'BBC News':(n.source&&n.source!==n.outlet?n.source:n.outlet);
     const cls=n.outletCls==='police'?'police':n.outletCls;
     return`<div class="ro-news-card" onclick="window.open(${JSON.stringify(n.link)},'_blank','noopener noreferrer')">
       <div class="news-src-row"><span class="ro-news-outlet ${cls}">${esc(outlet)}</span><span class="news-age" style="color:var(--ro-muted2)">${timeAgo(n.pubDate)}</span></div>
-      ${fwdBadge}
+      ${impactBadge}${fwdBadge}
       <div class="ro-news-title">${esc(n.title)}</div>
       <a class="ro-news-link" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Read →</a>
     </div>`}).join('');
