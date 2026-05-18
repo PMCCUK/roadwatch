@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.9.3 -->
+<!-- roadwatch v2.9.4 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -494,7 +494,8 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
     <span style="font-size:9px;color:var(--rw-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
     <span class="src-pill"><span class="src-dot" style="background:#F59E0B"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">TfL Live</a></span>
     <span class="src-pill"><span class="src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/road-closure-report/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">National Highways</a></span>
-    <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span><a href="https://www.trafficengland.com" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">Traffic England</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#F97316"></span><a href="https://opendata.nationalhighways.co.uk" target="_blank" style="color:var(--rw-muted);text-decoration:none">NH Open Data</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span><a href="https://webtris.highwaysengland.co.uk" target="_blank" style="color:var(--rw-muted);text-decoration:none">WebTRIS Live</a></span>
     <span class="src-pill"><span class="src-dot" style="background:#10B981"></span><a href="https://public.londonworks.gov.uk/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">London Works Register</a></span>
     <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span>BBC News</span>
     <span class="src-pill"><span class="src-dot" style="background:#0EA5E9"></span>Google News</span>
@@ -820,7 +821,7 @@ function rwShouldAlert(sev){if(sev==='critical')return rwAlerts.sevCrit!==false;
 function rwFireAlerts(d){if(!rwShouldAlert(d.severity))return;if(rwAlerts.sound!==false)rwPlaySound(d.severity);if(rwAlerts.tab!==false)rwFlashTab(d.title);if(rwAlerts.banner!==false){document.getElementById('rw-alert-title').textContent=`${(RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default).icon} NEW ${d.severity.toUpperCase()} DISRUPTION`;document.getElementById('rw-alert-msg').textContent=`${d.title} — ${d.location}`;document.getElementById('rw-alert-time').textContent='Detected '+new Date().toLocaleTimeString('en-GB');const b=document.getElementById('rw-alert-banner');b.style.display='block';setTimeout(()=>b.style.display='none',14000)}const tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default,sc=RW_SEV_CFG[d.severity]||RW_SEV_CFG.low;const t=document.createElement('div');t.className=`toast ${d.severity}`;t.innerHTML=`<div class="toast-hdr"><span class="toast-icon">${tc.icon}</span><span class="toast-lbl" style="color:${sc.color}">${d.severity.toUpperCase()}</span></div><div class="toast-title">${esc(d.title)}</div><div class="toast-loc">📍 ${esc(d.location)}</div>`;const c=document.getElementById('rw-toast-container');c.appendChild(t);t.addEventListener('click',()=>t.remove());setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .5s';setTimeout(()=>t.remove(),500)},7000);if(rwAlerts.browser&&Notification.permission==='granted')new Notification(`${tc.icon} ${d.severity.toUpperCase()} — ${d.title}`,{body:`📍 ${d.location}`,tag:d.id});if(rwAlerts.ntfy&&rwAlerts.ntfyTopic)fetch(`https://ntfy.sh/${encodeURIComponent(rwAlerts.ntfyTopic)}`,{method:'POST',headers:{'Title':`🚨 ${d.severity.toUpperCase()} — ${d.title}`,'Priority':d.severity==='critical'?'urgent':d.severity==='high'?'high':'default','Tags':`warning,london`},body:`📍 ${d.location}\n\n${d.desc||d.title}`}).catch(()=>{})}
 function closeRwAlert(){document.getElementById('rw-alert-banner').style.display='none'}
 
-async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);fetchNationalHighways();fetchTrafficDelays();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
+async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);fetchNationalHighways();fetchTrafficDelays();fetchNHOpenData();fetchWebTris();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
 function rwSetLive(s){const dot=document.getElementById('rw-live-dot'),txt=document.getElementById('rw-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
 function rwStartCd(){rwCdSecs=120;clearInterval(rwCdTimer);rwCdTimer=setInterval(()=>{rwCdSecs--;if(rwCdSecs<=0){clearInterval(rwCdTimer);return}const m=Math.floor(rwCdSecs/60),s=String(rwCdSecs%60).padStart(2,'0');document.getElementById('rw-cd').textContent=`${m}:${s}`},1000)}
 
@@ -935,6 +936,83 @@ function nhProcessResponse(data,isUnplanned){
 
 async function fetchTrafficDelays(){
   // Highways England RSS feeds are blocked by all proxies — motorway news now covered by RW_RSS_FEEDS Google News entries
+}
+
+async function fetchNHOpenData(){
+  try{
+    const url='https://opendata.arcgis.com/datasets/87bfd90bb7fd4d8583326b52448e2032_0/FeatureServer/0/query?where=1%3D1&outFields=*&f=json&resultRecordCount=100';
+    const res=await fetch(url);
+    console.log('NH OpenData status:',res.status);
+    if(!res.ok)return;
+    const data=await res.json();
+    console.log('NH OpenData features:',data.features?.length);
+    const features=data.features||[];
+    const newItems=features.map((f,i)=>{
+      const p=f.attributes||{};
+      const road=p.ROAD_NAME||p.RoadName||p.road||p.Road||'National Highway';
+      const desc=p.DESCRIPTION||p.Description||p.CLOSURE_DESCRIPTION||p.WorkDescription||'Planned road closure';
+      const start=p.PLANNED_START_DATE||p.StartDate||p.plannedStartDate;
+      const end=p.PLANNED_END_DATE||p.EndDate||p.plannedEndDate;
+      const startDate=start?new Date(start).toISOString().split('T')[0]:isoNow();
+      const endDate=end?new Date(end).toISOString().split('T')[0]:null;
+      const location=p.LOCATION||p.Location||p.ROAD_NAME||road;
+      return{id:'nhod-'+(p.OBJECTID||p.ObjectId||i),category:'RoadClosure',title:road+' — Planned Closure',desc:desc.slice(0,300),location:location+(p.LOCAL_AUTHORITY?' — '+p.LOCAL_AUTHORITY:''),startDate,startTime:'22:00',endDate,endTime:'06:00',severity:'high',roads:[road],source:'National Highways Open Data',sourceUrl:'https://opendata.nationalhighways.co.uk/datasets/public-scheduled-road-closures/explore',hasDiversion:true,isActive:true};
+    }).filter(it=>{
+      const loc=(it.location+' '+it.title+' '+it.desc).toLowerCase();
+      return loc.match(/m25|m1\b|m2\b|m3\b|m4\b|m11|m20|m23|a1\b|a2\b|a3\b|a13|a40|london|south east|surrey|kent|essex|hertford|bedford|bucks|oxford/);
+    }).filter(it=>{
+      if(!it.endDate)return true;
+      return new Date(it.endDate+'T23:59:00')>new Date();
+    });
+    console.log('NH OpenData London relevant:',newItems.length);
+    if(newItems.length>0){
+      const existIds=new Set(rwDisruptions.map(d=>d.id));
+      const fresh=newItems.filter(it=>!existIds.has(it.id));
+      if(fresh.length>0){
+        rwDisruptions=[...fresh,...rwDisruptions];
+        const seen=new Set();
+        rwDisruptions=rwDisruptions.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seen.has(key))return false;seen.add(key);return true;});
+        rwRenderDisruptions();rwRenderStats();rwRenderTicker();
+      }
+    }
+  }catch(e){console.log('NH OpenData error:',e.message);}
+}
+
+async function fetchWebTris(){
+  try{
+    const sitesUrl='https://webtris.highwaysengland.co.uk/api/v1/sites';
+    const res=await fetch(sitesUrl);
+    console.log('WebTRIS sites status:',res.status);
+    if(!res.ok)return;
+    const data=await res.json();
+    const sites=data.sites||[];
+    console.log('WebTRIS total sites:',sites.length);
+    const londonSites=sites.filter(s=>{
+      const name=(s.Description||s.name||'').toLowerCase();
+      return name.match(/m25|m1\b|m3\b|m4\b|m11|m20|a1\b|a2\b|a3\b|dartford|orbital|london/);
+    }).slice(0,20);
+    console.log('WebTRIS London sites:',londonSites.length);
+    if(londonSites.length===0)return;
+    const today=isoNow().replace(/-/g,'');
+    const siteIds=londonSites.map(s=>s.Id||s.id).join(',');
+    const qualityUrl=`https://webtris.highwaysengland.co.uk/api/v1/quality/overall?sites=${siteIds}&start_date=${today}&end_date=${today}`;
+    const qRes=await fetch(qualityUrl);
+    if(!qRes.ok)return;
+    const qData=await qRes.json();
+    console.log('WebTRIS quality data:',JSON.stringify(qData).slice(0,200));
+    const problematic=(qData.data_quality||[]).filter(q=>{
+      const quality=parseFloat(q.quality||q.Quality||100);
+      return quality<50;
+    });
+    problematic.forEach((q,i)=>{
+      const site=londonSites.find(s=>(s.Id||s.id)==(q.site_id||q.SiteId));
+      if(!site)return;
+      const name=site.Description||site.name||'London Road';
+      const road=name.match(/M\d+|A\d+/)?.[0]||name.slice(0,20);
+      rwDisruptions.unshift({id:'wt-'+(q.site_id||i),category:'Incident',title:road+' — Severe Congestion Detected',desc:`Real-time sensor data shows severe traffic disruption on ${name}. Quality index: ${q.quality||q.Quality}%. Expect significant delays.`,location:name,startDate:isoNow(),startTime:null,endDate:null,endTime:null,severity:'high',roads:[road],source:'WebTRIS / National Highways',sourceUrl:'https://webtris.highwaysengland.co.uk/',hasDiversion:false,isActive:true});
+    });
+    if(problematic.length>0){rwRenderDisruptions();rwRenderStats();rwRenderTicker();}
+  }catch(e){console.log('WebTRIS error:',e.message);}
 }
 
 function processTrafficItems(items){
