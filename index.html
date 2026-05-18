@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.8.7 -->
+<!-- roadwatch v2.8.8 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -796,10 +796,10 @@ function rwFlashTab(msg){let on=true;clearInterval(rwTabTimer);rwTabTimer=setInt
 
 (function rwInit(){
   if(!localStorage.getItem('nh_api_key'))localStorage.setItem('nh_api_key','957702d228fe4b7790394af233e62790');
-  rwApiKey=localStorage.getItem('tfl_api_key')||'';
+  if(localStorage.getItem('tfl_api_key')==='84e42584759047669a067464dc4af6b3')localStorage.setItem('tfl_api_key','3bb8014b0089484dbc8d72613e538d2a');
+  rwApiKey=localStorage.getItem('tfl_api_key')||'3bb8014b0089484dbc8d72613e538d2a';
   rwLoadAlerts();rwUpdateNotifStatus();
   if(rwApiKey){rwShowDash();rwRefreshAll()}
-  else{const p=document.querySelector('#rw-setup p');if(p)p.innerHTML='⚠️ Your TfL key may have expired. Please enter your new key.';}
   if('Notification'in window&&Notification.permission==='default')document.getElementById('rw-notif-bar').style.display='flex';
 })();
 
