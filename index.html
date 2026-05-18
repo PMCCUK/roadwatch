@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.8.4 -->
+<!-- roadwatch v2.8.5 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -836,17 +836,23 @@ async function fetchNationalHighways(){
   try{
     const endpoints=[
       'https://api.data.nationalhighways.co.uk/roads/v2/closures/planned',
-      'https://api.data.nationalhighways.co.uk/roads/v2/closures/unplanned'
+      'https://api.data.nationalhighways.co.uk/roads/v2/closures/unplanned',
+      'https://api.data.nationalhighways.co.uk/roads/v2/closures?subscription-key='+NH_KEY
     ];
     for(const endpoint of endpoints){
       try{
         const res=await fetch(endpoint,{headers:{'Ocp-Apim-Subscription-Key':NH_KEY,'Accept':'application/json'}});
+        console.log('NH direct response status:',res.status,res.ok,'for',endpoint.split('/').pop());
         if(res.ok){const data=await res.json();nhProcessResponse(data,endpoint.includes('unplanned'));continue;}
-      }catch{}
+      }catch(e){console.log('NH direct fetch error:',e.message);}
       try{
-        const proxyUrl=RSS_PROXY+encodeURIComponent(endpoint+'?subscription-key='+NH_KEY);
+        const proxyUrl=RSS_PROXY+encodeURIComponent(endpoint+(endpoint.includes('?')?'&':'?')+'subscription-key='+NH_KEY);
         const proxyRes=await fetch(proxyUrl);
-        if(proxyRes.ok){const json=await proxyRes.json();const data=JSON.parse(json.contents||'{}');nhProcessResponse(data,endpoint.includes('unplanned'));}
+        if(proxyRes.ok){
+          const json=await proxyRes.json();
+          console.log('NH proxy response:',json.contents?.slice(0,200));
+          const data=JSON.parse(json.contents||'{}');nhProcessResponse(data,endpoint.includes('unplanned'));
+        }
       }catch(e){console.log('NH proxy error:',e.message);}
     }
   }catch(e){console.log('NH API error:',e.message);}
@@ -854,6 +860,7 @@ async function fetchNationalHighways(){
 
 function nhProcessResponse(data,isUnplanned){
   const features=data.features||data.closures||data.roadOrCarriagewayOrLaneManagement||data.content||data.items||(Array.isArray(data)?data:[]);
+  console.log('NH features found:',features?.length,JSON.stringify(features?.[0])?.slice(0,200));
   if(!features||!features.length)return;
   const newItems=features.map((f,i)=>{
     const props=f.properties||f;
