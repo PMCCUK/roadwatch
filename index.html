@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.7.7 -->
+<!-- roadwatch v2.7.8 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -604,10 +604,13 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
   <!-- Legend -->
   <div class="rw-legend" id="rw-legend">
     <span style="font-size:9px;color:var(--rw-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
-    <span class="src-pill"><span class="src-dot" style="background:#F59E0B"></span>TfL Live</span>
+    <span class="src-pill"><span class="src-dot" style="background:#F59E0B"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">TfL Live</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/travel-alerts/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">National Highways</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span><a href="https://public.londonworks.gov.uk/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">London Works Register</a></span>
     <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span>BBC News</span>
     <span class="src-pill"><span class="src-dot" style="background:#0EA5E9"></span>Google News</span>
-    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Every 5 min</span>
+    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Met Police</span>
+    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Every 2 min</span>
   </div>
 
   <!-- Stats -->
@@ -706,11 +709,13 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
   <!-- Legend -->
   <div class="ro-legend" id="ro-legend">
     <span style="font-size:9px;color:var(--ro-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-accent)"></span>TfL Planned Works</span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-accent)"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:var(--ro-muted);text-decoration:none">TfL Live</a></span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/travel-alerts/" target="_blank" rel="noopener" style="color:var(--ro-muted);text-decoration:none">National Highways</a></span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-green)"></span><a href="https://public.londonworks.gov.uk/" target="_blank" rel="noopener" style="color:var(--ro-muted);text-decoration:none">London Works Register</a></span>
     <span class="ro-src-pill"><span class="ro-src-dot" style="background:#EF4444"></span>BBC News</span>
     <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-accent)"></span>Google News</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#10B981"></span>Police.uk</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#10B981"></span>Every 5 min</span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-green)"></span>Met Police</span>
+    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-green)"></span>Every 2 min</span>
   </div>
 
   <!-- Stats -->
@@ -952,8 +957,6 @@ const RW_RSS_FEEDS=[
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+protest+march+road+closed&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=London+M25+road+closure+motorway+disruption+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+London+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=M25+closure+London+road+disruption&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+M4+M11+London+closure&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'London Roads',cls:'google',url:'https://news.google.com/rss/search?q=London+motorway+closure+roadworks+overnight+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Tube Strike',cls:'google',url:'https://news.google.com/rss/search?q=London+tube+strike+underground+RMT+2026&hl=en-GB&gl=GB&ceid=GB:en'},
@@ -1026,7 +1029,8 @@ async function rwFetchTfl(){
 async function rwFetchNews(){
   const results=await Promise.allSettled(RW_RSS_FEEDS.map(f=>fetchRss(f)));
   let items=[];results.forEach(r=>{if(r.status==='fulfilled')items=items.concat(r.value)});
-  items=dedupeNews(items);const cutoff=Date.now()-(14*24*60*60*1000);items=items.filter(it=>it.pubDate&&it.pubDate>cutoff);items=items.map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>0).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,40);
+  const ageCutoff=Date.now()-(14*24*60*60*1000);const freshCutoff=Date.now()-(5*24*60*60*1000);
+  items=dedupeNews(items);items=items.filter(it=>it.pubDate&&it.pubDate>ageCutoff);items=items.map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>0).filter(it=>it.pubDate>freshCutoff||it.score>=4).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,40);
   rwNews=items;rwRenderNews();rwRenderStats();
 }
 
@@ -1124,8 +1128,6 @@ const RO_RSS_FEEDS=[
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+event+road+closure+diversion+upcoming&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=site:met.police.uk+OR+Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=London+M25+road+closure+motorway+disruption+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+London+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=M25+closure+London+road+disruption&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+M4+M11+London+closure&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'London Roads',cls:'google',url:'https://news.google.com/rss/search?q=London+motorway+closure+roadworks+overnight+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Tube Strike',cls:'google',url:'https://news.google.com/rss/search?q=London+tube+strike+underground+RMT+2026&hl=en-GB&gl=GB&ceid=GB:en'},
@@ -1190,8 +1192,9 @@ async function roFetchNews(){
   let items=[];results.forEach(r=>{if(r.status==='fulfilled')items=items.concat(r.value)});
   // For roadworks we specifically want FORWARD-LOOKING news — filter by future keywords
   const futureKw=['planned','upcoming','next week','will be','is set','scheduled','announced','this weekend','coming','ahead','overnight','junction','carriageway','planned maintenance','m25','motorway','will be closed','set to close','closures between'];
-  items=dedupeNews(items);const cutoff=Date.now()-(14*24*60*60*1000);items=items.filter(it=>it.pubDate&&it.pubDate>cutoff);items=items.map(it=>({...it,score:scoreRelevance(it),forward:futureKw.some(k=>(it.title+' '+it.desc).toLowerCase().includes(k))}))
-    .filter(it=>it.score>0).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,40);
+  const roAgeCutoff=Date.now()-(14*24*60*60*1000);const roFreshCutoff=Date.now()-(5*24*60*60*1000);
+  items=dedupeNews(items);items=items.filter(it=>it.pubDate&&it.pubDate>roAgeCutoff);items=items.map(it=>({...it,score:scoreRelevance(it),forward:futureKw.some(k=>(it.title+' '+it.desc).toLowerCase().includes(k))}))
+    .filter(it=>it.score>0).filter(it=>it.pubDate>roFreshCutoff||it.score>=4).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,40);
   roNews=items;roRenderRoNews();roRenderRoStats();
 }
 
