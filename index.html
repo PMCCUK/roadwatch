@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.9.0 -->
+<!-- roadwatch v2.9.3 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -689,8 +689,9 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 // ════════════════════════════════════════════════════════════
 //  SHARED
 // ════════════════════════════════════════════════════════════
-const TFL_BASE  = 'https://api.tfl.gov.uk';
-const RSS_PROXY = 'https://api.allorigins.win/get?url=';
+const TFL_BASE      = 'https://api.tfl.gov.uk';
+const RSS_PROXY     = 'https://api.allorigins.win/get?url=';
+const NH_WORKER_URL = 'https://roadwatch-proxy.petritmusa90.workers.dev';
 
 const ROAD_KW = ['road closure','closed','roadworks','diversion','disruption','traffic','march','protest','demonstration','parade','event','works','tfl','transport for london','bus diversion','lane closure','bridge','accident','incident','flooding','m25','m1','m3','m4','m11','motorway','junction','overnight closure','carriageway','slip road','national highways','tube strike','underground strike','rmt','diversion route','link road'];
 
@@ -885,25 +886,23 @@ async function rwFetchTfl(){
 }
 
 async function fetchNationalHighways(){
-  const NH_KEY=localStorage.getItem('nh_api_key')||'957702d228fe4b7790394af233e62790';
-  const endpoints=[
-    `https://api.data.nationalhighways.co.uk/roads/v2/closures/planned?subscription-key=${NH_KEY}`,
-    `https://api.data.nationalhighways.co.uk/roads/v2/closures/unplanned?subscription-key=${NH_KEY}`
-  ];
-  for(const endpoint of endpoints){
-    try{
-      const res=await fetch(`https://corsproxy.io/?${encodeURIComponent(endpoint)}`);
-      console.log('NH corsproxy status:',res.status,endpoint.includes('unplanned')?'unplanned':'planned');
-      if(!res.ok){console.log('NH error body:',await res.text().catch(()=>''));continue;}
-      const text=await res.text();
-      console.log('NH raw text length:',text.length,'slice:',text.slice(0,500));
-      if(!text||text.length<10){console.log('NH empty response');continue;}
-      let data;
-      try{data=JSON.parse(text);}catch(e){console.log('NH JSON parse error:',e.message,'text:',text.slice(0,200));continue;}
-      console.log('NH data keys:',Object.keys(data),'length:',text.length);
-      nhProcessResponse(data,endpoint.includes('unplanned'));
-    }catch(e){console.log('NH corsproxy error:',e.message);}
-  }
+  const WORKER='https://roadwatch-proxy.petritmusa90.workers.dev';
+  try{
+    const[plannedRes,unplannedRes]=await Promise.allSettled([
+      fetch(WORKER+'/nh/planned'),
+      fetch(WORKER+'/nh/unplanned')
+    ]);
+    if(plannedRes.status==='fulfilled'&&plannedRes.value.ok){
+      const text=await plannedRes.value.text();
+      console.log('NH planned length:',text.length,'slice:',text.slice(0,300));
+      if(text&&text.length>10){try{nhProcessResponse(JSON.parse(text),false);}catch(e){console.log('NH planned parse error:',e.message);}}
+    }
+    if(unplannedRes.status==='fulfilled'&&unplannedRes.value.ok){
+      const text=await unplannedRes.value.text();
+      console.log('NH unplanned length:',text.length,'slice:',text.slice(0,300));
+      if(text&&text.length>10){try{nhProcessResponse(JSON.parse(text),true);}catch(e){console.log('NH unplanned parse error:',e.message);}}
+    }
+  }catch(e){console.log('NH Worker error:',e.message);}
 }
 
 function nhProcessResponse(data,isUnplanned){
