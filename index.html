@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.8.2 -->
+<!-- roadwatch v2.8.4 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -493,7 +493,8 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
   <div class="rw-legend" id="rw-legend">
     <span style="font-size:9px;color:var(--rw-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
     <span class="src-pill"><span class="src-dot" style="background:#F59E0B"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">TfL Live</a></span>
-    <span class="src-pill"><span class="src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/travel-alerts/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">National Highways</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/road-closure-report/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">National Highways</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span><a href="https://www.trafficengland.com" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">Traffic England</a></span>
     <span class="src-pill"><span class="src-dot" style="background:#10B981"></span><a href="https://public.londonworks.gov.uk/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">London Works Register</a></span>
     <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span>BBC News</span>
     <span class="src-pill"><span class="src-dot" style="background:#0EA5E9"></span>Google News</span>
@@ -763,6 +764,7 @@ function rwPlaySound(sev){try{const ctx=rwGetAudio();const freq=sev==='critical'
 function rwFlashTab(msg){let on=true;clearInterval(rwTabTimer);rwTabTimer=setInterval(()=>{document.title=on?`🚨 ${msg}`:'ROADWATCH — London';on=!on},1000);setTimeout(()=>{clearInterval(rwTabTimer);document.title='ROADWATCH — London'},25000)}
 
 (function rwInit(){
+  if(!localStorage.getItem('nh_api_key'))localStorage.setItem('nh_api_key','957702d228fe4b7790394af233e62790');
   rwApiKey=localStorage.getItem('tfl_api_key')||'';
   rwLoadAlerts();rwUpdateNotifStatus();
   if(rwApiKey){rwShowDash();rwRefreshAll()}
@@ -783,7 +785,7 @@ function rwShouldAlert(sev){if(sev==='critical')return rwAlerts.sevCrit!==false;
 function rwFireAlerts(d){if(!rwShouldAlert(d.severity))return;if(rwAlerts.sound!==false)rwPlaySound(d.severity);if(rwAlerts.tab!==false)rwFlashTab(d.title);if(rwAlerts.banner!==false){document.getElementById('rw-alert-title').textContent=`${(RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default).icon} NEW ${d.severity.toUpperCase()} DISRUPTION`;document.getElementById('rw-alert-msg').textContent=`${d.title} — ${d.location}`;document.getElementById('rw-alert-time').textContent='Detected '+new Date().toLocaleTimeString('en-GB');const b=document.getElementById('rw-alert-banner');b.style.display='block';setTimeout(()=>b.style.display='none',14000)}const tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default,sc=RW_SEV_CFG[d.severity]||RW_SEV_CFG.low;const t=document.createElement('div');t.className=`toast ${d.severity}`;t.innerHTML=`<div class="toast-hdr"><span class="toast-icon">${tc.icon}</span><span class="toast-lbl" style="color:${sc.color}">${d.severity.toUpperCase()}</span></div><div class="toast-title">${esc(d.title)}</div><div class="toast-loc">📍 ${esc(d.location)}</div>`;const c=document.getElementById('rw-toast-container');c.appendChild(t);t.addEventListener('click',()=>t.remove());setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .5s';setTimeout(()=>t.remove(),500)},7000);if(rwAlerts.browser&&Notification.permission==='granted')new Notification(`${tc.icon} ${d.severity.toUpperCase()} — ${d.title}`,{body:`📍 ${d.location}`,tag:d.id});if(rwAlerts.ntfy&&rwAlerts.ntfyTopic)fetch(`https://ntfy.sh/${encodeURIComponent(rwAlerts.ntfyTopic)}`,{method:'POST',headers:{'Title':`🚨 ${d.severity.toUpperCase()} — ${d.title}`,'Priority':d.severity==='critical'?'urgent':d.severity==='high'?'high':'default','Tags':`warning,london`},body:`📍 ${d.location}\n\n${d.desc||d.title}`}).catch(()=>{})}
 function closeRwAlert(){document.getElementById('rw-alert-banner').style.display='none'}
 
-async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);fetchNationalHighways();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
+async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);fetchNationalHighways();fetchTrafficDelays();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
 function rwSetLive(s){const dot=document.getElementById('rw-live-dot'),txt=document.getElementById('rw-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
 function rwStartCd(){rwCdSecs=120;clearInterval(rwCdTimer);rwCdTimer=setInterval(()=>{rwCdSecs--;if(rwCdSecs<=0){clearInterval(rwCdTimer);return}const m=Math.floor(rwCdSecs/60),s=String(rwCdSecs%60).padStart(2,'0');document.getElementById('rw-cd').textContent=`${m}:${s}`},1000)}
 
@@ -830,41 +832,76 @@ async function rwFetchTfl(){
 }
 
 async function fetchNationalHighways(){
+  const NH_KEY=localStorage.getItem('nh_api_key')||'957702d228fe4b7790394af233e62790';
   try{
-    const url=RSS_PROXY+encodeURIComponent('https://nationalhighways.co.uk/travel-updates/road-closure-report/');
-    const res=await fetch(url);
-    const json=await res.json();
-    const html=json.contents||'';
-    const text=html.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&nbsp;/g,' ').replace(/\s+/g,' ');
-    const roads=['M25','M1','M2','M3','M4','M11','M20','M23','M26','A1','A2','A3','A13','A40','A102','A316','A406'];
-    const newItems=[];
-    roads.forEach(road=>{
-      let idx=0;
-      while((idx=text.indexOf(road,idx))!==-1){
-        const snippet=text.slice(Math.max(0,idx-20),idx+300);
-        const hasDate=/\d{2}\/\d{2}\/\d{4}|\d+ May|\d+ June|\d+ July/.test(snippet);
-        const hasClosure=/clos|carriageway|junction|jct|slip road|lane/i.test(snippet);
-        if(hasDate&&hasClosure){
-          let startDate=isoNow();
-          const dateMatch=snippet.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-          if(dateMatch)startDate=dateMatch[3]+'-'+dateMatch[2]+'-'+dateMatch[1];
-          const timeMatch=snippet.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
-          const startTime=timeMatch?timeMatch[0].trim():'22:00';
-          const id='nh-'+road+'-'+idx;
-          if(!rwDisruptions.find(d=>d.id===id)&&!newItems.find(d=>d.id===id)){
-            newItems.push({id,category:'RoadClosure',title:road+' Closure — National Highways',desc:snippet.trim().slice(0,250),location:road+' — London/South East',startDate,startTime,endDate:null,endTime:'06:00',severity:'high',roads:[road],source:'National Highways',sourceUrl:'https://nationalhighways.co.uk/travel-updates/road-closure-report/',hasDiversion:true,isActive:true,delayMinutes:0});
-          }
-        }
-        idx+=road.length;
-      }
-    });
-    if(newItems.length>0){
-      rwDisruptions=[...newItems,...rwDisruptions];
+    const endpoints=[
+      'https://api.data.nationalhighways.co.uk/roads/v2/closures/planned',
+      'https://api.data.nationalhighways.co.uk/roads/v2/closures/unplanned'
+    ];
+    for(const endpoint of endpoints){
+      try{
+        const res=await fetch(endpoint,{headers:{'Ocp-Apim-Subscription-Key':NH_KEY,'Accept':'application/json'}});
+        if(res.ok){const data=await res.json();nhProcessResponse(data,endpoint.includes('unplanned'));continue;}
+      }catch{}
+      try{
+        const proxyUrl=RSS_PROXY+encodeURIComponent(endpoint+'?subscription-key='+NH_KEY);
+        const proxyRes=await fetch(proxyUrl);
+        if(proxyRes.ok){const json=await proxyRes.json();const data=JSON.parse(json.contents||'{}');nhProcessResponse(data,endpoint.includes('unplanned'));}
+      }catch(e){console.log('NH proxy error:',e.message);}
+    }
+  }catch(e){console.log('NH API error:',e.message);}
+}
+
+function nhProcessResponse(data,isUnplanned){
+  const features=data.features||data.closures||data.roadOrCarriagewayOrLaneManagement||data.content||data.items||(Array.isArray(data)?data:[]);
+  if(!features||!features.length)return;
+  const newItems=features.map((f,i)=>{
+    const props=f.properties||f;
+    const road=props.road||props.roadName||props.affectedRoad||'National Highway';
+    const desc=(props.description||props.reason||props.situationDescription||props.comments||(isUnplanned?'Unplanned closure':'Planned closure')+' on '+road).slice(0,300);
+    const start=props.startDateTime||props.startTime||props.plannedStartTime||isoNow()+'T22:00:00';
+    const end=props.endDateTime||props.endTime||props.plannedEndTime||null;
+    const jFrom=props.junctionFrom||props.fromJunction||props.startJunction||'';
+    const jTo=props.junctionTo||props.toJunction||props.endJunction||'';
+    const region=props.region||props.area||'London/South East';
+    return{id:'nh2-'+(props.id||props.closureId||props.situationId||i),category:isUnplanned?'Incident':'RoadClosure',title:road+(jFrom?' J'+jFrom+(jTo?' to J'+jTo:''):'')+(isUnplanned?' — Unplanned Closure':' — Planned Closure'),desc,location:road+(jFrom?' Junction '+jFrom+(jTo?' to '+jTo:''):'')+' — '+region,startDate:start.split('T')[0],startTime:(start.split('T')[1]||'').slice(0,5)||'22:00',endDate:end?end.split('T')[0]:null,endTime:end?(end.split('T')[1]||'').slice(0,5)||'06:00':'06:00',severity:isUnplanned?'critical':(props.severity==='High'?'high':'medium'),roads:[road].filter(Boolean),source:'National Highways',sourceUrl:'https://nationalhighways.co.uk/travel-updates/road-closure-report/',hasDiversion:props.diversionRoute||props.hasDiversion||false,isActive:true,delayMinutes:0};
+  }).filter(it=>{const loc=(it.location+' '+it.title).toLowerCase();return loc.match(/m25|m1\b|m2\b|m3\b|m4\b|m11|m20|m23|m26|a1\b|a2\b|a3\b|a13|a40|a102|a316|a406|london|south east|surrey|kent|essex|hertford/);});
+  if(newItems.length>0){
+    const existIds=new Set(rwDisruptions.map(d=>d.id));
+    const fresh=newItems.filter(it=>!existIds.has(it.id));
+    if(fresh.length>0){
+      rwDisruptions=[...fresh,...rwDisruptions];
       const seen=new Set();
       rwDisruptions=rwDisruptions.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seen.has(key))return false;seen.add(key);return true});
       rwRenderDisruptions();rwRenderStats();rwRenderTicker();
+      console.log('NH: added',fresh.length,'closures');
     }
-  }catch(e){console.log('NH fetch error:',e);}
+  }
+}
+
+async function fetchTrafficDelays(){
+  try{
+    const res=await fetch(RSS_PROXY+encodeURIComponent('https://www.trafficengland.com/rss/rss.xml'));
+    if(!res.ok)return;
+    const json=await res.json();
+    const doc=new DOMParser().parseFromString(json.contents||'','text/xml');
+    const items=Array.from(doc.querySelectorAll('item'));
+    const londonItems=items.filter(item=>{
+      const text=(item.querySelector('title')?.textContent+' '+item.querySelector('description')?.textContent).toLowerCase();
+      return text.match(/m25|m1\b|m3\b|m4\b|m11|a1\b|a2\b|a3\b|a13|a40|london|dartford|orbital/);
+    });
+    londonItems.slice(0,10).forEach((item,i)=>{
+      const title=item.querySelector('title')?.textContent||'Traffic incident';
+      const desc=(item.querySelector('description')?.textContent||'').replace(/<[^>]+>/g,' ').trim();
+      const link=item.querySelector('link')?.textContent||'https://www.trafficengland.com';
+      if(rwDisruptions.find(d=>d.source==='Traffic England'&&d.title===title.slice(0,80)))return;
+      const isClosure=/clos|blocked/i.test(title);
+      const isAccident=/accident|collision|incident/i.test(title);
+      const isSevere=/severe|major|serious/i.test(title);
+      rwDisruptions.unshift({id:'te-'+i+'-'+Date.now(),category:isAccident?'Incident':isClosure?'RoadClosure':'Works',title:title.slice(0,80),desc:desc.slice(0,250),location:title.match(/M\d+|A\d+/)?.[0]||'London/M25',startDate:isoNow(),startTime:null,endDate:null,endTime:null,severity:isSevere?'high':'medium',roads:[title.match(/M\d+|A\d+/)?.[0]].filter(Boolean),source:'Traffic England',sourceUrl:link,hasDiversion:false,isActive:true,delayMinutes:0});
+    });
+    if(londonItems.length>0){rwRenderDisruptions();rwRenderStats();rwRenderTicker();}
+  }catch(e){console.log('TrafficEngland error:',e.message);}
 }
 
 async function rwFetchNews(){
