@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.8.5 -->
+<!-- roadwatch v2.8.7 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -709,20 +709,51 @@ function scoreRelevance(it){const t=(it.title+' '+(it.desc||'')).toLowerCase();l
 function dedupeNews(items){const seen=new Set();return items.filter(it=>{const k=it.title.toLowerCase().replace(/\s+/g,'').slice(0,50);if(seen.has(k))return false;seen.add(k);return true})}
 
 async function fetchRss(feed){
-  try{
-    const res=await fetch(RSS_PROXY+encodeURIComponent(feed.url));
-    if(!res.ok)return[];
-    const json=await res.json();
-    const doc=new DOMParser().parseFromString(json.contents||'','text/xml');
-    return Array.from(doc.querySelectorAll('item')).map(item=>({
-      title:item.querySelector('title')?.textContent?.trim()||'',
-      desc:(item.querySelector('description')?.textContent||'').replace(/<[^>]+>/g,'').trim(),
-      link:item.querySelector('link')?.textContent?.trim()||'',
-      pubDate:new Date(item.querySelector('pubDate')?.textContent||'').getTime()||Date.now(),
-      source:item.querySelector('source')?.textContent?.trim()||feed.name,
-      outletCls:feed.cls,outlet:feed.name
-    })).filter(it=>it.title);
-  }catch{return[]}
+  const PROXIES=[
+    url=>`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`,
+    url=>`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    url=>`https://corsproxy.io/?${encodeURIComponent(url)}`,
+  ];
+  for(const makeProxy of PROXIES){
+    try{
+      const proxyUrl=makeProxy(feed.url);
+      const res=await fetch(proxyUrl);
+      if(!res.ok)continue;
+      const json=await res.json();
+      if(json.items){
+        return json.items.map(item=>({
+          title:item.title||'',
+          desc:item.description?.replace(/<[^>]+>/g,'').trim()||item.content?.replace(/<[^>]+>/g,'').trim()||'',
+          link:item.link||item.url||'',
+          pubDate:new Date(item.pubDate||item.published||'').getTime()||Date.now(),
+          source:item.author||feed.name,outletCls:feed.cls,outlet:feed.name
+        })).filter(it=>it.title);
+      }
+      if(json.contents){
+        const doc=new DOMParser().parseFromString(json.contents,'text/xml');
+        return Array.from(doc.querySelectorAll('item')).map(item=>({
+          title:item.querySelector('title')?.textContent?.trim()||'',
+          desc:(item.querySelector('description')?.textContent||'').replace(/<[^>]+>/g,'').trim(),
+          link:item.querySelector('link')?.textContent?.trim()||'',
+          pubDate:new Date(item.querySelector('pubDate')?.textContent||'').getTime()||Date.now(),
+          source:item.querySelector('source')?.textContent?.trim()||feed.name,
+          outletCls:feed.cls,outlet:feed.name
+        })).filter(it=>it.title);
+      }
+      const text=await res.text().catch(()=>'');
+      if(text.includes('<item>')||text.includes('<entry>')){
+        const doc=new DOMParser().parseFromString(text,'text/xml');
+        return Array.from(doc.querySelectorAll('item')).map(item=>({
+          title:item.querySelector('title')?.textContent?.trim()||'',
+          desc:(item.querySelector('description')?.textContent||'').replace(/<[^>]+>/g,'').trim(),
+          link:item.querySelector('link')?.textContent?.trim()||'',
+          pubDate:new Date(item.querySelector('pubDate')?.textContent||'').getTime()||Date.now(),
+          source:feed.name,outletCls:feed.cls,outlet:feed.name
+        })).filter(it=>it.title);
+      }
+    }catch(e){console.log('RSS proxy failed:',makeProxy.toString().slice(0,50),e.message);}
+  }
+  return[];
 }
 
 // ── Tab switching ────────────────────────────────────────────
@@ -768,6 +799,7 @@ function rwFlashTab(msg){let on=true;clearInterval(rwTabTimer);rwTabTimer=setInt
   rwApiKey=localStorage.getItem('tfl_api_key')||'';
   rwLoadAlerts();rwUpdateNotifStatus();
   if(rwApiKey){rwShowDash();rwRefreshAll()}
+  else{const p=document.querySelector('#rw-setup p');if(p)p.innerHTML='⚠️ Your TfL key may have expired. Please enter your new key.';}
   if('Notification'in window&&Notification.permission==='default')document.getElementById('rw-notif-bar').style.display='flex';
 })();
 
@@ -833,29 +865,20 @@ async function rwFetchTfl(){
 
 async function fetchNationalHighways(){
   const NH_KEY=localStorage.getItem('nh_api_key')||'957702d228fe4b7790394af233e62790';
-  try{
-    const endpoints=[
-      'https://api.data.nationalhighways.co.uk/roads/v2/closures/planned',
-      'https://api.data.nationalhighways.co.uk/roads/v2/closures/unplanned',
-      'https://api.data.nationalhighways.co.uk/roads/v2/closures?subscription-key='+NH_KEY
-    ];
-    for(const endpoint of endpoints){
-      try{
-        const res=await fetch(endpoint,{headers:{'Ocp-Apim-Subscription-Key':NH_KEY,'Accept':'application/json'}});
-        console.log('NH direct response status:',res.status,res.ok,'for',endpoint.split('/').pop());
-        if(res.ok){const data=await res.json();nhProcessResponse(data,endpoint.includes('unplanned'));continue;}
-      }catch(e){console.log('NH direct fetch error:',e.message);}
-      try{
-        const proxyUrl=RSS_PROXY+encodeURIComponent(endpoint+(endpoint.includes('?')?'&':'?')+'subscription-key='+NH_KEY);
-        const proxyRes=await fetch(proxyUrl);
-        if(proxyRes.ok){
-          const json=await proxyRes.json();
-          console.log('NH proxy response:',json.contents?.slice(0,200));
-          const data=JSON.parse(json.contents||'{}');nhProcessResponse(data,endpoint.includes('unplanned'));
-        }
-      }catch(e){console.log('NH proxy error:',e.message);}
-    }
-  }catch(e){console.log('NH API error:',e.message);}
+  const endpoints=[
+    `https://api.data.nationalhighways.co.uk/roads/v2/closures/planned?subscription-key=${NH_KEY}`,
+    `https://api.data.nationalhighways.co.uk/roads/v2/closures/unplanned?subscription-key=${NH_KEY}`
+  ];
+  for(const endpoint of endpoints){
+    try{
+      const res=await fetch(`https://corsproxy.io/?${encodeURIComponent(endpoint)}`);
+      console.log('NH corsproxy status:',res.status,endpoint.includes('unplanned')?'unplanned':'planned');
+      if(!res.ok){console.log('NH error body:',await res.text().catch(()=>''));continue;}
+      const data=await res.json();
+      console.log('NH data keys:',Object.keys(data),'length:',JSON.stringify(data).length);
+      nhProcessResponse(data,endpoint.includes('unplanned'));
+    }catch(e){console.log('NH corsproxy error:',e.message);}
+  }
 }
 
 function nhProcessResponse(data,isUnplanned){
@@ -887,28 +910,65 @@ function nhProcessResponse(data,isUnplanned){
 }
 
 async function fetchTrafficDelays(){
-  try{
-    const res=await fetch(RSS_PROXY+encodeURIComponent('https://www.trafficengland.com/rss/rss.xml'));
-    if(!res.ok)return;
-    const json=await res.json();
-    const doc=new DOMParser().parseFromString(json.contents||'','text/xml');
-    const items=Array.from(doc.querySelectorAll('item'));
-    const londonItems=items.filter(item=>{
-      const text=(item.querySelector('title')?.textContent+' '+item.querySelector('description')?.textContent).toLowerCase();
-      return text.match(/m25|m1\b|m3\b|m4\b|m11|a1\b|a2\b|a3\b|a13|a40|london|dartford|orbital/);
+  const feeds=[
+    'https://m.highwaysengland.co.uk/feeds/rss/UnplannedEvents.xml',
+    'https://m.highwaysengland.co.uk/feeds/rss/PlannedEvents.xml'
+  ];
+  for(const feedUrl of feeds){
+    try{
+      const proxies=[
+        `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(feedUrl)}`,
+        `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`
+      ];
+      for(const proxyUrl of proxies){
+        try{
+          const res=await fetch(proxyUrl);
+          if(!res.ok)continue;
+          const json=await res.json();
+          const xmlStr=json.contents||json.xml||'';
+          const items=json.items||[];
+          if(items.length>0){processTrafficItems(items.map(i=>({title:i.title,desc:i.description?.replace(/<[^>]+>/g,' '),link:i.link})));break;}
+          if(xmlStr){
+            const doc=new DOMParser().parseFromString(xmlStr,'text/xml');
+            const xmlItems=Array.from(doc.querySelectorAll('item')).map(i=>({
+              title:i.querySelector('title')?.textContent||'',
+              desc:(i.querySelector('description')?.textContent||'').replace(/<[^>]+>/g,' '),
+              link:i.querySelector('link')?.textContent||feedUrl
+            }));
+            processTrafficItems(xmlItems);break;
+          }
+        }catch{}
+      }
+    }catch(e){console.log('Traffic feed error:',e.message);}
+  }
+}
+
+function processTrafficItems(items){
+  const londonItems=items.filter(i=>(i.title+' '+i.desc).toLowerCase().match(/m25|m1\b|m3\b|m4\b|m11|m20|a1\b|a2\b|a3\b|a13|a40|london|dartford/));
+  londonItems.slice(0,10).forEach((item,idx)=>{
+    if(rwDisruptions.find(d=>d.title===item.title?.slice(0,80)))return;
+    const combined=item.title+item.desc;
+    const isClosure=/clos|blocked/i.test(combined);
+    const isAccident=/accident|collision/i.test(combined);
+    const isSevere=/severe|major|serious/i.test(combined);
+    const road=combined.match(/M25|M1\b|M3\b|M4\b|M11|A1\b|A2\b|A3\b|A13|A40/)?.[0]||'';
+    rwDisruptions.unshift({
+      id:'he-'+idx+'-'+Date.now(),
+      category:isAccident?'Incident':isClosure?'RoadClosure':'Works',
+      title:(item.title||'').slice(0,80),
+      desc:(item.desc||'').slice(0,300),
+      location:road||'London/South East Motorway',
+      startDate:isoNow(),startTime:null,endDate:null,endTime:null,
+      severity:isSevere?'high':'medium',
+      roads:road?[road]:[],
+      source:'Highways England',
+      sourceUrl:item.link||'https://nationalhighways.co.uk',
+      hasDiversion:/diversion/i.test(item.desc),
+      isActive:true,delayMinutes:0
     });
-    londonItems.slice(0,10).forEach((item,i)=>{
-      const title=item.querySelector('title')?.textContent||'Traffic incident';
-      const desc=(item.querySelector('description')?.textContent||'').replace(/<[^>]+>/g,' ').trim();
-      const link=item.querySelector('link')?.textContent||'https://www.trafficengland.com';
-      if(rwDisruptions.find(d=>d.source==='Traffic England'&&d.title===title.slice(0,80)))return;
-      const isClosure=/clos|blocked/i.test(title);
-      const isAccident=/accident|collision|incident/i.test(title);
-      const isSevere=/severe|major|serious/i.test(title);
-      rwDisruptions.unshift({id:'te-'+i+'-'+Date.now(),category:isAccident?'Incident':isClosure?'RoadClosure':'Works',title:title.slice(0,80),desc:desc.slice(0,250),location:title.match(/M\d+|A\d+/)?.[0]||'London/M25',startDate:isoNow(),startTime:null,endDate:null,endTime:null,severity:isSevere?'high':'medium',roads:[title.match(/M\d+|A\d+/)?.[0]].filter(Boolean),source:'Traffic England',sourceUrl:link,hasDiversion:false,isActive:true,delayMinutes:0});
-    });
-    if(londonItems.length>0){rwRenderDisruptions();rwRenderStats();rwRenderTicker();}
-  }catch(e){console.log('TrafficEngland error:',e.message);}
+  });
+  if(londonItems.length>0){rwRenderDisruptions();rwRenderStats();rwRenderTicker();}
 }
 
 async function rwFetchNews(){
