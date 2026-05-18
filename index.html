@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.7.8 -->
+<!-- roadwatch v2.8.0 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -265,110 +265,6 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 .m-src{font-size:8px;color:var(--rw-muted2);border-top:1px solid var(--rw-border);padding-top:9px;letter-spacing:.05em}
 
 
-/* ══════════════════════════════════════════════════════
-   ROADWORKS PAGE  (dark teal / cyan)
-══════════════════════════════════════════════════════ */
-#page-ro{background:var(--ro-bg);color:var(--ro-text);min-height:calc(100vh - 52px)}
-#page-ro ::-webkit-scrollbar-track{background:var(--ro-bg)}
-#page-ro ::-webkit-scrollbar-thumb{background:var(--ro-border2)}
-
-.ro-header{background:var(--ro-bg2);border-bottom:1px solid var(--ro-border);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
-.ro-logo-wrap{display:flex;align-items:center;gap:10px}
-.ro-logo-icon{width:34px;height:34px;background:var(--ro-accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.ro-logo-title{font-family:var(--font-syne);font-size:18px;font-weight:800;color:var(--ro-accent);letter-spacing:-0.03em}
-.ro-logo-sub{font-size:9px;color:var(--ro-muted2);letter-spacing:0.18em;text-transform:uppercase;margin-top:1px}
-.ro-header-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.ro-updated{font-size:10px;color:var(--ro-muted2)}
-.live-dot.ro{background:var(--ro-green)}
-.live-text.ro{color:var(--ro-green)}
-
-/* Ticker */
-.ro-ticker{background:var(--ro-accent);padding:6px 0;overflow:hidden;white-space:nowrap;display:none}
-.ro-ticker-item{color:#050A0A;font-size:11px;font-weight:600;letter-spacing:.04em;padding:0 28px}
-
-/* Controls */
-.ro-controls{padding:12px 22px;display:none;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--ro-border)}
-.fbtn-ro{background:none;border:1px solid var(--ro-border);border-radius:5px;padding:4px 11px;color:var(--ro-muted);font-size:9px;cursor:pointer;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;transition:all .15s;white-space:nowrap}
-.fbtn-ro:hover{border-color:var(--ro-border2);color:var(--ro-text)}
-.fbtn-ro.active{background:var(--ro-accent);border-color:var(--ro-accent);color:#050A0A;font-weight:600}
-.sep-ro{width:1px;height:24px;background:var(--ro-border);flex-shrink:0}
-.refresh-btn-ro{background:none;border:1px solid var(--ro-border2);border-radius:5px;padding:4px 11px;color:var(--ro-text);font-size:9px;cursor:pointer;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;transition:all .15s;display:flex;align-items:center;gap:5px;margin-left:auto}
-.refresh-btn-ro:hover{border-color:var(--ro-accent);color:var(--ro-accent)}
-.cd-ro{background:var(--ro-border);border-radius:3px;padding:2px 6px;font-size:9px;color:var(--ro-muted)}
-.filter-label-ro{font-size:10px;color:var(--ro-muted2);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
-
-/* Stats */
-.ro-stats{display:none;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:10px;padding:13px 22px;border-bottom:1px solid var(--ro-border)}
-.stat-card-ro{background:var(--ro-card);border:1px solid var(--ro-border);border-radius:9px;padding:11px 12px;text-align:center}
-.stat-num-ro{font-family:var(--font-syne);font-size:24px;font-weight:800}
-.stat-lbl-ro{font-size:9px;color:var(--ro-muted);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
-
-/* Source legend */
-.ro-legend{display:none;align-items:center;gap:14px;flex-wrap:wrap;padding:9px 22px;border-bottom:1px solid var(--ro-border)}
-.ro-src-pill{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ro-muted)}
-.ro-src-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-
-/* Layout */
-.ro-layout{display:grid;grid-template-columns:1fr 330px;min-height:calc(100vh - 260px)}
-@media(max-width:950px){.ro-layout{grid-template-columns:1fr}}
-.ro-main-col{padding:16px 22px;border-right:1px solid var(--ro-border)}
-.ro-col-hdr{font-family:var(--font-syne);font-size:12px;font-weight:700;color:var(--ro-text);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.ro-col-cnt{font-family:var(--font-mono);font-size:10px;color:var(--ro-muted);font-weight:400;text-transform:none;letter-spacing:0}
-.ro-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px}
-.ro-news-col{padding:16px 18px;overflow-y:auto;max-height:calc(100vh - 220px);position:sticky;top:104px}
-@media(max-width:950px){.ro-news-col{position:static;max-height:none;border-top:1px solid var(--ro-border)}}
-
-/* Roadworks cards */
-.ro-card{background:var(--ro-card);border:1px solid var(--ro-border);border-radius:11px;padding:15px;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s;animation:fadeUpRo .3s ease both}
-.ro-card:hover{transform:translateY(-2px);border-color:var(--ro-border2);box-shadow:0 4px 16px rgba(0,0,0,.4)}
-@keyframes fadeUpRo{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.ro-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:8px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
-.ro-card-title{font-family:var(--font-syne);font-size:13px;font-weight:700;color:var(--ro-text);margin-bottom:3px;line-height:1.3}
-.ro-card-loc{font-size:10px;color:var(--ro-muted);margin-bottom:7px}
-.ro-card-desc{font-size:11px;color:#6EE7B7;line-height:1.6;margin-bottom:10px;opacity:.8}
-.ro-road-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:9px}
-.ro-road-tag{background:var(--ro-border);border:1px solid var(--ro-border2);border-radius:3px;padding:2px 6px;font-size:9px;color:var(--ro-muted)}
-.ro-card-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--ro-border);padding-top:8px}
-.ro-card-date{font-size:9px;color:var(--ro-muted2)}
-.ro-card-src{margin-top:6px;font-size:8px;color:var(--ro-muted2);letter-spacing:.04em;display:flex;align-items:center;gap:4px}
-.ro-src-badge{display:inline-block;padding:1px 5px;border-radius:3px;font-size:7px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
-
-/* Roadworks news */
-.ro-news-list{display:flex;flex-direction:column;gap:8px}
-.ro-news-card{background:var(--ro-card);border:1px solid var(--ro-border);border-radius:9px;padding:12px;cursor:pointer;transition:border-color .15s}
-.ro-news-card:hover{border-color:var(--ro-border2)}
-.ro-news-outlet{font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:3px}
-.ro-news-outlet.bbc{background:#1a0a0a;color:#ef4444;border:1px solid #ef444433}
-.ro-news-outlet.google{background:#051015;color:#06B6D4;border:1px solid #06B6D433}
-.ro-news-outlet.police{background:#05100a;color:#10B981;border:1px solid #10B98133}
-.ro-news-title{font-size:11px;font-weight:500;color:var(--ro-text);line-height:1.4;margin-bottom:5px}
-.ro-news-link{font-size:9px;color:var(--ro-accent);text-decoration:none;font-weight:600}
-
-/* State */
-.state-panel-ro{text-align:center;padding:44px 18px;grid-column:1/-1}
-.spinner-ro{width:28px;height:28px;border:3px solid var(--ro-border2);border-top-color:var(--ro-accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
-.state-title-ro{font-family:var(--font-syne);font-size:16px;margin-bottom:6px;color:var(--ro-text)}
-.state-sub-ro{font-size:11px;color:var(--ro-muted);max-width:340px;margin:0 auto;line-height:1.7}
-
-/* Roadworks modal */
-#ro-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;align-items:center;justify-content:center;padding:18px}
-#ro-modal-overlay.open{display:flex}
-#ro-modal{background:var(--ro-card);border:1px solid var(--ro-border2);border-radius:14px;max-width:500px;width:100%;max-height:84vh;overflow-y:auto;animation:fadeUpRo .22s ease}
-.ro-m-hdr{padding:18px 18px 0}
-.ro-m-close{float:right;background:none;border:none;color:var(--ro-muted);font-size:20px;cursor:pointer;line-height:1}
-.ro-m-body{padding:12px 18px 18px;display:flex;flex-direction:column;gap:10px}
-.ro-m-sec{background:#051515;border-radius:7px;padding:11px}
-.ro-m-lbl{font-size:8px;color:var(--ro-muted2);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px}
-.ro-m-val{font-size:11px;color:#A7F3D0;line-height:1.7}
-.ro-m-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.ro-m-src{font-size:8px;color:var(--ro-muted2);border-top:1px solid var(--ro-border);padding-top:9px;letter-spacing:.05em}
-
-/* Upcoming timeline badge */
-.timeline-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:4px;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-.timeline-badge.today{background:#1F0A0A;color:#EF4444;border:1px solid #EF444433}
-.timeline-badge.soon{background:#1a1205;color:#F97316;border:1px solid #F9731633}
-.timeline-badge.upcoming{background:#051015;color:#06B6D4;border:1px solid #06B6D433}
-.timeline-badge.planned{background:#0a0a1a;color:#8B5CF6;border:1px solid #8B5CF633}
 
 /* ══════════════════════════════════════════════════════
    FLIGHTS PAGE  (deep blue)
@@ -478,13 +374,13 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 .state-sub-fl{font-size:11px;color:var(--fl-muted);max-width:340px;margin:0 auto;line-height:1.7}
 
 @media print{
-  #top-nav,#rw-alert-banner,#rw-toast-container,#rw-modal-overlay,#ro-modal-overlay{display:none!important}
+  #top-nav,#rw-alert-banner,#rw-toast-container,#rw-modal-overlay{display:none!important}
   body{background:#fff;color:#000}
 }
 @media(max-width:640px){
-  .rw-header,.ro-header,.rw-controls,.ro-controls,.rw-disrupt-col,.rw-news-col,.ro-main-col,.ro-news-col,.rw-alerts-panel{padding-left:14px;padding-right:14px}
+  .rw-header,.rw-controls,.rw-disrupt-col,.rw-news-col,.rw-alerts-panel{padding-left:14px;padding-right:14px}
   .rw-setup{margin:14px}
-  .rw-grid,.ro-grid{grid-template-columns:1fr}
+  .rw-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -496,15 +392,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
     <div class="nav-icon">🛣️</div>
     <div class="nav-tab-inner">
       <span>ROADWATCH</span>
-      <span class="nav-sub">Live Disruptions</span>
-    </div>
-  </button>
-  <div class="nav-divider"></div>
-  <button class="nav-tab nav-ro" onclick="switchTab('ro')">
-    <div class="nav-icon" style="background:var(--ro-accent)">🚧</div>
-    <div class="nav-tab-inner">
-      <span>ROADWORKS</span>
-      <span class="nav-sub">7–10 Day Planner</span>
+      <span class="nav-sub">Live + Planned · London</span>
     </div>
   </button>
   <div class="nav-divider"></div>
@@ -629,6 +517,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
       <button class="fbtn-rw active" onclick="rwSetFilter('type','all',this)">All</button>
       <button class="fbtn-rw" onclick="rwSetFilter('type','RoadClosure',this)">🚫 Closures</button>
       <button class="fbtn-rw" onclick="rwSetFilter('type','Works',this)">⚠️ Works</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('type','Planned',this)">📋 Planned</button>
       <button class="fbtn-rw" onclick="rwSetFilter('type','SpecialEvent',this)">🎪 Events</button>
       <button class="fbtn-rw" onclick="rwSetFilter('type','Incident',this)">🔴 Incidents</button>
     </div>
@@ -647,7 +536,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
   <!-- Layout -->
   <div class="rw-layout">
     <div class="rw-disrupt-col" id="rw-disrupt-col" style="display:none">
-      <div class="col-hdr">🛣️ TfL Live Disruptions <span class="col-cnt" id="rw-disrupt-cnt"></span></div>
+      <div class="col-hdr">🛣️ Live Disruptions &amp; Planned Works <span class="col-cnt" id="rw-disrupt-cnt"></span></div>
       <div class="rw-grid" id="rw-grid"><div class="state-panel"><div class="spinner"></div><div class="state-title-rw">Connecting to TfL…</div></div></div>
     </div>
     <div class="rw-news-col" id="rw-news-col" style="display:none">
@@ -685,111 +574,6 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
   </div>
 </div><!-- end page-rw -->
 
-
-<!-- ════════════════════════════════════════════════════════════
-     ROADWORKS PAGE
-════════════════════════════════════════════════════════════ -->
-<div id="page-ro" class="page">
-
-  <!-- Header -->
-  <div class="ro-header">
-    <div class="ro-logo-wrap">
-      <div class="ro-logo-icon">🚧</div>
-      <div><div class="ro-logo-title">ROADWORKS</div><div class="ro-logo-sub">London 7–10 Day Planner</div></div>
-    </div>
-    <div class="ro-header-right">
-      <div id="ro-updated" class="ro-updated" style="display:none"></div>
-      <div class="live-badge"><div class="live-dot ro" id="ro-live-dot"></div><span class="live-text ro" id="ro-live-text">READY</span></div>
-    </div>
-  </div>
-
-  <!-- Ticker -->
-  <div class="ro-ticker" id="ro-ticker"><div class="ticker-track" id="ro-ticker-track"></div></div>
-
-  <!-- Legend -->
-  <div class="ro-legend" id="ro-legend">
-    <span style="font-size:9px;color:var(--ro-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-accent)"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:var(--ro-muted);text-decoration:none">TfL Live</a></span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/travel-alerts/" target="_blank" rel="noopener" style="color:var(--ro-muted);text-decoration:none">National Highways</a></span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-green)"></span><a href="https://public.londonworks.gov.uk/" target="_blank" rel="noopener" style="color:var(--ro-muted);text-decoration:none">London Works Register</a></span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:#EF4444"></span>BBC News</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-accent)"></span>Google News</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-green)"></span>Met Police</span>
-    <span class="ro-src-pill"><span class="ro-src-dot" style="background:var(--ro-green)"></span>Every 2 min</span>
-  </div>
-
-  <!-- Stats -->
-  <div class="ro-stats" id="ro-stats">
-    <div class="stat-card-ro"><div class="stat-num-ro" id="ro-s-total" style="color:var(--ro-accent)">0</div><div class="stat-lbl-ro">Total</div></div>
-    <div class="stat-card-ro"><div class="stat-num-ro" id="ro-s-works" style="color:var(--ro-yellow)">0</div><div class="stat-lbl-ro">Roadworks</div></div>
-    <div class="stat-card-ro"><div class="stat-num-ro" id="ro-s-events" style="color:var(--ro-purple)">0</div><div class="stat-lbl-ro">Events</div></div>
-    <div class="stat-card-ro"><div class="stat-num-ro" id="ro-s-protests" style="color:var(--ro-red)">0</div><div class="stat-lbl-ro">Protests</div></div>
-    <div class="stat-card-ro"><div class="stat-num-ro" id="ro-s-news" style="color:var(--ro-accent)">0</div><div class="stat-lbl-ro">News</div></div>
-  </div>
-
-  <!-- Controls -->
-  <div class="ro-controls" id="ro-controls">
-    <span class="filter-label-ro">Type:</span>
-    <div class="fg">
-      <button class="fbtn-ro active" onclick="roSetFilter('type','all',this)">All</button>
-      <button class="fbtn-ro" onclick="roSetFilter('type','roadworks',this)">🚧 Roadworks</button>
-      <button class="fbtn-ro" onclick="roSetFilter('type','event',this)">🎪 Events</button>
-      <button class="fbtn-ro" onclick="roSetFilter('type','protest',this)">✊ Protests</button>
-      <button class="fbtn-ro" onclick="roSetFilter('type','march',this)">🚶 Marches</button>
-      <button class="fbtn-ro" onclick="roSetFilter('type','closure',this)">🚫 Closures</button>
-    </div>
-    <div class="sep-ro"></div>
-    <span class="filter-label-ro">Window:</span>
-    <div class="fg">
-      <button class="fbtn-ro active" onclick="roSetFilter('days','10',this)">10 days</button>
-      <button class="fbtn-ro" onclick="roSetFilter('days','7',this)">7 days</button>
-      <button class="fbtn-ro" onclick="roSetFilter('days','3',this)">3 days</button>
-    </div>
-    <button class="refresh-btn-ro" onclick="roRefreshAll()">↺ Refresh <span class="cd-ro" id="ro-cd">2:00</span></button>
-  </div>
-
-  <!-- Layout -->
-  <div class="ro-layout">
-    <div class="ro-main-col" id="ro-main-col">
-      <div class="ro-col-hdr">🚧 Upcoming Planned Disruptions <span class="ro-col-cnt" id="ro-main-cnt"></span></div>
-      <div class="ro-grid" id="ro-grid">
-        <div class="state-panel-ro"><div class="spinner-ro"></div><div class="state-title-ro">Loading upcoming disruptions…</div></div>
-      </div>
-    </div>
-    <div class="ro-news-col" id="ro-news-col">
-      <div class="ro-col-hdr" style="margin-bottom:11px">📰 Upcoming News <span class="ro-col-cnt" id="ro-news-cnt"></span></div>
-      <div class="ro-news-list" id="ro-news-list">
-        <div class="news-skeleton" style="background:var(--ro-card);border-color:var(--ro-border)"><div class="skel-line" style="background:var(--ro-border2);width:40%"></div><div class="skel-line" style="background:var(--ro-border2)"></div></div>
-        <div class="news-skeleton" style="background:var(--ro-card);border-color:var(--ro-border)"><div class="skel-line" style="background:var(--ro-border2);width:55%"></div><div class="skel-line" style="background:var(--ro-border2)"></div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal -->
-  <div id="ro-modal-overlay" onclick="roCloseModal(event)">
-    <div id="ro-modal">
-      <div class="ro-m-hdr">
-        <button class="ro-m-close" onclick="roCloseModalNow()">×</button>
-        <div id="ro-m-badges" class="badge-row" style="margin-bottom:10px"></div>
-        <div id="ro-m-title" style="font-family:var(--font-syne);font-size:17px;font-weight:700;color:var(--ro-text);margin-bottom:4px"></div>
-        <div id="ro-m-loc" style="font-size:11px;color:var(--ro-muted);margin-bottom:0"></div>
-      </div>
-      <div class="ro-m-body">
-        <div class="ro-m-sec"><div class="ro-m-lbl">Description</div><div class="ro-m-val" id="ro-m-desc"></div></div>
-        <div class="ro-m-grid">
-          <div class="ro-m-sec"><div class="ro-m-lbl">Start</div><div class="ro-m-val" id="ro-m-start"></div></div>
-          <div class="ro-m-sec"><div class="ro-m-lbl">End</div><div class="ro-m-val" id="ro-m-end"></div></div>
-        </div>
-        <div class="ro-m-sec" id="ro-m-roads-wrap"><div class="ro-m-lbl">Affected Roads</div><div class="ro-road-tags" id="ro-m-roads"></div></div>
-        <div class="ro-m-grid">
-          <div class="ro-m-sec"><div class="ro-m-lbl">Source</div><div class="ro-m-val" id="ro-m-source"></div></div>
-          <div class="ro-m-sec"><div class="ro-m-lbl">Days Until</div><div class="ro-m-val" id="ro-m-days"></div></div>
-        </div>
-        <div class="ro-m-src" id="ro-m-src"></div>
-      </div>
-    </div>
-  </div>
-</div><!-- end page-ro -->
 
 
 <!-- ════════════════════════════════════════════════════════════
@@ -866,6 +650,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
       <button class="fbtn-fl" onclick="flSetFilter('country','JP',this)">🇯🇵 Japan</button>
       <button class="fbtn-fl" onclick="flSetFilter('country','TH',this)">🇹🇭 Thailand</button>
       <button class="fbtn-fl" onclick="flSetFilter('country','MY',this)">🇲🇾 Malaysia</button>
+      <button class="fbtn-fl" onclick="flSetFilter('country','TW',this)">🇹🇼 Taiwan</button>
     </div>
     <div class="sep-fl"></div>
     <span class="filter-label-fl">Status:</span>
@@ -917,7 +702,8 @@ function daysUntil(s){if(!s)return null;try{const t=new Date();t.setHours(0,0,0,
 function daysUntilNum(s){if(!s)return 999;try{const t=new Date();t.setHours(0,0,0,0);return Math.round((new Date(s+'T00:00:00')-t)/86400000)}catch{return 999}}
 function timeAgo(ts){if(!ts)return'';const d=Math.floor((Date.now()-ts)/1000);if(d<60)return'Just now';if(d<3600)return`${Math.floor(d/60)}m ago`;if(d<86400)return`${Math.floor(d/3600)}h ago`;return`${Math.floor(d/86400)}d ago`}
 function splitT(dt,i){if(!dt)return null;const p=dt.split('T');return i===0?p[0]:(p[1]?p[1].slice(0,5):null)}
-function scoreRelevance(it){const t=(it.title+' '+(it.desc||'')).toLowerCase();let s=0;ROAD_KW.forEach(k=>{if(t.includes(k))s++});if(t.includes('london'))s+=2;return s}
+const HIGH_IMPACT_KW=['m25','motorway','tunnel closure','bridge closure','national highways','tube strike','underground strike','rmt strike','major disruption','severe delays','road closed','highway closed'];
+function scoreRelevance(it){const t=(it.title+' '+(it.desc||'')).toLowerCase();let s=0;ROAD_KW.forEach(k=>{if(t.includes(k))s++});if(t.includes('london'))s+=2;HIGH_IMPACT_KW.forEach(k=>{if(t.includes(k))s+=2});return s}
 function dedupeNews(items){const seen=new Set();return items.filter(it=>{const k=it.title.toLowerCase().replace(/\s+/g,'').slice(0,50);if(seen.has(k))return false;seen.add(k);return true})}
 
 async function fetchRss(feed){
@@ -943,22 +729,27 @@ function switchTab(tab){
   document.getElementById('page-'+tab).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.querySelector('.nav-'+tab).classList.add('active');
-  document.title = tab==='rw' ? 'ROADWATCH — London Live' : tab==='fl' ? 'FLIGHTS — Asia→London Tracker' : 'ROADWORKS — London Planner';
+  document.title = tab==='rw' ? 'ROADWATCH — London Live' : 'FLIGHTS — Asia→London Tracker';
 }
 
 // ════════════════════════════════════════════════════════════
 //  ROADWATCH
 // ════════════════════════════════════════════════════════════
-const RW_TYPE_CFG={RoadClosure:{icon:'🚫',color:'#DC2626',bg:'#FEE2E2',label:'Road Closure'},Works:{icon:'⚠️',color:'#F59E0B',bg:'#FEF3C7',label:'Works'},SpecialEvent:{icon:'🎪',color:'#8B5CF6',bg:'#EDE9FE',label:'Special Event'},Incident:{icon:'🔴',color:'#EF4444',bg:'#FEE2E2',label:'Incident'},default:{icon:'⚠️',color:'#F59E0B',bg:'#FEF3C7',label:'Disruption'}};
+const RW_TYPE_CFG={RoadClosure:{icon:'🚫',color:'#DC2626',bg:'#FEE2E2',label:'Road Closure'},Works:{icon:'⚠️',color:'#F59E0B',bg:'#FEF3C7',label:'Works'},Planned:{icon:'📋',color:'#8B5CF6',bg:'#0a0a1a',label:'Planned Works'},SpecialEvent:{icon:'🎪',color:'#8B5CF6',bg:'#EDE9FE',label:'Special Event'},Incident:{icon:'🔴',color:'#EF4444',bg:'#FEE2E2',label:'Incident'},default:{icon:'⚠️',color:'#F59E0B',bg:'#FEF3C7',label:'Disruption'}};
 const RW_SEV_CFG={critical:{color:'#DC2626',label:'Critical'},high:{color:'#EF4444',label:'High'},medium:{color:'#F59E0B',label:'Moderate'},low:{color:'#10B981',label:'Low'}};
 const RW_RSS_FEEDS=[
   {name:'BBC News',cls:'bbc',url:'https://feeds.bbci.co.uk/news/england/london/rss.xml'},
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+disruption+traffic&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+protest+march+road+closed&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+next+week+planned&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+event+road+closure+diversion+upcoming&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=site:met.police.uk+OR+Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=London+M25+road+closure+motorway+disruption+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=M25+closure+National+Highways+London+motorway+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+M4+M11+London+closure&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'London Roads',cls:'google',url:'https://news.google.com/rss/search?q=London+motorway+closure+roadworks+overnight+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'This is Local London',cls:'google',url:'https://news.google.com/rss/search?q=M25+roadworks+closure+junction+overnight+London+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Tube Strike',cls:'google',url:'https://news.google.com/rss/search?q=London+tube+strike+underground+RMT+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'London Events',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+event+march+protest+2026&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
@@ -998,7 +789,7 @@ function rwStartCd(){rwCdSecs=120;clearInterval(rwCdTimer);rwCdTimer=setInterval
 function rwMapCat(c){if(!c)return'default';c=c.toLowerCase();if(c.includes('closure'))return'RoadClosure';if(c.includes('event')||c.includes('special'))return'SpecialEvent';if(c.includes('incident'))return'Incident';return'Works'}
 function rwMapSev(s){if(!s)return'low';s=s.toLowerCase();if(s==='serious'||s==='blocker')return'critical';if(s==='moderate'||s==='significant')return'high';if(s==='minimal'||s==='minor')return'medium';return'low'}
 function rwNormActive(d){const roads=(d.roads||[]).map(r=>r.displayName||r.id).filter(Boolean);const desc=[d.comments,d.additionalInfo].filter(Boolean).join(' ').trim()||d.description||'';return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Traffic Control',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:d.hasDiversions||false,isActive:true}}
-function rwNormPlanned(d){const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);return{id:d.id||rnd(),category:'Works',title:d.description||'Planned works',desc:d.additionalInfo||d.description||'',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:false,isActive:false}}
+function rwNormPlanned(d){const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);return{id:d.id||rnd(),category:'Planned',title:d.description||'Planned works',desc:d.additionalInfo||d.description||'',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:false,isActive:false}}
 
 async function rwFetchTfl(){
   const grid=document.getElementById('rw-grid');
@@ -1108,188 +899,6 @@ function rwCloseModal(e){if(e.target===document.getElementById('rw-modal-overlay
 function rwCloseModalNow(){document.getElementById('rw-modal-overlay').classList.remove('open');document.body.style.overflow=''}
 
 
-// ════════════════════════════════════════════════════════════
-//  ROADWORKS
-// ════════════════════════════════════════════════════════════
-const RO_TYPE_CFG={
-  roadworks:{icon:'🚧',color:'#EAB308',bg:'#1a1500',label:'Roadworks'},
-  event:{icon:'🎪',color:'#8B5CF6',bg:'#0f0a1a',label:'Event'},
-  protest:{icon:'✊',color:'#EF4444',bg:'#1a0a0a',label:'Protest'},
-  march:{icon:'🚶',color:'#F97316',bg:'#1a0f05',label:'March'},
-  closure:{icon:'🚫',color:'#DC2626',bg:'#1a0808',label:'Closure'},
-  planned:{icon:'📋',color:'#06B6D4',bg:'#051015',label:'Planned'},
-  default:{icon:'🚧',color:'#06B6D4',bg:'#051015',label:'Disruption'},
-};
-
-const RO_RSS_FEEDS=[
-  {name:'BBC News',cls:'bbc',url:'https://feeds.bbci.co.uk/news/england/london/rss.xml'},
-  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+next+week+planned&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+protest+march+planned+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+event+road+closure+diversion+upcoming&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=site:met.police.uk+OR+Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=London+M25+road+closure+motorway+disruption+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+M4+M11+London+closure&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'London Roads',cls:'google',url:'https://news.google.com/rss/search?q=London+motorway+closure+roadworks+overnight+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Tube Strike',cls:'google',url:'https://news.google.com/rss/search?q=London+tube+strike+underground+RMT+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'London Events',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+event+march+protest+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-];
-
-let roItems=[],roNews=[],roFilters={type:'all',days:'10'};
-let roRefTimer=null,roCdTimer=null,roCdSecs=300;
-let roApiKey='';
-
-// Roadworks uses same TfL key as Roadwatch
-(function roInit(){
-  roApiKey=localStorage.getItem('tfl_api_key')||'';
-  // Auto-refresh when switching to this tab
-})();
-
-function roRefreshAll(){
-  roApiKey=localStorage.getItem('tfl_api_key')||'';
-  roSetLive('scanning');clearTimeout(roRefTimer);clearInterval(roCdTimer);
-  document.getElementById('ro-controls').style.display='flex';
-  document.getElementById('ro-legend').style.display='flex';
-  document.getElementById('ro-stats').style.display='grid';
-  Promise.all([roFetchTfl(),roFetchNews()]).then(()=>{
-    document.getElementById('ro-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    document.getElementById('ro-updated').style.display='block';
-    roSetLive('live');roStartCd();roRefTimer=setTimeout(roRefreshAll,2*60*1000);
-  });
-}
-
-function roSetLive(s){const dot=document.getElementById('ro-live-dot'),txt=document.getElementById('ro-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
-function roStartCd(){roCdSecs=120;clearInterval(roCdTimer);roCdTimer=setInterval(()=>{roCdSecs--;if(roCdSecs<=0){clearInterval(roCdTimer);return}const m=Math.floor(roCdSecs/60),s=String(roCdSecs%60).padStart(2,'0');document.getElementById('ro-cd').textContent=`${m}:${s}`},1000)}
-
-async function roFetchTfl(){
-  if(!roApiKey){roRenderItems();return}
-  try{
-    // Planned street works for next 10 days — forward looking
-    const res=await fetch(`${TFL_BASE}/Road/all/Street/Disruption?startDate=${isoNow()}&endDate=${isoFuture(10)}&app_key=${roApiKey}`);
-    if(!res.ok){roRenderItems();return}
-    const data=await res.json();
-    if(Array.isArray(data)){
-      let tflItems=data.map(d=>{
-        const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);
-        return{id:d.id||rnd(),type:'roadworks',title:d.description||'Planned street works',desc:d.additionalInfo||d.description||'Planned works on London road network.',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',srcCls:'tfl'};
-      }).filter(d=>daysUntilNum(d.startDate)<=parseInt(roFilters.days));
-      tflItems=[...new Map(tflItems.map(d=>[d.id,d])).values()];
-      const seenRo=new Set();const dedupedTfl=tflItems.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seenRo.has(key))return false;seenRo.add(key);return true});
-      // Merge with existing (don't duplicate)
-      const existIds=new Set(roItems.map(x=>x.id));
-      dedupedTfl.forEach(it=>{if(!existIds.has(it.id))roItems.push(it)});
-      const seenAll=new Set();roItems=roItems.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seenAll.has(key))return false;seenAll.add(key);return true});
-
-      // Inject confirmed ongoing disruptions into Roadworks (add items here when needed)
-      const roProtests=[];
-      roProtests.forEach(p=>{if(!roItems.find(x=>x.id===p.id))roItems.unshift(p)});
-    }
-  }catch{}
-  roRenderItems();roRenderRoStats();roRenderRoTicker();
-}
-
-async function roFetchNews(){
-  const results=await Promise.allSettled(RO_RSS_FEEDS.map(f=>fetchRss(f)));
-  let items=[];results.forEach(r=>{if(r.status==='fulfilled')items=items.concat(r.value)});
-  // For roadworks we specifically want FORWARD-LOOKING news — filter by future keywords
-  const futureKw=['planned','upcoming','next week','will be','is set','scheduled','announced','this weekend','coming','ahead','overnight','junction','carriageway','planned maintenance','m25','motorway','will be closed','set to close','closures between'];
-  const roAgeCutoff=Date.now()-(14*24*60*60*1000);const roFreshCutoff=Date.now()-(5*24*60*60*1000);
-  items=dedupeNews(items);items=items.filter(it=>it.pubDate&&it.pubDate>roAgeCutoff);items=items.map(it=>({...it,score:scoreRelevance(it),forward:futureKw.some(k=>(it.title+' '+it.desc).toLowerCase().includes(k))}))
-    .filter(it=>it.score>0).filter(it=>it.pubDate>roFreshCutoff||it.score>=4).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,40);
-  roNews=items;roRenderRoNews();roRenderRoStats();
-}
-
-function roGetTimlineBadge(startDate){
-  const d=daysUntilNum(startDate);
-  if(d<=0)return`<span class="timeline-badge today">Now</span>`;
-  if(d<=2)return`<span class="timeline-badge soon">In ${d}d</span>`;
-  if(d<=5)return`<span class="timeline-badge upcoming">In ${d}d</span>`;
-  return`<span class="timeline-badge planned">In ${d}d</span>`;
-}
-
-function roRenderItems(){
-  const days=parseInt(roFilters.days);
-  const f=roItems.filter(d=>(roFilters.type==='all'||d.type===roFilters.type)&&daysUntilNum(d.startDate)<=days);
-  f.sort((a,b)=>daysUntilNum(a.startDate)-daysUntilNum(b.startDate));
-  document.getElementById('ro-main-cnt').textContent=`${f.length} item${f.length!==1?'s':''}`;
-  const grid=document.getElementById('ro-grid');
-  if(!f.length){
-    const noKey=!roApiKey;
-    grid.innerHTML=`<div class="state-panel-ro"><div class="state-icon">🚧</div><div class="state-title-ro">${noKey?'TfL key needed':'No planned items found'}</div><div class="state-sub-ro">${noKey?'Go to ROADWATCH tab and enter your TfL API key first — it\'s shared between both dashboards.':'No planned works or events found in the next '+days+' days. News articles shown on the right.'}</div></div>`;
-    return;
-  }
-  grid.innerHTML=f.map((d,i)=>{
-    const tc=RO_TYPE_CFG[d.type]||RO_TYPE_CFG.default;
-    const srcColor=d.srcCls==='tfl'?'#EAB308':d.srcCls==='police'?'#10B981':'#06B6D4';
-    const srcBg=d.srcCls==='tfl'?'#1a1500':d.srcCls==='police'?'#051a0a':'#051015';
-    const srcBorder=d.srcCls==='tfl'?'#EAB30833':d.srcCls==='police'?'#10B98133':'#06B6D433';
-    const ds=d.startDate?fmtDate(d.startDate)+(d.startTime?` · ${d.startTime}`:'')+(d.endDate&&d.endDate!==d.startDate?` → ${fmtDate(d.endDate)}`:''):'TBC';
-    const rtags=(d.roads||[]).slice(0,3).map(r=>`<span class="ro-road-tag">${esc(r)}</span>`).join('')+((d.roads||[]).length>3?`<span class="ro-road-tag">+${d.roads.length-3}</span>`:'');
-    return`<div class="ro-card" style="animation-delay:${i*.04}s" onclick='roOpenModal(${JSON.stringify(JSON.stringify(d))})'>
-      <div class="card-top"><div class="badge-row"><span class="ro-badge" style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.color}33">${tc.icon} ${tc.label}</span></div>${roGetTimlineBadge(d.startDate)}</div>
-      <div class="ro-card-title">${esc(d.title)}</div>
-      <div class="ro-card-loc">📍 ${esc(d.location)}</div>
-      <div class="ro-card-desc">${esc(trunc(d.desc||d.title,140))}</div>
-      ${rtags?`<div class="ro-road-tags">${rtags}</div>`:''}
-      <div class="ro-card-foot"><div class="ro-card-date">${ds}</div></div>
-      <div class="ro-card-src">${d.sourceUrl?`<a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener" style="text-decoration:none"><span class="ro-src-badge" style="background:${srcBg};color:${srcColor};border:1px solid ${srcBorder}">${esc(d.source)}</span></a>`:`<span class="ro-src-badge" style="background:${srcBg};color:${srcColor};border:1px solid ${srcBorder}">${esc(d.source)}</span>`}</div>
-    </div>`}).join('');
-}
-
-function roRenderRoNews(){
-  document.getElementById('ro-news-cnt').textContent=`${roNews.length} article${roNews.length!==1?'s':''}`;
-  const list=document.getElementById('ro-news-list');
-  if(!roNews.length){list.innerHTML='<div style="text-align:center;padding:24px;color:var(--ro-muted);font-size:11px">No news found.</div>';return}
-  list.innerHTML=roNews.map(n=>{
-    const fwdBadge=n.forward?`<span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:8px;font-weight:600;background:#051015;color:#06B6D4;border:1px solid #06B6D433;margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">📅 Forward-looking</span><br>`:'';
-    const impactBadge=n.score>=6?`<span style="display:inline-block;padding:2px 6px;border-radius:3px;font-size:8px;font-weight:600;background:#1a0505;color:#DC2626;border:1px solid #DC262633;margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em">🚨 HIGH IMPACT</span><br>`:'';
-    const outlet=n.outlet==='BBC News'?'BBC News':(n.source&&n.source!==n.outlet?n.source:n.outlet);
-    const cls=n.outletCls==='police'?'police':n.outletCls;
-    return`<div class="ro-news-card" onclick="window.open(${JSON.stringify(n.link)},'_blank','noopener noreferrer')">
-      <div class="news-src-row"><span class="ro-news-outlet ${cls}">${esc(outlet)}</span><span class="news-age" style="color:var(--ro-muted2)">${timeAgo(n.pubDate)}</span></div>
-      ${impactBadge}${fwdBadge}
-      <div class="ro-news-title">${esc(n.title)}</div>
-      <a class="ro-news-link" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Read →</a>
-    </div>`}).join('');
-}
-
-function roRenderRoStats(){
-  const c={roadworks:0,event:0,protest:0,march:0,closure:0,planned:0};
-  roItems.forEach(d=>{c[d.type]=(c[d.type]||0)+1});
-  document.getElementById('ro-s-total').textContent=roItems.length;
-  document.getElementById('ro-s-works').textContent=c.roadworks||0;
-  document.getElementById('ro-s-events').textContent=(c.event||0)+(c.closure||0);
-  document.getElementById('ro-s-protests').textContent=(c.protest||0)+(c.march||0);
-  document.getElementById('ro-s-news').textContent=roNews.length;
-}
-
-function roRenderRoTicker(){
-  const bar=document.getElementById('ro-ticker');if(!roItems.length){bar.style.display='none';return}
-  const track=document.getElementById('ro-ticker-track');
-  track.innerHTML=[...roItems,...roItems].map(d=>{const tc=RO_TYPE_CFG[d.type]||RO_TYPE_CFG.default;return`<span class="ro-ticker-item">${tc.icon} ${d.title} — ${d.location} [${fmtDate(d.startDate)}]</span>`}).join('');
-  const duration=Math.max(roItems.length*3,30);track.style.animationDuration=duration+'s';
-  bar.style.display='block';
-}
-
-function roSetFilter(type,val,btn){roFilters[type]=val;btn.closest('div').querySelectorAll('.fbtn-ro').forEach(b=>b.classList.remove('active'));btn.classList.add('active');roRenderItems()}
-
-function roOpenModal(jsonStr){
-  const d=JSON.parse(jsonStr),tc=RO_TYPE_CFG[d.type]||RO_TYPE_CFG.default;
-  document.getElementById('ro-m-badges').innerHTML=`<span class="ro-badge" style="background:${tc.bg};color:${tc.color};border:1px solid ${tc.color}44;font-size:10px">${tc.icon} ${tc.label}</span>`;
-  document.getElementById('ro-m-title').textContent=d.title;
-  document.getElementById('ro-m-loc').textContent='📍 '+(d.location||'London');
-  document.getElementById('ro-m-desc').textContent=d.desc||d.title;
-  document.getElementById('ro-m-start').textContent=d.startDate?(fmtDate(d.startDate)+(d.startTime?'\n'+d.startTime:'')):'TBC';
-  document.getElementById('ro-m-end').textContent=d.endDate?(fmtDate(d.endDate)+(d.endTime?'\n'+d.endTime:'')):'TBC';
-  const re=document.getElementById('ro-m-roads');re.innerHTML=(d.roads||[]).map(r=>`<span class="ro-road-tag" style="font-size:10px;padding:3px 7px">${esc(r)}</span>`).join('');
-  document.getElementById('ro-m-roads-wrap').style.display=(d.roads||[]).length?'':'none';
-  document.getElementById('ro-m-source').textContent=d.source||'TfL';
-  document.getElementById('ro-m-source').style.color='var(--ro-accent)';
-  const dn=daysUntilNum(d.startDate);document.getElementById('ro-m-days').textContent=dn<=0?'Now / Ongoing':dn===1?'Tomorrow':`${dn} days`;
-  document.getElementById('ro-m-src').innerHTML=d.sourceUrl?`SOURCE: <a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener" style="color:#06B6D4;text-decoration:none">${esc((d.source||'').toUpperCase())} →</a>`:`SOURCE: ${esc((d.source||'').toUpperCase())}`;
-  document.getElementById('ro-modal-overlay').classList.add('open');document.body.style.overflow='hidden';
-}
-function roCloseModal(e){if(e.target===document.getElementById('ro-modal-overlay'))roCloseModalNow()}
-function roCloseModalNow(){document.getElementById('ro-modal-overlay').classList.remove('open');document.body.style.overflow=''}
 
 // ════════════════════════════════════════════════════════════
 //  FLIGHTS  (AirLabs API)
@@ -1412,8 +1021,9 @@ function flRenderFlights(){
     const fromFlag=d.direction==='arrival'?asiFlag:'🇬🇧';
     const toFlag=d.direction==='arrival'?'🇬🇧':asiFlag;
     const borderCls=d.status==='cancelled'?'cancelled':d.status==='delayed'?(d.delayMins>=60?'delayed-bad':'delayed-mild'):'on-time';
-    const actualRow=d.actual?`<div class="fl-time-val">${esc(d.actual)}</div><div class="fl-time-sched">Sched: ${esc(d.scheduled)}</div>`:`<div class="fl-time-val">${esc(d.scheduled||'—')}</div>`;
-    const delayRow=d.delayMins>0?`<span class="fl-delay-pill" style="background:#1a1205;color:${d.delayMins>=60?'#F87171':'#FBBF24'}">+${d.delayMins} min</span>`:'';
+    const timeRow=d.actual&&d.delayMins>0
+      ?`<div class="fl-time-val" style="font-size:11px">SCH ${esc(d.scheduled)} → ACT ${esc(d.actual)} <span style="color:${d.delayMins>=60?'#F87171':'#FBBF24'}">(+${d.delayMins}min)</span></div>`
+      :`<div class="fl-time-val">${esc(d.scheduled||'—')}</div>`;
     const mockLabel=d.mock?'<span class="fl-mock-label">Example</span>':'';
     const fr24=`https://www.flightradar24.com/${d.flightNum.replace(/\s/g,'')}`;
     return`<div class="fl-card ${borderCls}${d.mock?' mock':''}" style="animation-delay:${i*.04}s">
@@ -1430,8 +1040,7 @@ function flRenderFlights(){
         <div class="fl-airport"><div class="fl-iata">${toFlag} ${esc(d.direction==='arrival'?d.destIata:d.originIata)}</div></div>
       </div>
       <div class="fl-times">
-        <div class="fl-time-block"><div class="fl-time-lbl">${d.direction==='arrival'?'Arrives':'Departs'}</div>${actualRow}</div>
-        <div class="fl-time-block"><div class="fl-time-lbl">Delay</div>${delayRow||'<div class="fl-time-val" style="color:var(--fl-green);font-size:11px">None</div>'}</div>
+        <div class="fl-time-block" style="grid-column:1/-1"><div class="fl-time-lbl">${d.direction==='arrival'?'Arrives':'Departs'}</div>${timeRow}${!d.actual&&d.delayMins>0?`<div class="fl-time-sched" style="color:${d.delayMins>=60?'#F87171':'#FBBF24'}">+${d.delayMins} min delay</div>`:''}</div>
       </div>
       <div class="fl-card-foot">
         <div class="fl-meta" style="color:var(--fl-muted2)">${d.aircraft||''}</div>
@@ -1481,11 +1090,10 @@ function flSetFilter(type,val,btn){flFilters[type]=val;btn.closest('div').queryS
 const origSwitch=switchTab;
 window.switchTab=function(tab){
   origSwitch(tab);
-  if(tab==='ro'&&roItems.length===0&&roNews.length===0){roRefreshAll()}
   if(tab==='fl'&&flFlights.length===0&&flNews.length===0){flRefreshAll()}
 };
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){rwCloseModalNow();roCloseModalNow()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')rwCloseModalNow()});
 </script>
 </body>
 </html>
