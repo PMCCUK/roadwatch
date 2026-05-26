@@ -1045,7 +1045,7 @@ function processTrafficItems(items){
 async function rwFetchNews(){
   const results=await Promise.allSettled(RW_RSS_FEEDS.map(f=>fetchRss(f)));
   let items=[];results.forEach(r=>{if(r.status==='fulfilled')items=items.concat(r.value)});
-  const ageCutoff=Date.now()-(14*24*60*60*1000);const freshCutoff=Date.now()-(5*24*60*60*1000);
+  const ageCutoff=Date.now()-(3*24*60*60*1000);const freshCutoff=Date.now()-(3*24*60*60*1000);
   items=dedupeNews(items);items=items.filter(it=>it.pubDate&&it.pubDate>ageCutoff);items=items.map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>0).filter(it=>it.pubDate>freshCutoff||it.score>=4).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,40);
   rwNews=items;rwRenderNews();rwRenderStats();
 }
@@ -1304,8 +1304,8 @@ function flRenderStats(){
 async function flFetchFlightsNews(){
   const results=await Promise.allSettled(FL_RSS_FEEDS.map(f=>fetchRss(f)));
   let items=[];results.forEach(r=>{if(r.status==='fulfilled')items=items.concat(r.value)});
-  items=dedupeNews(items);const cutoff=Date.now()-(14*24*60*60*1000);items=items.filter(it=>it.pubDate&&it.pubDate>cutoff);
-  items=items.map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>0||it.title.toLowerCase().includes('flight')||it.title.toLowerCase().includes('heathrow')||it.title.toLowerCase().includes('airport')).sort((a,b)=>(b.pubDate||0)-(a.pubDate||0)).slice(0,20);
+  items=dedupeNews(items);const cutoff=Date.now()-(3*24*60*60*1000);items=items.filter(it=>it.pubDate&&it.pubDate>cutoff);
+  items=items.map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>0||it.title.toLowerCase().includes('flight')||it.title.toLowerCase().includes('heathrow')||it.title.toLowerCase().includes('airport')).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,20);
   flNews=items;flRenderFlightNews();
 }
 
