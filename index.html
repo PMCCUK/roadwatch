@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.0-design-d -->
+<!-- roadwatch v2.9.7 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -808,8 +808,7 @@ const RW_RSS_FEEDS=[
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+protest+march+road+closed&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+next+week+planned&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+event+road+closure+diversion+upcoming&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Met Police',cls:'police',url:'https://news.google.com/rss/search?q=site:met.police.uk+OR+Metropolitan+Police+London+march+protest+road+closure+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+
   {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=London+M25+road+closure+motorway+disruption+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=M25+closure+National+Highways+London+motorway+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+M4+M11+London+closure&hl=en-GB&gl=GB&ceid=GB:en'},
@@ -875,9 +874,7 @@ async function rwFetchTfl(){
   const grid=document.getElementById('rw-grid');
   grid.innerHTML='<div class="state-panel"><div class="spinner"></div><div class="state-title-rw">Connecting to TfL…</div></div>';
   try{
-    const testRes=await fetch(`${TFL_BASE}/Road/all?app_key=${rwApiKey}`);
-    console.log('TfL key test status:',testRes.status,testRes.ok);
-    if(testRes.status===401){grid.innerHTML='<div class="state-panel"><div class="state-icon">🔑</div><div class="state-title-rw" style="color:#EF4444">Invalid API Key</div></div>';document.getElementById('rw-setup').style.display='block';localStorage.removeItem('tfl_api_key');rwApiKey='';return;}
+
     let list=[];
     const tflEndpoints=[
       `${TFL_BASE}/Road/all/Disruption?app_key=${rwApiKey}`,
@@ -975,8 +972,9 @@ async function fetchNHOpenData(){
     console.log('NH OpenData status:',res.status);
     if(!res.ok)return;
     const data=await res.json();
-    console.log('NH OpenData features:',data.features?.length);
-    const features=data.features||[];
+    console.log('NH OpenData raw keys:', Object.keys(data||{}));
+    const features=data.features||data.Features||data.results||data.data||[];
+    console.log('NH OpenData features found:', features.length);
     const newItems=features.map((f,i)=>{
       const p=f.attributes||{};
       const road=p.ROAD_NAME||p.RoadName||p.road||p.Road||'National Highway';
@@ -1023,9 +1021,13 @@ async function fetchWebTris(){
     }).slice(0,20);
     console.log('WebTRIS London sites:',londonSites.length);
     if(londonSites.length===0)return;
-    const today=isoNow().replace(/-/g,'');
+    const now=new Date();
+    const dd=String(now.getDate()).padStart(2,'0');
+    const mm=String(now.getMonth()+1).padStart(2,'0');
+    const yyyy=now.getFullYear();
+    const today=`${dd}%2F${mm}%2F${yyyy}`;
     const siteIds=londonSites.map(s=>s.Id||s.id).join(',');
-    const qualityUrl=`https://webtris.highwaysengland.co.uk/api/v1/quality/overall?sites=${siteIds}&start_date=${today}&end_date=${today}`;
+    const qualityUrl=`https://webtris.highwaysengland.co.uk/api/v1/quality/overall?sites=${siteIds}&start_date=${dd}/${mm}/${yyyy}&end_date=${dd}/${mm}/${yyyy}`;
     const qRes=await fetch(qualityUrl);
     if(!qRes.ok)return;
     const qData=await qRes.json();
@@ -1182,8 +1184,10 @@ let flFlights=[],flNews=[],flApiKey='2feaa51e-389e-4ea2-bce0-703fe5d2a8d4',flFil
 let flRefTimer=null,flCdTimer=null,flCdSecs=120,flMockMode=false;
 
 (function flInit(){
+  console.log('FL init - key:', localStorage.getItem('aviation_api_key') ? 'found in storage' : 'using fallback');
   flApiKey=localStorage.getItem('aviation_api_key')||'2feaa51e-389e-4ea2-bce0-703fe5d2a8d4';
-  if(!localStorage.getItem('aviation_api_key')){localStorage.setItem('aviation_api_key','2feaa51e-389e-4ea2-bce0-703fe5d2a8d4');}
+  localStorage.setItem('aviation_api_key',flApiKey);
+  console.log('FL key set:', flApiKey.slice(0,8)+'...');
   flShowDash();flRefreshAll();
 })();
 
@@ -1216,7 +1220,11 @@ async function flFetchFlights(){
   const grid=document.getElementById('fl-grid');
   if(flMockMode||!flApiKey){flFlights=FL_MOCK;flRenderFlights();flRenderStats();return}
   grid.innerHTML='<div class="state-panel-fl"><div class="spinner-fl"></div><div class="state-title-fl">Fetching live flights…</div></div>';
+  console.log('FL fetching flights, key:', flApiKey ? flApiKey.slice(0,8)+'...' : 'MISSING');
   try{
+    const testUrl=`https://airlabs.co/api/v9/ping?api_key=${flApiKey}`;
+    const testRes=await fetch(testUrl).catch(e=>({ok:false,error:e.message}));
+    console.log('FL AirLabs ping:', testRes.status||testRes.error);
     const fetches=[];
     FL_AIRPORTS.forEach(ap=>{
       fetches.push(fetch(`https://airlabs.co/api/v9/flights?arr_iata=${ap}&api_key=${flApiKey}`).then(r=>r.json()).then(d=>({type:'arrival',airport:ap,data:d})).catch(()=>null));
