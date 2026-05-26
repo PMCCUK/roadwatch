@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.9.7 -->
+<!-- roadwatch v2.9.8 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -973,7 +973,8 @@ async function fetchNHOpenData(){
     if(!res.ok)return;
     const data=await res.json();
     console.log('NH OpenData raw keys:', Object.keys(data||{}));
-    const features=data.features||data.Features||data.results||data.data||[];
+    console.log('NH OpenData full response slice:', JSON.stringify(data).slice(0,500));
+    const features=data.features||data.Features||data.data||data.items||(data.objectIds?[]:(Array.isArray(data)?data:[]));
     console.log('NH OpenData features found:', features.length);
     const newItems=features.map((f,i)=>{
       const p=f.attributes||{};
@@ -1027,7 +1028,7 @@ async function fetchWebTris(){
     const yyyy=now.getFullYear();
     const today=`${dd}%2F${mm}%2F${yyyy}`;
     const siteIds=londonSites.map(s=>s.Id||s.id).join(',');
-    const qualityUrl=`https://webtris.highwaysengland.co.uk/api/v1/quality/overall?sites=${siteIds}&start_date=${dd}/${mm}/${yyyy}&end_date=${dd}/${mm}/${yyyy}`;
+    const qualityUrl=`https://webtris.highwaysengland.co.uk/api/v1/quality/overall?sites=${siteIds}&start_date=${dd}%2F${mm}%2F${yyyy}&end_date=${dd}%2F${mm}%2F${yyyy}`;
     const qRes=await fetch(qualityUrl);
     if(!qRes.ok)return;
     const qData=await qRes.json();
@@ -1184,10 +1185,9 @@ let flFlights=[],flNews=[],flApiKey='2feaa51e-389e-4ea2-bce0-703fe5d2a8d4',flFil
 let flRefTimer=null,flCdTimer=null,flCdSecs=120,flMockMode=false;
 
 (function flInit(){
-  console.log('FL init - key:', localStorage.getItem('aviation_api_key') ? 'found in storage' : 'using fallback');
-  flApiKey=localStorage.getItem('aviation_api_key')||'2feaa51e-389e-4ea2-bce0-703fe5d2a8d4';
-  localStorage.setItem('aviation_api_key',flApiKey);
-  console.log('FL key set:', flApiKey.slice(0,8)+'...');
+  localStorage.setItem('aviation_api_key','2feaa51e-389e-4ea2-bce0-703fe5d2a8d4');
+  flApiKey='2feaa51e-389e-4ea2-bce0-703fe5d2a8d4';
+  console.log('FL key forced:', flApiKey.slice(0,8)+'...');
   flShowDash();flRefreshAll();
 })();
 
@@ -1231,6 +1231,11 @@ async function flFetchFlights(){
       fetches.push(fetch(`https://airlabs.co/api/v9/flights?dep_iata=${ap}&api_key=${flApiKey}`).then(r=>r.json()).then(d=>({type:'departure',airport:ap,data:d})).catch(()=>null));
     });
     const results=await Promise.allSettled(fetches);
+    console.log('FL raw results count:', results.length);
+    results.forEach((r,i)=>{
+      if(r.value&&r.value.data)console.log('FL result',i,r.value.type,r.value.airport,'response length:',r.value.data.response?.length,'error:',r.value.data.error);
+      if(r.value&&r.value.error)console.log('FL fetch error',i,r.value.error);
+    });
     let all=[];
     results.forEach(r=>{
       if(r.status==='fulfilled'&&r.value&&r.value.data&&Array.isArray(r.value.data.response)){
