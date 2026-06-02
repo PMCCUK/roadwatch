@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.0.1 -->
+<!-- roadwatch v3.0.3 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -965,40 +965,37 @@ async function fetchTrafficDelays(){
 
 async function fetchNHOpenData(){
   try{
-    // Try primary ArcGIS endpoint first, then NH API fallback
     const urls=[
-      'https://services.arcgis.com/HRPe58bntO7oEN8e/arcgis/rest/services/Planned_Road_Closures/FeatureServer/0/query?where=1%3D1&outFields=*&f=json&resultRecordCount=100&orderByFields=StartDate+DESC',
-      'https://api.data.nationalhighways.co.uk/roads/v1/closures?subscription-key=957702d228fe4b7790394af233e62790',
+      'https://services5.arcgis.com/N7BMhKTSxMnbOqkw/arcgis/rest/services/NHSD_Scheduled_Road_Closures/FeatureServer/0/query?where=1%3D1&outFields=*&f=json&resultRecordCount=50&orderByFields=StartDate+DESC',
+      'https://opendata.arcgis.com/api/v3/datasets/87bfd90bb7fd4d8583326b52448e2032_0/downloads/data?format=geojson&spatialRefId=4326',
     ];
     let data=null;
     for(const url of urls){
       try{
+        console.log('NH OpenData trying:',url.slice(0,80));
         const res=await fetch(url);
-        console.log('NH OpenData URL:',url.split('?')[0],'status:',res.status);
+        console.log('NH OpenData status:',res.status,'for',url.slice(0,80));
         if(!res.ok)continue;
-        data=await res.json();
-        console.log('NH OpenData URL response:',JSON.stringify(data).slice(0,300));
-        if(data&&(data.features||data.data||data.items||Array.isArray(data)))break;
+        const json=await res.json();
+        console.log('NH OpenData keys:',Object.keys(json));
+        if(json.features&&json.features.length>0){data=json;console.log('NH OpenData success! Features:',json.features.length);break;}
       }catch(e){console.log('NH OpenData URL error:',e.message);}
     }
-    if(!data)return;
-    console.log('NH OpenData raw keys:',Object.keys(data||{}));
-    console.log('NH OpenData full response slice:',JSON.stringify(data).slice(0,500));
-    const features=data.features||data.Features||data.data||data.items||(data.objectIds?[]:(Array.isArray(data)?data:[]));
-    console.log('NH OpenData features found:', features.length);
+    if(!data){console.log('NH OpenData: all URLs failed');return;}
+    const features=data.features||[];
     const newItems=features.map((f,i)=>{
-      const p=f.attributes||{};
-      const road=p.ROAD_NAME||p.RoadName||p.road||p.Road||'National Highway';
-      const desc=p.DESCRIPTION||p.Description||p.CLOSURE_DESCRIPTION||p.WorkDescription||'Planned road closure';
-      const start=p.PLANNED_START_DATE||p.StartDate||p.plannedStartDate;
-      const end=p.PLANNED_END_DATE||p.EndDate||p.plannedEndDate;
-      const startDate=start?new Date(start).toISOString().split('T')[0]:isoNow();
-      const endDate=end?new Date(end).toISOString().split('T')[0]:null;
-      const location=p.LOCATION||p.Location||p.ROAD_NAME||road;
-      return{id:'nhod-'+(p.OBJECTID||p.ObjectId||i),category:'RoadClosure',title:road+' — Planned Closure',desc:desc.slice(0,300),location:location+(p.LOCAL_AUTHORITY?' — '+p.LOCAL_AUTHORITY:''),startDate,startTime:'22:00',endDate,endTime:'06:00',severity:'high',roads:[road],source:'National Highways Open Data',sourceUrl:'https://opendata.nationalhighways.co.uk/datasets/public-scheduled-road-closures/explore',hasDiversion:true,isActive:true};
+      const p=f.attributes||f.properties||{};
+      const road=p.RoadNumber||p.Road||p.road_number||p.ROAD||'National Highway';
+      const desc=p.Description||p.ClosureDescription||p.description||p.DESCRIPTION||'Planned road closure';
+      const location=p.Location||p.location||p.ClosureLocation||road;
+      const start=p.StartDate||p.start_date||p.StartDateTime;
+      const end=p.EndDate||p.end_date||p.EndDateTime;
+      const startDate=start?new Date(typeof start==='number'?start:start).toISOString().split('T')[0]:isoNow();
+      const endDate=end?new Date(typeof end==='number'?end:end).toISOString().split('T')[0]:null;
+      return{id:'nhod-'+(p.OBJECTID||p.objectid||p.GlobalID||i),category:'RoadClosure',title:road+' — Planned Closure',desc:String(desc).slice(0,300),location:String(location)+' — National Highways',startDate,startTime:'22:00',endDate,endTime:'06:00',severity:'high',roads:[road],source:'National Highways Open Data',sourceUrl:'https://open-data-highwaysengland.hub.arcgis.com/datasets/public-scheduled-road-closures',hasDiversion:true,isActive:true};
     }).filter(it=>{
       const loc=(it.location+' '+it.title+' '+it.desc).toLowerCase();
-      return loc.match(/m25|m1\b|m2\b|m3\b|m4\b|m11|m20|m23|a1\b|a2\b|a3\b|a13|a40|london|south east|surrey|kent|essex|hertford|bedford|bucks|oxford/);
+      return loc.match(/m25|m1\b|m2\b|m3\b|m4\b|m11|m20|m23|a1\b|a2\b|a3\b|a13|a40|london|south east|surrey|kent|essex|hertford|bedford|bucks|oxford|m5\b|m40\b/);
     }).filter(it=>{
       if(!it.endDate)return true;
       return new Date(it.endDate+'T23:59:00')>new Date();
