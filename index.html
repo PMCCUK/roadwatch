@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v2.9.8 -->
+<!-- roadwatch v2.9.9 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -11,18 +11,19 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   /* Shared */
+  --font-serif:Georgia,'Times New Roman',serif;
+  --font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
   --font-mono:'DM Mono','Courier New',monospace;
-  --font-syne:'Syne',sans-serif;
 
-  /* ROADWATCH — deep blue corporate */
-  --rw-bg:#0F172A;--rw-bg2:#020617;--rw-card:#1E293B;
-  --rw-border:#1E293B;--rw-border2:#334155;
-  --rw-text:#F1F5F9;--rw-muted:#475569;--rw-muted2:#334155;
-  --rw-accent:#38BDF8;--rw-accent2:#7DD3FC;
-  --rw-green:#22C55E;--rw-red:#F87171;--rw-red2:#EF4444;
-  --rw-blue:#60A5FA;--rw-amber:#FB923C;
+  /* ROADWATCH — newspaper white */
+  --rw-bg:#F8F9FA;--rw-bg2:#FFFFFF;--rw-card:#FFFFFF;
+  --rw-border:#E5E5E5;--rw-border2:#D1D5DB;
+  --rw-text:#111111;--rw-muted:#6B7280;--rw-muted2:#9CA3AF;
+  --rw-accent:#CC0000;--rw-accent2:#E07B00;
+  --rw-green:#1a6b1a;--rw-red:#CC0000;--rw-red2:#AA0000;
+  --rw-blue:#1a4b8c;--rw-amber:#D4A017;
 
-  /* ROADWORKS — dark green/teal */
+  /* ROADWORKS — kept for forward compat */
   --ro-bg:#080F0F;--ro-bg2:#050A0A;--ro-card:#0D1A1A;
   --ro-border:#0F2A2A;--ro-border2:#1A3A3A;
   --ro-text:#D1FAE5;--ro-muted:#4B7A6A;--ro-muted2:#2D4F45;
@@ -30,50 +31,36 @@
   --ro-green:#10B981;--ro-orange:#F97316;--ro-red:#EF4444;
   --ro-yellow:#EAB308;--ro-purple:#8B5CF6;
 
-  /* FLIGHTS — deep blue */
-  --fl-bg:#030712;--fl-bg2:#050E1A;--fl-card:#0A1628;
-  --fl-border:#0F2545;--fl-border2:#1E3A5F;
-  --fl-text:#BFDBFE;--fl-muted:#3B82F6;--fl-muted2:#1D4ED8;
-  --fl-accent:#60A5FA;--fl-accent2:#93C5FD;
-  --fl-green:#34D399;--fl-red:#F87171;--fl-amber:#FBBF24;--fl-purple:#A78BFA;
+  /* FLIGHTS — newspaper white + blue */
+  --fl-bg:#F8F9FA;--fl-bg2:#FFFFFF;--fl-card:#FFFFFF;
+  --fl-border:#E5E5E5;--fl-border2:#D1D5DB;
+  --fl-text:#111111;--fl-muted:#6B7280;--fl-muted2:#9CA3AF;
+  --fl-accent:#1a4b8c;--fl-accent2:#2563EB;
+  --fl-green:#1a6b1a;--fl-red:#CC0000;--fl-amber:#D4A017;--fl-purple:#7C3AED;
 }
 html{scroll-behavior:smooth}
-body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-smoothing:antialiased;background:#F8F9FA;color:#111}
 ::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-thumb{border-radius:3px}
+::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:3px}
 
-/* ── SIDEBAR LAYOUT ──────────────────────────────────── */
-#app-layout{display:grid;grid-template-columns:200px 1fr;min-height:100vh}
-#main-content{min-width:0;overflow-x:hidden}
-#sidebar{background:#020617;width:200px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;border-right:1px solid #1E293B;z-index:200}
-.sidebar-logo{padding:22px 16px 18px;border-bottom:1px solid #1E293B}
-.sidebar-logo-icon{width:32px;height:32px;background:#38BDF8;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:10px}
-.sidebar-logo-title{font-family:var(--font-syne);font-size:15px;font-weight:800;color:#38BDF8;letter-spacing:-.02em;line-height:1}
-.sidebar-logo-sub{font-size:9px;color:#334155;letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
-.sidebar-nav{flex:1;padding:10px 0}
-.sidebar-item{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .15s;border-left:2px solid transparent;font-family:var(--font-mono)}
-.sidebar-item:hover{background:#1E293B}
-.sidebar-item.active{background:#0F172A;border-left-color:#38BDF8}
-.sidebar-item-icon{font-size:15px;flex-shrink:0;width:20px;text-align:center}
-.sidebar-item-inner{display:flex;flex-direction:column;line-height:1.3}
-.sidebar-item-label{font-family:var(--font-syne);font-size:12px;font-weight:700;color:#334155;letter-spacing:-.01em}
-.sidebar-item.active .sidebar-item-label{color:#38BDF8}
-.sidebar-item:hover:not(.active) .sidebar-item-label{color:#CBD5E1}
-.sidebar-item-sub{font-size:9px;color:#1E3A5F;letter-spacing:.04em;margin-top:1px}
-.sidebar-item.active .sidebar-item-sub{color:#0EA5E9}
-.sidebar-status{padding:14px 16px;border-top:1px solid #1E293B;display:flex;align-items:center;gap:7px;margin-top:auto}
-.sidebar-status-dot{width:6px;height:6px;border-radius:50%;background:#22C55E;flex-shrink:0;animation:pulse 2.5s infinite}
-.sidebar-status-text{font-size:9px;color:#166534;letter-spacing:.08em;text-transform:uppercase}
-/* Mobile top bar */
-#top-nav-mobile{display:none;align-items:center;position:sticky;top:0;z-index:200;height:48px;background:#020617;border-bottom:1px solid #1E293B;padding:0 14px;gap:10px}
-.mobile-logo{font-family:var(--font-syne);font-size:14px;font-weight:800;color:#38BDF8;flex:1;letter-spacing:-.02em}
-.mobile-tab-pills{display:flex;gap:6px}
-.mobile-pill{background:none;border:1px solid #1E293B;border-radius:20px;padding:5px 13px;color:#475569;font-size:9px;font-family:var(--font-mono);cursor:pointer;letter-spacing:.06em;text-transform:uppercase;transition:all .15s}
-.mobile-pill.active{background:#38BDF8;border-color:#38BDF8;color:#020617;font-weight:600}
-@media(max-width:950px){
-  #app-layout{display:block}
-  #sidebar{display:none}
-  #top-nav-mobile{display:flex}
+/* ── TOP NAV ─────────────────────────────────────────── */
+#top-nav{background:#fff;border-bottom:3px solid #111;position:sticky;top:0;z-index:200}
+.nav-inner{display:flex;align-items:center;padding:0 24px;height:60px;gap:0}
+.nav-logo{display:flex;flex-direction:column;justify-content:center;margin-right:auto;gap:1px}
+.nav-logo-title{font-family:var(--font-serif);font-size:22px;font-weight:700;color:#111;letter-spacing:-.02em;line-height:1}
+.nav-logo-sub{font-family:var(--font-serif);font-style:italic;font-size:11px;color:#6B7280}
+.nav-tabs{display:flex;border-left:1px solid #E5E5E5;margin-left:24px}
+.nav-tab{background:none;border:none;border-right:1px solid #E5E5E5;border-bottom:3px solid transparent;margin-bottom:-3px;padding:0 20px;height:60px;font-family:var(--font-sans);font-size:11px;font-weight:400;color:#6B7280;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;transition:color .15s}
+.nav-tab:hover{color:#111}
+.nav-tab.active{color:#111;font-weight:700;border-bottom-color:#111}
+.nav-right{display:flex;align-items:center;gap:10px;margin-left:20px}
+/* Mobile: stack tabs below logo */
+@media(max-width:640px){
+  .nav-inner{flex-wrap:wrap;height:auto;padding:12px 14px 0;gap:0}
+  .nav-logo{width:100%;padding-bottom:10px}
+  .nav-tabs{margin-left:0;border-left:none;border-top:1px solid #E5E5E5;width:100%}
+  .nav-tab{flex:1;justify-content:center;text-align:center;height:40px;font-size:10px}
+  .nav-right{display:none}
 }
 
 /* ── PAGES ───────────────────────────────────────────── */
@@ -84,98 +71,100 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
    ROADWATCH PAGE  (dark navy / amber)
 ══════════════════════════════════════════════════════ */
 #page-rw{background:var(--rw-bg);color:var(--rw-text);min-height:100vh}
-#page-rw ::-webkit-scrollbar-track{background:var(--rw-bg)}
-#page-rw ::-webkit-scrollbar-thumb{background:var(--rw-border2)}
+#page-rw ::-webkit-scrollbar-track{background:#F8F9FA}
+#page-rw ::-webkit-scrollbar-thumb{background:#D1D5DB}
 
-.rw-header{background:var(--rw-bg2);border-bottom:1px solid var(--rw-border);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
-.rw-logo-wrap{display:flex;align-items:center;gap:10px}
-.rw-logo-icon{width:34px;height:34px;background:var(--rw-accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.rw-logo-title{font-family:var(--font-syne);font-size:18px;font-weight:800;color:var(--rw-accent);letter-spacing:-0.03em}
-.rw-logo-sub{font-size:9px;color:var(--rw-muted2);letter-spacing:0.18em;text-transform:uppercase;margin-top:1px}
+.rw-header{background:#fff;border-bottom:3px solid #111;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.rw-logo-wrap{display:flex;align-items:center;gap:8px}
+.rw-logo-icon{display:none}
+.rw-logo-title{font-family:var(--font-serif);font-size:20px;font-weight:700;color:#111;letter-spacing:-.02em}
+.rw-logo-sub{font-family:var(--font-serif);font-style:italic;font-size:11px;color:#6B7280;margin-top:1px}
 .rw-header-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.rw-updated{font-size:10px;color:var(--rw-muted2)}
+.rw-updated{font-size:10px;color:#9CA3AF;font-family:var(--font-sans)}
 
 .live-badge{display:flex;align-items:center;gap:5px}
-.live-dot{width:6px;height:6px;border-radius:50%}
-.live-dot.rw{background:var(--rw-green)}
+.live-dot{width:7px;height:7px;border-radius:50%}
+.live-dot.rw{background:#CC0000}
+.live-dot.fl{background:#1a4b8c}
 .live-dot.scanning{animation:pulse 1.2s infinite}
-.live-text{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;font-weight:500}
-.live-text.rw{color:var(--rw-green)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.2}}
+.live-text{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;font-family:var(--font-sans)}
+.live-text.rw{color:#CC0000}
+.live-text.fl{color:#1a4b8c}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
 
 /* Ticker */
-.rw-ticker{background:#38BDF8;padding:6px 0;overflow:hidden;white-space:nowrap;display:none}
+.rw-ticker{background:#111;padding:5px 0;overflow:hidden;white-space:nowrap;display:none}
 .ticker-track{display:inline-flex;animation:tickscroll linear infinite}
 .ticker-track:hover{animation-play-state:paused}
-.rw-ticker-item{color:#020617;font-size:11px;font-weight:600;letter-spacing:.04em;padding:0 28px}
+.rw-ticker-item{color:#fff;font-size:11px;font-weight:400;letter-spacing:.04em;padding:0 28px;font-family:var(--font-sans)}
 @keyframes tickscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
 /* Setup */
-.rw-setup{background:#1a1205;border:1px solid #78350f;border-radius:12px;padding:20px 22px;margin:18px 22px}
-.rw-setup h2{font-family:var(--font-syne);font-size:14px;color:var(--rw-accent);margin-bottom:8px}
-.rw-setup p{color:#d97706;font-size:11px;line-height:1.7;margin-bottom:12px}
-.rw-setup ol{color:#d97706;font-size:11px;line-height:2;padding-left:18px;margin-bottom:16px}
-.rw-setup a{color:var(--rw-accent)}
+.rw-setup{background:#fff;border:1px solid #E5E5E5;border-left:3px solid #CC0000;padding:20px 24px;margin:18px 24px}
+.rw-setup h2{font-family:var(--font-serif);font-size:15px;font-weight:700;color:#111;margin-bottom:8px}
+.rw-setup p{color:#555;font-size:12px;line-height:1.7;margin-bottom:12px;font-family:var(--font-sans)}
+.rw-setup ol{color:#555;font-size:12px;line-height:2;padding-left:18px;margin-bottom:16px;font-family:var(--font-sans)}
+.rw-setup a{color:#CC0000}
 .key-row{display:flex;gap:8px;flex-wrap:wrap}
-.key-input{flex:1;min-width:200px;background:#111827;border:1px solid #78350f;border-radius:7px;padding:10px 12px;color:var(--rw-text);font-family:var(--font-mono);font-size:12px;outline:none}
-.key-input:focus{border-color:var(--rw-accent)}
-.key-input::placeholder{color:var(--rw-muted2)}
-.btn-rw{background:var(--rw-accent);border:none;border-radius:7px;padding:10px 16px;color:#0A0E1A;font-family:var(--font-mono);font-size:11px;font-weight:600;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;transition:background .15s;white-space:nowrap}
-.btn-rw:hover{background:var(--rw-accent2)}
+.key-input{flex:1;min-width:200px;background:#fff;border:1px solid #D1D5DB;border-radius:0;padding:10px 12px;color:#111;font-family:var(--font-mono);font-size:12px;outline:none}
+.key-input:focus{border-color:#111}
+.key-input::placeholder{color:#9CA3AF}
+.btn-rw{background:#111;border:none;border-radius:0;padding:10px 16px;color:#fff;font-family:var(--font-sans);font-size:11px;font-weight:600;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;transition:background .15s;white-space:nowrap}
+.btn-rw:hover{background:#333}
 
 /* Alert config */
-.rw-alerts-panel{background:#0f1a12;border:1px solid #10B98133;border-radius:12px;padding:18px 22px;margin:0 22px;display:none}
-.rw-alerts-panel h3{font-family:var(--font-syne);font-size:12px;color:var(--rw-green);margin-bottom:12px}
+.rw-alerts-panel{background:#fff;border:1px solid #E5E5E5;border-top:3px solid #1a6b1a;padding:18px 24px;margin:0 24px;display:none}
+.rw-alerts-panel h3{font-family:var(--font-serif);font-size:13px;font-weight:700;color:#1a6b1a;margin-bottom:12px}
 .alert-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-.alert-card{background:var(--rw-card);border:1px solid var(--rw-border);border-radius:9px;padding:13px}
-.alert-card-title{font-size:11px;font-weight:600;color:var(--rw-text);margin-bottom:9px}
+.alert-card{background:#F8F9FA;border:1px solid #E5E5E5;border-radius:0;padding:13px}
+.alert-card-title{font-size:11px;font-weight:700;color:#111;margin-bottom:9px;font-family:var(--font-sans)}
 .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.toggle-label{font-size:10px;color:var(--rw-muted)}
+.toggle-label{font-size:10px;color:#6B7280;font-family:var(--font-sans)}
 .toggle{position:relative;width:34px;height:19px;flex-shrink:0}
 .toggle input{opacity:0;width:0;height:0}
-.toggle-slider{position:absolute;inset:0;background:var(--rw-border2);border-radius:10px;cursor:pointer;transition:.3s}
+.toggle-slider{position:absolute;inset:0;background:#D1D5DB;border-radius:10px;cursor:pointer;transition:.3s}
 .toggle-slider:before{content:'';position:absolute;width:13px;height:13px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
-.toggle input:checked+.toggle-slider{background:var(--rw-green)}
+.toggle input:checked+.toggle-slider{background:#1a6b1a}
 .toggle input:checked+.toggle-slider:before{transform:translateX(15px)}
 .ntfy-wrap{display:flex;gap:6px;margin-top:7px}
-.ntfy-input{flex:1;background:#0A0E1A;border:1px solid var(--rw-border2);border-radius:5px;padding:7px 9px;color:var(--rw-text);font-family:var(--font-mono);font-size:10px;outline:none}
-.ntfy-input:focus{border-color:var(--rw-green)}
-.ntfy-input::placeholder{color:var(--rw-muted2)}
-.btn-test-rw{background:none;border:1px solid var(--rw-green);border-radius:5px;padding:6px 10px;color:var(--rw-green);font-family:var(--font-mono);font-size:9px;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;transition:all .15s;white-space:nowrap}
-.btn-test-rw:hover{background:var(--rw-green);color:#0A0E1A}
+.ntfy-input{flex:1;background:#fff;border:1px solid #D1D5DB;border-radius:0;padding:7px 9px;color:#111;font-family:var(--font-mono);font-size:10px;outline:none}
+.ntfy-input:focus{border-color:#111}
+.ntfy-input::placeholder{color:#9CA3AF}
+.btn-test-rw{background:none;border:1px solid #1a6b1a;border-radius:0;padding:6px 10px;color:#1a6b1a;font-family:var(--font-sans);font-size:9px;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;transition:all .15s;white-space:nowrap}
+.btn-test-rw:hover{background:#1a6b1a;color:#fff}
 .sev-cbs{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
-.sev-cb{display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer}
+.sev-cb{display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer;font-family:var(--font-sans)}
 
 /* Source legend */
-.rw-legend{display:none;align-items:center;gap:14px;flex-wrap:wrap;padding:9px 22px;border-bottom:1px solid var(--rw-border)}
-.src-pill{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--rw-muted)}
+.rw-legend{display:none;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 24px;border-bottom:1px solid #E5E5E5;background:#fff}
+.src-pill{display:flex;align-items:center;gap:5px;font-size:10px;color:#6B7280;font-family:var(--font-sans)}
 .src-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
 /* Controls */
-.rw-controls{padding:12px 22px;display:none;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--rw-border)}
-.filter-label{font-size:10px;color:var(--rw-muted2);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
-.fg{display:flex;gap:5px;flex-wrap:wrap}
-.fbtn-rw{background:none;border:1px solid #1E293B;border-radius:5px;padding:4px 11px;color:#475569;font-size:9px;cursor:pointer;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;transition:all .15s;white-space:nowrap}
-.fbtn-rw:hover{border-color:var(--rw-border2);color:var(--rw-text)}
-.fbtn-rw.active{background:#38BDF8;border-color:#38BDF8;color:#020617;font-weight:600}
-.sep{width:1px;height:24px;background:var(--rw-border);flex-shrink:0}
-.refresh-btn-rw{background:none;border:1px solid var(--rw-border2);border-radius:5px;padding:4px 11px;color:var(--rw-text);font-size:9px;cursor:pointer;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;transition:all .15s;display:flex;align-items:center;gap:5px;margin-left:auto}
-.refresh-btn-rw:hover{border-color:var(--rw-accent);color:var(--rw-accent)}
-.cd{background:var(--rw-border);border-radius:3px;padding:2px 6px;font-size:9px;color:var(--rw-muted)}
-.alerts-btn-rw{background:none;border:1px solid var(--rw-green);border-radius:5px;padding:4px 11px;color:var(--rw-green);font-size:9px;cursor:pointer;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;transition:all .15s;white-space:nowrap}
-.alerts-btn-rw:hover{background:var(--rw-green);color:#0A0E1A}
+.rw-controls{padding:10px 24px;display:none;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid #E5E5E5;background:#fff}
+.filter-label{font-size:10px;color:#9CA3AF;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;font-family:var(--font-sans)}
+.fg{display:flex;gap:2px;flex-wrap:wrap}
+.fbtn-rw{background:none;border:none;border-bottom:2px solid transparent;padding:5px 10px;color:#6B7280;font-size:11px;cursor:pointer;font-family:var(--font-sans);letter-spacing:.02em;transition:all .15s;white-space:nowrap}
+.fbtn-rw:hover{color:#111}
+.fbtn-rw.active{color:#111;font-weight:700;border-bottom-color:#111}
+.sep{width:1px;height:22px;background:#E5E5E5;flex-shrink:0}
+.refresh-btn-rw{background:none;border:1px solid #D1D5DB;border-radius:0;padding:4px 11px;color:#6B7280;font-size:9px;cursor:pointer;font-family:var(--font-sans);letter-spacing:.06em;text-transform:uppercase;transition:all .15s;display:flex;align-items:center;gap:5px;margin-left:auto}
+.refresh-btn-rw:hover{border-color:#111;color:#111}
+.cd{background:#F3F4F6;padding:2px 6px;font-size:9px;color:#6B7280}
+.alerts-btn-rw{background:none;border:1px solid #1a6b1a;border-radius:0;padding:4px 11px;color:#1a6b1a;font-size:9px;cursor:pointer;font-family:var(--font-sans);letter-spacing:.06em;text-transform:uppercase;transition:all .15s;white-space:nowrap}
+.alerts-btn-rw:hover{background:#1a6b1a;color:#fff}
 
 /* Stats */
 .rw-stats{display:none;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:10px;padding:13px 22px;border-bottom:1px solid var(--rw-border)}
 .stat-card-rw{background:#1E293B;border:1px solid #334155;border-radius:9px;padding:11px 12px;text-align:center}
-.stat-num{font-family:var(--font-syne);font-size:24px;font-weight:800}
+.stat-num{font-family:var(--font-serif);font-size:24px;font-weight:800}
 .stat-lbl{font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
 
 /* Layout */
 .rw-layout{display:grid;grid-template-columns:1fr 330px;min-height:calc(100vh - 300px)}
 @media(max-width:950px){.rw-layout{grid-template-columns:1fr}}
 .rw-disrupt-col{padding:16px 22px;border-right:1px solid var(--rw-border)}
-.col-hdr{font-family:var(--font-syne);font-size:12px;font-weight:700;color:var(--rw-text);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.col-hdr{font-family:var(--font-serif);font-size:12px;font-weight:700;color:var(--rw-text);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .col-cnt{font-family:var(--font-mono);font-size:10px;color:var(--rw-muted);font-weight:400;text-transform:none;letter-spacing:0}
 .rw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px}
 .rw-news-col{padding:16px 18px;overflow-y:auto;max-height:calc(100vh - 250px);position:sticky;top:104px}
@@ -189,7 +178,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;gap:5px}
 .badge-row{display:flex;gap:4px;flex-wrap:wrap}
 .days-lbl{font-size:9px;font-weight:600;white-space:nowrap;flex-shrink:0}
-.card-title-rw{font-family:var(--font-syne);font-size:13px;font-weight:700;color:#F1F5F9;margin-bottom:3px;line-height:1.3}
+.card-title-rw{font-family:var(--font-serif);font-size:13px;font-weight:700;color:#F1F5F9;margin-bottom:3px;line-height:1.3}
 .card-loc-rw{font-size:10px;color:var(--rw-muted);margin-bottom:7px}
 .card-desc-rw{font-size:11px;color:#94A3B8;line-height:1.6;margin-bottom:10px}
 .road-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:9px}
@@ -221,7 +210,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 .state-icon{font-size:36px;margin-bottom:11px}
 .spinner{width:28px;height:28px;border:3px solid var(--rw-border2);border-top-color:var(--rw-accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.state-title-rw{font-family:var(--font-syne);font-size:16px;margin-bottom:6px;color:var(--rw-text)}
+.state-title-rw{font-family:var(--font-serif);font-size:16px;margin-bottom:6px;color:var(--rw-text)}
 .state-sub-rw{font-size:11px;color:var(--rw-muted);max-width:340px;margin:0 auto;line-height:1.7}
 
 /* Alert banner */
@@ -231,7 +220,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 .alert-icon{font-size:20px;flex-shrink:0;animation:aPulse 1s infinite}
 @keyframes aPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
 .alert-body{flex:1}
-.alert-title{font-family:var(--font-syne);font-size:13px;font-weight:800;color:var(--rw-red);margin-bottom:3px}
+.alert-title{font-family:var(--font-serif);font-size:13px;font-weight:800;color:var(--rw-red);margin-bottom:3px}
 .alert-msg{font-size:11px;color:#FCA5A5;line-height:1.5}
 .alert-time{font-size:8px;color:var(--rw-muted2);margin-top:3px}
 .alert-close{background:none;border:none;color:var(--rw-muted);font-size:17px;cursor:pointer;flex-shrink:0;padding:0;line-height:1}
@@ -278,7 +267,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 .fl-header{background:var(--fl-bg2);border-bottom:1px solid var(--fl-border);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
 .fl-logo-wrap{display:flex;align-items:center;gap:10px}
 .fl-logo-icon{width:34px;height:34px;background:var(--fl-accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.fl-logo-title{font-family:var(--font-syne);font-size:18px;font-weight:800;color:var(--fl-accent);letter-spacing:-0.03em}
+.fl-logo-title{font-family:var(--font-serif);font-size:18px;font-weight:800;color:var(--fl-accent);letter-spacing:-0.03em}
 .fl-logo-sub{font-size:9px;color:var(--fl-muted2);letter-spacing:0.18em;text-transform:uppercase;margin-top:1px}
 .fl-header-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .fl-updated{font-size:10px;color:var(--fl-muted2)}
@@ -287,7 +276,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 
 /* Setup */
 .fl-setup{background:#050d1a;border:1px solid #1D4ED8;border-radius:12px;padding:20px 22px;margin:18px 22px}
-.fl-setup h2{font-family:var(--font-syne);font-size:14px;color:var(--fl-accent);margin-bottom:8px}
+.fl-setup h2{font-family:var(--font-serif);font-size:14px;color:var(--fl-accent);margin-bottom:8px}
 .fl-setup p{color:#93C5FD;font-size:11px;line-height:1.7;margin-bottom:12px}
 .fl-setup ol{color:#93C5FD;font-size:11px;line-height:2;padding-left:18px;margin-bottom:16px}
 .fl-setup a{color:var(--fl-accent)}
@@ -316,14 +305,14 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 /* Stats */
 .fl-stats{display:none;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:10px;padding:13px 22px;border-bottom:1px solid var(--fl-border)}
 .stat-card-fl{background:var(--fl-card);border:1px solid var(--fl-border);border-radius:9px;padding:11px 12px;text-align:center}
-.stat-num-fl{font-family:var(--font-syne);font-size:24px;font-weight:800}
+.stat-num-fl{font-family:var(--font-serif);font-size:24px;font-weight:800}
 .stat-lbl-fl{font-size:9px;color:var(--fl-muted);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
 
 /* Layout */
 .fl-layout{display:grid;grid-template-columns:1fr 330px;min-height:calc(100vh - 260px)}
 @media(max-width:950px){.fl-layout{grid-template-columns:1fr}}
 .fl-main-col{padding:16px 22px;border-right:1px solid var(--fl-border)}
-.fl-col-hdr{font-family:var(--font-syne);font-size:12px;font-weight:700;color:var(--fl-text);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.fl-col-hdr{font-family:var(--font-serif);font-size:12px;font-weight:700;color:var(--fl-text);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .fl-col-cnt{font-family:var(--font-mono);font-size:10px;color:var(--fl-muted);font-weight:400;text-transform:none;letter-spacing:0}
 .fl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px}
 .fl-news-col{padding:16px 18px;overflow-y:auto;max-height:calc(100vh - 220px);position:sticky;top:104px}
@@ -339,19 +328,19 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 .fl-card.mock{border-style:dashed;opacity:.7}
 @keyframes fadeUpFl{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .fl-card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:5px}
-.fl-airline{font-family:var(--font-syne);font-size:14px;font-weight:800;color:var(--fl-accent2);letter-spacing:-.02em}
+.fl-airline{font-family:var(--font-serif);font-size:14px;font-weight:800;color:var(--fl-accent2);letter-spacing:-.02em}
 .fl-flight-num{font-size:10px;color:var(--fl-muted);margin-top:1px}
 .fl-status-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:4px;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
 .fl-dir-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:8px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 .fl-route{display:flex;align-items:center;gap:8px;margin:9px 0;font-size:12px}
 .fl-airport{text-align:center}
-.fl-iata{font-family:var(--font-syne);font-size:15px;font-weight:800;color:var(--fl-text)}
+.fl-iata{font-family:var(--font-serif);font-size:15px;font-weight:800;color:var(--fl-text)}
 .fl-city{font-size:8px;color:var(--fl-muted);margin-top:1px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fl-arrow{font-size:14px;color:var(--fl-muted2);flex-shrink:0}
 .fl-times{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:9px}
 .fl-time-block{background:#060f1e;border-radius:6px;padding:8px}
 .fl-time-lbl{font-size:7px;color:var(--fl-muted2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
-.fl-time-val{font-family:var(--font-syne);font-size:14px;font-weight:700;color:var(--fl-text)}
+.fl-time-val{font-family:var(--font-serif);font-size:14px;font-weight:700;color:var(--fl-text)}
 .fl-time-sched{font-size:9px;color:var(--fl-muted);margin-top:2px}
 .fl-delay-pill{display:inline-block;padding:2px 7px;border-radius:3px;font-size:8px;font-weight:600;letter-spacing:.05em}
 .fl-card-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--fl-border);padding-top:8px;flex-wrap:wrap;gap:5px}
@@ -372,7 +361,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
 /* State */
 .state-panel-fl{text-align:center;padding:44px 18px;grid-column:1/-1}
 .spinner-fl{width:28px;height:28px;border:3px solid var(--fl-border2);border-top-color:var(--fl-accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
-.state-title-fl{font-family:var(--font-syne);font-size:16px;margin-bottom:6px;color:var(--fl-text)}
+.state-title-fl{font-family:var(--font-serif);font-size:16px;margin-bottom:6px;color:var(--fl-text)}
 .state-sub-fl{font-size:11px;color:var(--fl-muted);max-width:340px;margin:0 auto;line-height:1.7}
 
 @media print{
@@ -527,6 +516,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
     <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span>BBC News</span>
     <span class="src-pill"><span class="src-dot" style="background:#0EA5E9"></span>Google News</span>
     <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Met Police</span>
+    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Gloucestershire Highways</span>
     <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Every 2 min</span>
   </div>
 
@@ -558,6 +548,13 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
       <button class="fbtn-rw" onclick="rwSetFilter('sev','high',this)">High</button>
       <button class="fbtn-rw" onclick="rwSetFilter('sev','medium',this)">Moderate</button>
     </div>
+    <div class="sep"></div>
+    <span class="filter-label">Area:</span>
+    <div class="fg">
+      <button class="fbtn-rw active" onclick="rwSetFilter('area','all',this)">All London</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('area','cotswolds',this)">🌿 Cotswolds</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('area','both',this)">All Areas</button>
+    </div>
     <button class="alerts-btn-rw" onclick="rwToggleAlerts()">🔔 Alerts</button>
     <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">2:00</span></button>
   </div>
@@ -583,7 +580,7 @@ body{font-family:var(--font-mono);font-size:13px;min-height:100vh;-webkit-font-s
       <div class="m-hdr">
         <button class="m-close" onclick="rwCloseModalNow()">×</button>
         <div id="rw-m-badges" class="badge-row" style="margin-bottom:10px"></div>
-        <div id="rw-m-title" style="font-family:var(--font-syne);font-size:17px;font-weight:700;color:#F1F5F9;margin-bottom:4px"></div>
+        <div id="rw-m-title" style="font-family:var(--font-serif);font-size:17px;font-weight:700;color:#F1F5F9;margin-bottom:4px"></div>
         <div id="rw-m-loc" style="font-size:11px;color:var(--rw-muted);margin-bottom:0"></div>
       </div>
       <div class="m-body">
@@ -723,7 +720,7 @@ const TFL_BASE      = 'https://api.tfl.gov.uk';
 const RSS_PROXY     = 'https://api.allorigins.win/get?url=';
 const NH_WORKER_URL = 'https://roadwatch-proxy.petritmusa90.workers.dev';
 
-const ROAD_KW = ['road closure','closed','roadworks','diversion','disruption','traffic','march','protest','demonstration','parade','event','works','tfl','transport for london','bus diversion','lane closure','bridge','accident','incident','flooding','m25','m1','m3','m4','m11','motorway','junction','overnight closure','carriageway','slip road','national highways','tube strike','underground strike','rmt','diversion route','link road'];
+const ROAD_KW = ['road closure','closed','roadworks','diversion','disruption','traffic','march','protest','demonstration','parade','event','works','tfl','transport for london','bus diversion','lane closure','bridge','accident','incident','flooding','m25','m1','m3','m4','m11','motorway','junction','overnight closure','carriageway','slip road','national highways','tube strike','underground strike','rmt','diversion route','link road','cotswolds','bibury','cirencester','cheltenham','gloucester','bourton','burford','chipping norton','stow-on-the-wold','moreton-in-marsh','stroud','tetbury','a40','a429','a417','a419','a46','b4425','gloucestershire','oxfordshire'];
 
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
 function trunc(s,n){return s&&s.length>n?s.slice(0,n)+'…':(s||'')}
@@ -818,9 +815,12 @@ const RW_RSS_FEEDS=[
   {name:'London Events',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+event+march+protest+2026&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Motorway News',cls:'google',url:'https://news.google.com/rss/search?q=M25+London+closure+delay&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Traffic News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+accident+today&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Gloucestershire Live',cls:'google',url:'https://news.google.com/rss/search?q=Cotswolds+road+closure+roadworks+Gloucestershire+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Bibury Traffic',cls:'google',url:'https://news.google.com/rss/search?q=Bibury+Cirencester+road+closure+traffic+Cotswolds&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Oxfordshire Roads',cls:'google',url:'https://news.google.com/rss/search?q=Oxfordshire+Gloucestershire+road+closure+A40+A429+A417+2026&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
 
-let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all'},rwApiKey='';
+let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all',area:'all'},rwApiKey='';
 let rwRefTimer=null,rwCdTimer=null,rwCdSecs=300,rwAlerts={},rwAlertsPanelOpen=false,rwAudioCtx=null,rwTabTimer=null;
 
 function rwGetAudio(){if(!rwAudioCtx)rwAudioCtx=new(window.AudioContext||window.webkitAudioContext)();return rwAudioCtx}
@@ -850,7 +850,7 @@ function rwShouldAlert(sev){if(sev==='critical')return rwAlerts.sevCrit!==false;
 function rwFireAlerts(d){if(!rwShouldAlert(d.severity))return;if(rwAlerts.sound!==false)rwPlaySound(d.severity);if(rwAlerts.tab!==false)rwFlashTab(d.title);if(rwAlerts.banner!==false){document.getElementById('rw-alert-title').textContent=`${(RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default).icon} NEW ${d.severity.toUpperCase()} DISRUPTION`;document.getElementById('rw-alert-msg').textContent=`${d.title} — ${d.location}`;document.getElementById('rw-alert-time').textContent='Detected '+new Date().toLocaleTimeString('en-GB');const b=document.getElementById('rw-alert-banner');b.style.display='block';setTimeout(()=>b.style.display='none',14000)}const tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default,sc=RW_SEV_CFG[d.severity]||RW_SEV_CFG.low;const t=document.createElement('div');t.className=`toast ${d.severity}`;t.innerHTML=`<div class="toast-hdr"><span class="toast-icon">${tc.icon}</span><span class="toast-lbl" style="color:${sc.color}">${d.severity.toUpperCase()}</span></div><div class="toast-title">${esc(d.title)}</div><div class="toast-loc">📍 ${esc(d.location)}</div>`;const c=document.getElementById('rw-toast-container');c.appendChild(t);t.addEventListener('click',()=>t.remove());setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .5s';setTimeout(()=>t.remove(),500)},7000);if(rwAlerts.browser&&Notification.permission==='granted')new Notification(`${tc.icon} ${d.severity.toUpperCase()} — ${d.title}`,{body:`📍 ${d.location}`,tag:d.id});if(rwAlerts.ntfy&&rwAlerts.ntfyTopic)fetch(`https://ntfy.sh/${encodeURIComponent(rwAlerts.ntfyTopic)}`,{method:'POST',headers:{'Title':`🚨 ${d.severity.toUpperCase()} — ${d.title}`,'Priority':d.severity==='critical'?'urgent':d.severity==='high'?'high':'default','Tags':`warning,london`},body:`📍 ${d.location}\n\n${d.desc||d.title}`}).catch(()=>{})}
 function closeRwAlert(){document.getElementById('rw-alert-banner').style.display='none'}
 
-async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);fetchNationalHighways();fetchTrafficDelays();fetchNHOpenData();fetchWebTris();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
+async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);fetchNationalHighways();fetchTrafficDelays();fetchNHOpenData();fetchWebTris();fetchCotswoldsData();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
 function rwSetLive(s){const dot=document.getElementById('rw-live-dot'),txt=document.getElementById('rw-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
 function rwStartCd(){rwCdSecs=120;clearInterval(rwCdTimer);rwCdTimer=setInterval(()=>{rwCdSecs--;if(rwCdSecs<=0){clearInterval(rwCdTimer);return}const m=Math.floor(rwCdSecs/60),s=String(rwCdSecs%60).padStart(2,'0');document.getElementById('rw-cd').textContent=`${m}:${s}`},1000)}
 
@@ -866,6 +866,7 @@ function rwNormActive(d){
   else{const em=dl.match(/expect delays of\s+(\d+)/);if(em&&parseInt(em[1])>30)sev='critical';}
   let delayMinutes=0;
   const dm=dl.match(/(\d+)\s*(?:minute|min)/);if(dm)delayMinutes=parseInt(dm[1]);
+  if(d.comments||d.description){const text=((d.comments||'')+' '+(d.description||'')).toLowerCase();const delayMatch=text.match(/(\d+)\s*(?:minute|min)/);if(delayMatch){d._delayMinutes=parseInt(delayMatch[1]);if(d._delayMinutes>=60&&sev!=='critical')sev='critical';else if(d._delayMinutes>=30&&sev==='low')sev='high';}}
   return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:sev,roads,source:'TfL Traffic Control',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:d.hasDiversions||false,isActive:true,delayMinutes}
 }
 function rwNormPlanned(d){const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);return{id:d.id||rnd(),category:'Planned',title:d.description||'Planned works',desc:d.additionalInfo||d.description||'',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:false,isActive:false}}
@@ -1083,8 +1084,48 @@ async function rwFetchNews(){
   rwNews=items;rwRenderNews();rwRenderStats();
 }
 
+async function fetchCotswoldsData(){
+  try{
+    const feeds=[
+      'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://news.google.com/rss/search?q=Gloucestershire+roadworks+closure+A429+A417+Cotswolds+2026&hl=en-GB&gl=GB&ceid=GB:en'),
+      'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://news.google.com/rss/search?q=Bibury+Cirencester+road+closure+traffic+Cotswolds&hl=en-GB&gl=GB&ceid=GB:en'),
+    ];
+    for(const feedUrl of feeds){
+      try{
+        const res=await fetch(feedUrl);
+        if(!res.ok)continue;
+        const json=await res.json();
+        const items=json.items||[];
+        console.log('Cotswolds feed items:',items.length);
+        const cotswoldItems=items.filter(it=>{
+          const text=(it.title+' '+(it.description||'')).toLowerCase();
+          return/cotswold|bibury|cirencester|cheltenham|gloucestershire|bourton|burford|stow|moreton|stroud|tetbury|a40\b|a429|a417|a419|a46\b|b4425/.test(text);
+        });
+        console.log('Cotswolds relevant:',cotswoldItems.length);
+        cotswoldItems.slice(0,10).forEach((item,i)=>{
+          const title=item.title||'';
+          const desc=(item.description||'').replace(/<[^>]+>/g,' ').trim();
+          const link=item.link||'';
+          const id='cotswolds-'+i+'-'+Date.now();
+          if(rwDisruptions.find(d=>d.title===title.slice(0,80)))return;
+          const isClosure=/clos|blocked/i.test(title+desc);
+          const isSevere=/severe|major|serious|long delay/i.test(title+desc);
+          const road=(title+desc).match(/A40\b|A429|A417|A419|A46\b|B4425|M5\b/)?.[0]||'';
+          rwDisruptions.push({id,category:isClosure?'RoadClosure':'Works',title:title.slice(0,80),desc:desc.slice(0,300),location:road?road+' — Cotswolds/Gloucestershire':'Cotswolds Area',startDate:isoNow(),startTime:null,endDate:null,endTime:null,severity:isSevere?'high':'medium',roads:road?[road]:[],source:'Gloucestershire Highways',sourceUrl:link||'https://www.gloucestershire.gov.uk/highways/',hasDiversion:/diversion/i.test(desc),isActive:true,area:'cotswolds'});
+        });
+        if(cotswoldItems.length>0){rwRenderDisruptions();rwRenderStats();rwRenderTicker();}
+      }catch(e){console.log('Cotswolds feed error:',e.message);}
+    }
+  }catch(e){console.log('Cotswolds data error:',e.message);}
+}
+
 function rwRenderDisruptions(){
-  const f=rwDisruptions.filter(d=>(rwFilters.type==='all'||d.category===rwFilters.type)&&(rwFilters.sev==='all'||d.severity===rwFilters.sev));
+  const f=rwDisruptions.filter(d=>{
+    const typeOk=rwFilters.type==='all'||d.category===rwFilters.type;
+    const sevOk=rwFilters.sev==='all'||d.severity===rwFilters.sev;
+    const areaOk=rwFilters.area==='all'?(!d.area||d.area!=='cotswolds'):rwFilters.area==='cotswolds'?d.area==='cotswolds':true;
+    return typeOk&&sevOk&&areaOk;
+  });
   document.getElementById('rw-disrupt-cnt').textContent=`${f.length} disruption${f.length!==1?'s':''}`;
   const grid=document.getElementById('rw-grid');
   if(!f.length){grid.innerHTML=`<div class="state-panel"><div class="state-icon">${rwDisruptions.length?'🔍':'✅'}</div><div class="state-title-rw">${rwDisruptions.length?'No matches':'No active disruptions'}</div><div class="state-sub-rw">${rwDisruptions.length?'Adjust filters.':'TfL reports no disruptions right now.'}</div></div>`;return}
