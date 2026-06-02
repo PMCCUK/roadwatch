@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.0.0 -->
+<!-- roadwatch v3.0.1 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -643,7 +643,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     <span class="fl-src-pill"><span class="fl-src-dot" style="background:#6B7280"></span>Cancelled</span>
     <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-accent)"></span>AirLabs</span>
     <span class="fl-src-pill"><span class="fl-src-dot" style="background:#FF6B35"></span><a href="https://www.flightradar24.com/london" target="_blank" rel="noopener" style="color:var(--fl-muted);text-decoration:none">FlightRadar24</a></span>
-    <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-accent)"></span>Every 2 min</span>
+    <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-accent)"></span>Every 10 min (API quota)</span>
   </div>
 
   <!-- Stats -->
@@ -965,13 +965,25 @@ async function fetchTrafficDelays(){
 
 async function fetchNHOpenData(){
   try{
-    const url='https://opendata.arcgis.com/datasets/87bfd90bb7fd4d8583326b52448e2032_0/FeatureServer/0/query?where=1%3D1&outFields=*&f=json&resultRecordCount=100';
-    const res=await fetch(url);
-    console.log('NH OpenData status:',res.status);
-    if(!res.ok)return;
-    const data=await res.json();
-    console.log('NH OpenData raw keys:', Object.keys(data||{}));
-    console.log('NH OpenData full response slice:', JSON.stringify(data).slice(0,500));
+    // Try primary ArcGIS endpoint first, then NH API fallback
+    const urls=[
+      'https://services.arcgis.com/HRPe58bntO7oEN8e/arcgis/rest/services/Planned_Road_Closures/FeatureServer/0/query?where=1%3D1&outFields=*&f=json&resultRecordCount=100&orderByFields=StartDate+DESC',
+      'https://api.data.nationalhighways.co.uk/roads/v1/closures?subscription-key=957702d228fe4b7790394af233e62790',
+    ];
+    let data=null;
+    for(const url of urls){
+      try{
+        const res=await fetch(url);
+        console.log('NH OpenData URL:',url.split('?')[0],'status:',res.status);
+        if(!res.ok)continue;
+        data=await res.json();
+        console.log('NH OpenData URL response:',JSON.stringify(data).slice(0,300));
+        if(data&&(data.features||data.data||data.items||Array.isArray(data)))break;
+      }catch(e){console.log('NH OpenData URL error:',e.message);}
+    }
+    if(!data)return;
+    console.log('NH OpenData raw keys:',Object.keys(data||{}));
+    console.log('NH OpenData full response slice:',JSON.stringify(data).slice(0,500));
     const features=data.features||data.Features||data.data||data.items||(data.objectIds?[]:(Array.isArray(data)?data:[]));
     console.log('NH OpenData features found:', features.length);
     const newItems=features.map((f,i)=>{
@@ -1221,7 +1233,7 @@ const FL_MOCK=[
 ];
 
 let flFlights=[],flNews=[],flApiKey='2feaa51e-389e-4ea2-bce0-703fe5d2a8d4',flFilters={dir:'all',country:'all',status:'all'};
-let flRefTimer=null,flCdTimer=null,flCdSecs=120,flMockMode=false;
+let flRefTimer=null,flCdTimer=null,flCdSecs=600,flMockMode=false;
 
 (function flInit(){
   localStorage.setItem('aviation_api_key','2feaa51e-389e-4ea2-bce0-703fe5d2a8d4');
@@ -1239,10 +1251,10 @@ async function flRefreshAll(){
   await Promise.all([flFetchFlights(),flFetchFlightsNews()]);
   document.getElementById('fl-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   document.getElementById('fl-updated').style.display='block';
-  flSetLive('live');flStartCd();flRefTimer=setTimeout(flRefreshAll,2*60*1000);
+  flSetLive('live');flStartCd();flRefTimer=setTimeout(flRefreshAll,10*60*1000);
 }
 function flSetLive(s){const dot=document.getElementById('fl-live-dot'),txt=document.getElementById('fl-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
-function flStartCd(){flCdSecs=120;clearInterval(flCdTimer);flCdTimer=setInterval(()=>{flCdSecs--;if(flCdSecs<=0){clearInterval(flCdTimer);return}const m=Math.floor(flCdSecs/60),s=String(flCdSecs%60).padStart(2,'0');document.getElementById('fl-cd').textContent=`${m}:${s}`},1000)}
+function flStartCd(){flCdSecs=600;clearInterval(flCdTimer);flCdTimer=setInterval(()=>{flCdSecs--;if(flCdSecs<=0){clearInterval(flCdTimer);return}const m=Math.floor(flCdSecs/60),s=String(flCdSecs%60).padStart(2,'0');document.getElementById('fl-cd').textContent=`${m}:${s}`},1000)}
 
 async function flFetchOne(url,dir){
   try{
@@ -1259,7 +1271,7 @@ async function flFetchFlights(){
   flApiKey=localStorage.getItem('aviation_api_key')||'2feaa51e-389e-4ea2-bce0-703fe5d2a8d4';
   console.log('FL: Fetching with key:',flApiKey.slice(0,8)+'...');
   try{
-    const airports=['LHR','LGW','STN','LCY','LTN'];
+    const airports=['LHR']; // Only Heathrow - handles 80% of Asia-London flights, keeps within API quota
     const fetches=[];
     airports.forEach(ap=>{
       fetches.push(
