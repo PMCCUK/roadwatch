@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.0.4 -->
+<!-- roadwatch v3.0.5 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1233,6 +1233,7 @@ let flFlights=[],flNews=[],flApiKey='31ee1ebe-d1c5-407c-b1a6-403e48bdb55d',flFil
 let flRefTimer=null,flCdTimer=null,flCdSecs=600,flMockMode=false;
 
 (function flInit(){
+  localStorage.removeItem('aviation_api_key');
   localStorage.setItem('aviation_api_key','31ee1ebe-d1c5-407c-b1a6-403e48bdb55d');
   flApiKey='31ee1ebe-d1c5-407c-b1a6-403e48bdb55d';
   console.log('FL key forced:', flApiKey.slice(0,8)+'...');
