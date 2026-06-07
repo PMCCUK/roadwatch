@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.0.5 -->
+<!-- roadwatch v3.0.6 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -638,8 +638,8 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
   <div class="fl-legend" id="fl-legend">
     <span style="font-size:9px;color:var(--fl-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
     <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-green)"></span>On Time</span>
-    <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-amber)"></span>Delayed &lt;60min</span>
-    <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-red)"></span>Delayed 60min+</span>
+    <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-amber)"></span>Delayed &lt;30min</span>
+    <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-red)"></span>Delayed 30min+</span>
     <span class="fl-src-pill"><span class="fl-src-dot" style="background:#6B7280"></span>Cancelled</span>
     <span class="fl-src-pill"><span class="fl-src-dot" style="background:var(--fl-accent)"></span>AirLabs</span>
     <span class="fl-src-pill"><span class="fl-src-dot" style="background:#FF6B35"></span><a href="https://www.flightradar24.com/london" target="_blank" rel="noopener" style="color:var(--fl-muted);text-decoration:none">FlightRadar24</a></span>
@@ -682,7 +682,8 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
       <button class="fbtn-fl active" onclick="flSetFilter('status','all',this)">All</button>
       <button class="fbtn-fl" onclick="flSetFilter('status','delayed',this)">⚠ Delayed</button>
       <button class="fbtn-fl" onclick="flSetFilter('status','cancelled',this)">✗ Cancelled</button>
-      <button class="fbtn-fl" onclick="flSetFilter('status','active',this)">✓ On Time</button>
+      <button class="fbtn-fl" onclick="flSetFilter('status','ontime',this)">✓ On Time</button>
+      <button class="fbtn-fl" onclick="flSetFilter('status','sched24h',this)">📅 Next 24H</button>
     </div>
     <button class="refresh-btn-fl" onclick="flRefreshAll()">↺ Refresh <span class="cd-fl" id="fl-cd">2:00</span></button>
   </div>
@@ -1229,7 +1230,7 @@ const FL_MOCK=[
   {flightNum:'MH002',airline:'Malaysia Airlines',direction:'arrival',originIata:'KUL',destIata:'LHR',scheduled:'14:20',actual:null,delayMins:0,status:'active',aircraft:'A359',countryCode:'MY',mock:true},
 ];
 
-let flFlights=[],flNews=[],flApiKey='31ee1ebe-d1c5-407c-b1a6-403e48bdb55d',flFilters={dir:'all',country:'all',status:'all'};
+let flFlights=[],flScheduled=[],flNews=[],flApiKey='31ee1ebe-d1c5-407c-b1a6-403e48bdb55d',flFilters={dir:'all',country:'all',status:'all'};
 let flRefTimer=null,flCdTimer=null,flCdSecs=600,flMockMode=false;
 
 (function flInit(){
@@ -1313,11 +1314,106 @@ async function flFetchFlights(){
       return bDelay-aDelay;
     });
     flFlights=allFlights;
+
+    // Fetch scheduled flights (next 24h) from LHR + LGW
+    const schedFetches=[];
+    ['LHR','LGW'].forEach(ap=>{
+      schedFetches.push(
+        fetch(`https://airlabs.co/api/v9/schedules?arr_iata=${ap}&api_key=${flApiKey}`)
+          .then(r=>r.json()).then(d=>({type:'arrival_sched',airport:ap,data:d}))
+          .catch(e=>({type:'arrival_sched',airport:ap,data:null}))
+      );
+      schedFetches.push(
+        fetch(`https://airlabs.co/api/v9/schedules?dep_iata=${ap}&api_key=${flApiKey}`)
+          .then(r=>r.json()).then(d=>({type:'departure_sched',airport:ap,data:d}))
+          .catch(e=>({type:'departure_sched',airport:ap,data:null}))
+      );
+    });
+    const schedResults=await Promise.all(schedFetches);
+    let allSched=[];
+    schedResults.forEach(r=>{
+      if(!r.data?.response)return;
+      const dir=r.type==='arrival_sched'?'arrival':'departure';
+      const flights=r.data.response.filter(f=>{
+        const isAsianDep=FL_ASIAN_AIRPORTS.has(f.dep_iata);
+        const isAsianArr=FL_ASIAN_AIRPORTS.has(f.arr_iata);
+        const isAsianAirline=FL_ASIAN_AIRLINES.has(f.airline_iata);
+        const isAsianFlag=FL_ASIAN_FLAGS.has(f.flag);
+        if(dir==='arrival')return isAsianDep||isAsianFlag||(isAsianAirline&&!LONDON_AIRPORTS.has(f.dep_iata));
+        return isAsianArr||(isAsianAirline&&!LONDON_AIRPORTS.has(f.arr_iata));
+      });
+      console.log('FL sched filtered',dir,r.airport,':',flights.length);
+      allSched=allSched.concat(flights.map(f=>({...f,_direction:dir,_airport:r.airport,_isScheduled:true})));
+    });
+    // Deduplicate against live flights and within scheduled
+    const schedSeen=new Set(allFlights.map(f=>f.flight_iata).filter(Boolean));
+    allSched=allSched.filter(f=>{
+      if(!f.flight_iata||schedSeen.has(f.flight_iata))return false;
+      schedSeen.add(f.flight_iata);return true;
+    });
+    // Filter to next 24h
+    const now=Date.now();
+    const in24h=now+(24*60*60*1000);
+    allSched=allSched.filter(f=>{
+      const t=f.dep_time||f.arr_time;
+      if(!t)return false;
+      const ts=new Date(t).getTime();
+      return ts>=now&&ts<=in24h;
+    });
+    allSched.sort((a,b)=>new Date(a.dep_time||a.arr_time||0).getTime()-new Date(b.dep_time||b.arr_time||0).getTime());
+    flScheduled=allSched;
+    console.log('FL scheduled next 24h:',flScheduled.length);
+
     flRenderFlights();flRenderStats();
   }catch(e){console.log('FL fetch error:',e.message);}
 }
 
 function flRenderFlights(){
+  const flagMap={CN:'🇨🇳',JP:'🇯🇵',TH:'🇹🇭',MY:'🇲🇾',TW:'🇹🇼',SG:'🇸🇬',ID:'🇮🇩',PH:'🇵🇭',HK:'🇭🇰',KR:'🇰🇷',GB:'🇬🇧',VN:'🇻🇳',IN:'🇮🇳'};
+  const airlineNames={CX:'Cathay Pacific',JL:'Japan Airlines',NH:'ANA',TG:'Thai Airways',MH:'Malaysia Airlines',CI:'China Airlines',BR:'EVA Air',SQ:'Singapore Airlines',MU:'China Eastern',CA:'Air China',CZ:'China Southern',HX:'Hong Kong Airlines',KE:'Korean Air',OZ:'Asiana',GA:'Garuda',PR:'Philippine Airlines','5J':'Cebu Pacific',QZ:'AirAsia Indonesia',ID:'Batik Air',JT:'Lion Air',AK:'AirAsia',FD:'Thai AirAsia',D7:'AirAsia X'};
+  const grid=document.getElementById('fl-grid');
+
+  // ── Scheduled 24H view ───────────────────────────────────────
+  if(flFilters.status==='sched24h'){
+    document.getElementById('fl-main-cnt').textContent=`${flScheduled.length} flight${flScheduled.length!==1?'s':''}`;
+    if(!flScheduled.length){grid.innerHTML=`<div class="state-panel-fl"><div class="state-icon">📅</div><div class="state-title-fl">No scheduled flights</div><div class="state-sub-fl">No Asia↔London flights scheduled in the next 24 hours, or schedules data not yet loaded.</div></div>`;return;}
+    grid.innerHTML=flScheduled.map((f,i)=>{
+      const isArr=f._direction==='arrival';
+      const depFlag=flagMap[f.flag]||'🌏';
+      const gbFlag='🇬🇧';
+      const fmtTime=t=>t?t.slice(-5):'—';
+      const timeVal=isArr?fmtTime(f.arr_time):fmtTime(f.dep_time);
+      const airlineName=airlineNames[f.airline_iata]||f.airline_iata||'Unknown Airline';
+      const dirBadge=isArr
+        ?`<span style="background:#0F2A1A;color:#34D399;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;">✈ ARRIVAL</span>`
+        :`<span style="background:#0F1A2A;color:#60A5FA;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;">✈ DEPARTURE</span>`;
+      const fr24Link=f.flight_iata?`https://www.flightradar24.com/${f.flight_iata}`:'https://www.flightradar24.com';
+      return`<div class="fl-card" style="animation-delay:${i*.03}s;border-color:#1E3A5F">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div style="display:flex;gap:5px;flex-wrap:wrap">${dirBadge}<span style="background:#0F172A;color:#60A5FA;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;">📅 SCHEDULED</span></div>
+          <span style="font-size:9px;color:#6B7280">${f._airport}</span>
+        </div>
+        <div style="font-family:var(--font-serif);font-size:15px;font-weight:700;color:var(--fl-accent);margin-bottom:2px">${esc(airlineName)}</div>
+        <div style="font-size:10px;color:var(--fl-muted);margin-bottom:10px">${f.flight_iata||''} · ${f.aircraft_icao||''}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="text-align:center"><div style="font-size:14px;margin-bottom:2px">${depFlag}</div><div style="font-size:16px;font-weight:700;color:var(--fl-accent2)">${f.dep_iata||'—'}</div><div style="font-size:8px;color:var(--fl-muted)">${isArr?'Origin':'London'}</div></div>
+          <div style="flex:1;border-top:1px dashed var(--fl-border2);position:relative"><div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);font-size:12px">➡️</div></div>
+          <div style="text-align:center"><div style="font-size:14px;margin-bottom:2px">${isArr?gbFlag:depFlag}</div><div style="font-size:16px;font-weight:700;color:var(--fl-accent2)">${f.arr_iata||'—'}</div><div style="font-size:8px;color:var(--fl-muted)">${isArr?'London':'Dest'}</div></div>
+        </div>
+        <div style="background:var(--fl-bg);border:1px solid var(--fl-border);border-radius:6px;padding:8px;margin-bottom:8px">
+          <div style="font-size:8px;color:var(--fl-muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">${isArr?'Scheduled Arrival':'Scheduled Departure'}</div>
+          <div style="font-size:20px;font-weight:700;color:var(--fl-accent2)">${timeVal}</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--fl-border);padding-top:8px">
+          <div style="font-size:8px;color:var(--fl-muted2)">SRC: AIRLABS SCHEDULES</div>
+          <a href="${fr24Link}" target="_blank" rel="noopener" style="font-size:9px;color:var(--fl-accent);text-decoration:none">FR24 →</a>
+        </div>
+      </div>`;
+    }).join('');
+    return;
+  }
+
+  // ── Live flights view ────────────────────────────────────────
   const filtered=flFlights.filter(f=>{
     const dirOk=flFilters.dir==='all'||f._direction===flFilters.dir;
     const statusOk=flFilters.status==='all'||
@@ -1335,18 +1431,12 @@ function flRenderFlights(){
     return dirOk&&statusOk&&countryOk;
   });
   document.getElementById('fl-main-cnt').textContent=`${filtered.length} flight${filtered.length!==1?'s':''}`;
-  const grid=document.getElementById('fl-grid');
-  if(!filtered.length){
-    grid.innerHTML=`<div class="state-panel-fl"><div class="state-icon">✈️</div><div class="state-title-fl">No flights found</div><div class="state-sub-fl">No Asia→London flights match your filters right now. Data refreshes every 2 minutes.</div></div>`;
-    return;
-  }
-  const flagMap={CN:'🇨🇳',JP:'🇯🇵',TH:'🇹🇭',MY:'🇲🇾',TW:'🇹🇼',SG:'🇸🇬',ID:'🇮🇩',PH:'🇵🇭',HK:'🇭🇰',KR:'🇰🇷',GB:'🇬🇧',VN:'🇻🇳',IN:'🇮🇳'};
-  const airlineNames={CX:'Cathay Pacific',JL:'Japan Airlines',NH:'ANA',TG:'Thai Airways',MH:'Malaysia Airlines',CI:'China Airlines',BR:'EVA Air',SQ:'Singapore Airlines',MU:'China Eastern',CA:'Air China',CZ:'China Southern',HX:'Hong Kong Airlines',KE:'Korean Air',OZ:'Asiana',GA:'Garuda',PR:'Philippine Airlines','5J':'Cebu Pacific',QZ:'AirAsia Indonesia',ID:'Batik Air',JT:'Lion Air',AK:'AirAsia',FD:'Thai AirAsia',D7:'AirAsia X'};
+  if(!filtered.length){grid.innerHTML=`<div class="state-panel-fl"><div class="state-icon">✈️</div><div class="state-title-fl">No flights found</div><div class="state-sub-fl">No Asia→London flights match your filters right now. Data refreshes every 10 minutes.</div></div>`;return;}
   grid.innerHTML=filtered.map((f,i)=>{
     const isArr=f._direction==='arrival';
     const delay=isArr?(f.arr_delayed||0):(f.dep_delayed||0);
-    const isSevere=delay>=60;
-    const isModerate=delay>=30&&delay<60;
+    const isSevere=delay>=30;
+    const isModerate=delay>=15&&delay<30;
     const isCancelled=f.status==='cancelled';
     const isActive=f.status==='en-route'||f.status==='active';
     let statusBadge,cardBorder;
@@ -1377,30 +1467,14 @@ function flRenderFlights(){
       <div style="font-family:var(--font-serif);font-size:15px;font-weight:700;color:var(--fl-accent);margin-bottom:2px">${esc(airlineName)}</div>
       <div style="font-size:10px;color:var(--fl-muted);margin-bottom:10px">${f.flight_iata||''} · ${f.aircraft_icao||''}</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="text-align:center">
-          <div style="font-size:14px;margin-bottom:2px">${depFlag}</div>
-          <div style="font-size:16px;font-weight:700;color:var(--fl-accent2)">${f.dep_iata||'—'}</div>
-          <div style="font-size:8px;color:var(--fl-muted)">${isArr?'Origin':'London'}</div>
-        </div>
-        <div style="flex:1;border-top:1px dashed var(--fl-border2);position:relative">
-          <div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);font-size:12px">${isActive?'✈️':'➡️'}</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:14px;margin-bottom:2px">${isArr?gbFlag:depFlag}</div>
-          <div style="font-size:16px;font-weight:700;color:var(--fl-accent2)">${f.arr_iata||'—'}</div>
-          <div style="font-size:8px;color:var(--fl-muted)">${isArr?'London':'Dest'}</div>
-        </div>
+        <div style="text-align:center"><div style="font-size:14px;margin-bottom:2px">${depFlag}</div><div style="font-size:16px;font-weight:700;color:var(--fl-accent2)">${f.dep_iata||'—'}</div><div style="font-size:8px;color:var(--fl-muted)">${isArr?'Origin':'London'}</div></div>
+        <div style="flex:1;border-top:1px dashed var(--fl-border2);position:relative"><div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);font-size:12px">${isActive?'✈️':'➡️'}</div></div>
+        <div style="text-align:center"><div style="font-size:14px;margin-bottom:2px">${isArr?gbFlag:depFlag}</div><div style="font-size:16px;font-weight:700;color:var(--fl-accent2)">${f.arr_iata||'—'}</div><div style="font-size:8px;color:var(--fl-muted)">${isArr?'London':'Dest'}</div></div>
       </div>
       <div style="background:var(--fl-bg);border:1px solid var(--fl-border);border-radius:6px;padding:8px;margin-bottom:8px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div>
-            <div style="font-size:8px;color:var(--fl-muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">${isArr?'Arrives':'Departs'}</div>
-            <div style="font-size:13px;font-weight:600">${timesDisplay}</div>
-          </div>
-          <div>
-            <div style="font-size:8px;color:var(--fl-muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Delay</div>
-            <div style="font-size:13px;font-weight:600;color:${isSevere?'#FB923C':isModerate?'#FCD34D':'#1a6b1a'}">${delay>0?'+'+delay+'min':'None'}</div>
-          </div>
+          <div><div style="font-size:8px;color:var(--fl-muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">${isArr?'Arrives':'Departs'}</div><div style="font-size:13px;font-weight:600">${timesDisplay}</div></div>
+          <div><div style="font-size:8px;color:var(--fl-muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Delay</div><div style="font-size:13px;font-weight:600;color:${isSevere?'#FB923C':isModerate?'#FCD34D':'#1a6b1a'}">${delay>0?'+'+delay+'min':'None'}</div></div>
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--fl-border);padding-top:8px">
@@ -1414,7 +1488,7 @@ function flRenderFlights(){
 function flRenderStats(){
   const arr=flFlights.filter(f=>f._direction==='arrival').length;
   const dep=flFlights.filter(f=>f._direction==='departure').length;
-  const delayed=flFlights.filter(f=>(f.arr_delayed||0)>=30||(f.dep_delayed||0)>=30).length;
+  const delayed=flFlights.filter(f=>(f.arr_delayed||0)>=15||(f.dep_delayed||0)>=15).length;
   const cancelled=flFlights.filter(f=>f.status==='cancelled').length;
   const ontime=flFlights.filter(f=>!f.arr_delayed&&!f.dep_delayed&&f.status!=='cancelled').length;
   document.getElementById('fl-s-total').textContent=flFlights.length;
