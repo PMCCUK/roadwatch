@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.0.3 -->
+<!-- roadwatch v3.0.4 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1229,12 +1229,12 @@ const FL_MOCK=[
   {flightNum:'MH002',airline:'Malaysia Airlines',direction:'arrival',originIata:'KUL',destIata:'LHR',scheduled:'14:20',actual:null,delayMins:0,status:'active',aircraft:'A359',countryCode:'MY',mock:true},
 ];
 
-let flFlights=[],flNews=[],flApiKey='2feaa51e-389e-4ea2-bce0-703fe5d2a8d4',flFilters={dir:'all',country:'all',status:'all'};
+let flFlights=[],flNews=[],flApiKey='31ee1ebe-d1c5-407c-b1a6-403e48bdb55d',flFilters={dir:'all',country:'all',status:'all'};
 let flRefTimer=null,flCdTimer=null,flCdSecs=600,flMockMode=false;
 
 (function flInit(){
-  localStorage.setItem('aviation_api_key','2feaa51e-389e-4ea2-bce0-703fe5d2a8d4');
-  flApiKey='2feaa51e-389e-4ea2-bce0-703fe5d2a8d4';
+  localStorage.setItem('aviation_api_key','31ee1ebe-d1c5-407c-b1a6-403e48bdb55d');
+  flApiKey='31ee1ebe-d1c5-407c-b1a6-403e48bdb55d';
   console.log('FL key forced:', flApiKey.slice(0,8)+'...');
   flShowDash();flRefreshAll();
 })();
@@ -1265,7 +1265,7 @@ async function flFetchOne(url,dir){
 }
 
 async function flFetchFlights(){
-  flApiKey=localStorage.getItem('aviation_api_key')||'2feaa51e-389e-4ea2-bce0-703fe5d2a8d4';
+  flApiKey=localStorage.getItem('aviation_api_key')||'31ee1ebe-d1c5-407c-b1a6-403e48bdb55d';
   console.log('FL: Fetching with key:',flApiKey.slice(0,8)+'...');
   try{
     const airports=['LHR']; // Only Heathrow - handles 80% of Asia-London flights, keeps within API quota
