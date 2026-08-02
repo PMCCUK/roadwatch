@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.1.6 -->
+<!-- roadwatch v3.1.8 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1057,6 +1057,16 @@ async function rwCheckJourney() {
         return roadMatch && d.severity !== 'low';
       });
 
+      const hour = new Date().getHours();
+      const isPeak = (hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 19);
+      const isWeekend = [0,6].includes(new Date().getDay());
+      const disruptionMultiplier = affectedDisruptions.filter(d=>d.severity==='critical').length > 0 ? 1.3 :
+                                    affectedDisruptions.filter(d=>d.severity==='high').length > 0 ? 1.15 : 1.0;
+      const trafficMultiplier = isPeak && !isWeekend ? 1.25 * disruptionMultiplier :
+                                !isWeekend ? 1.1 * disruptionMultiplier :
+                                1.05 * disruptionMultiplier;
+      const estimatedWithTraffic = Math.round(durationMins * trafficMultiplier);
+
       const hasCritical = affectedDisruptions.some(d => d.severity === 'critical');
       const hasHigh = affectedDisruptions.some(d => d.severity === 'high');
       const verdict = hasCritical ? {color:'#DC2626',icon:'🚨',text:'SEVERE DISRUPTION ON ROUTE',bg:'rgba(220,38,38,0.08)'} :
@@ -1086,8 +1096,12 @@ async function rwCheckJourney() {
           <div>
             <div style="font-size:12px;font-weight:700;color:${verdict.color};letter-spacing:.03em">${verdict.text}</div>
             <div style="font-size:13px;color:var(--rw-text,#111);margin-top:3px">${from} → ${to}</div>
-            <div style="font-size:11px;color:var(--rw-muted,#666);margin-top:2px">🚗 ${durationMins} minutes · ${distanceMiles} miles</div>
+            <div style="font-size:11px;color:var(--rw-muted,#666);margin-top:2px">🚗 ${durationMins} min (clear) · ~${estimatedWithTraffic} min (with traffic est.) · ${distanceMiles} miles</div>
           </div>
+        </div>
+        <div style="font-size:9px;color:var(--rw-muted,#666);margin-bottom:10px;padding:0 2px">
+          ⚡ Clear route time via OSRM · Traffic estimate based on time of day and active disruptions ·
+          <a href="${gmapsUrl}" target="_blank" style="color:inherit">Google Maps</a> for live traffic
         </div>
         ${affectedDisruptions.length ? `
           <div style="margin-bottom:10px">
