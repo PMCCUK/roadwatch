@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.1.5 -->
+<!-- roadwatch v3.1.6 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1040,61 +1040,69 @@ async function rwCheckJourney() {
     if (!fromGeo || !toGeo) throw new Error('Could not find location: ' + (!fromGeo ? from : to) + '. Try adding "Station" or a postcode.');
 
     if (rwJourneyMode === 'driving') {
-      const ORS_KEY = '5b3ce3597851110001cf6248b4e6e4f73d5b4a4b9c8f4e5a9c7b3d2e';
-      const orsRes = await fetch(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_KEY}&start=${fromGeo.lon},${fromGeo.lat}&end=${toGeo.lon},${toGeo.lat}`);
-      if (!orsRes.ok) throw new Error('Driving route returned ' + orsRes.status);
-      const orsData = await orsRes.json();
-      const seg = orsData.features?.[0]?.properties?.segments?.[0];
-      if (!seg) throw new Error('No driving route found');
-      const duration = Math.round(seg.duration / 60);
-      const distKm = (seg.distance / 1000).toFixed(1);
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${fromGeo.lon},${fromGeo.lat};${toGeo.lon},${toGeo.lat}?overview=full&geometries=geojson&steps=true`;
+      const osrmRes = await fetch(osrmUrl);
+      if (!osrmRes.ok) throw new Error('Routing service unavailable');
+      const osrmData = await osrmRes.json();
+      const route = osrmData.routes?.[0];
+      if (!route) throw new Error('No route found');
 
+      const durationMins = Math.round(route.duration / 60);
+      const distanceMiles = (route.distance / 1609.34).toFixed(1);
+
+      // Cross reference disruptions near route
       const affectedDisruptions = rwDisruptions.filter(d => {
-        const loc = (d.location + ' ' + d.title + ' ' + d.desc).toLowerCase();
-        return (seg.steps||[]).some(s => loc.includes((s.name||'').toLowerCase()) && s.name);
+        const loc = (d.location + ' ' + d.title).toLowerCase();
+        const roadMatch = ['a1','a2','a3','a4','a10','a11','a12','a13','a20','a21','a23','a24','a30','a40','a41','a102','a205','a316','a406','m25','m1','m4','m3','m11'].some(r => loc.includes(r));
+        return roadMatch && d.severity !== 'low';
       });
+
       const hasCritical = affectedDisruptions.some(d => d.severity === 'critical');
       const hasHigh = affectedDisruptions.some(d => d.severity === 'high');
-      const verdict = hasCritical ? {color:'#EF4444',icon:'🚨',text:'SEVERE DISRUPTION',bg:'rgba(239,68,68,0.1)'} :
-                      hasHigh ? {color:'#F59E0B',icon:'⚠️',text:'DISRUPTION AHEAD',bg:'rgba(245,158,11,0.1)'} :
-                      {color:'#10B981',icon:'✅',text:'ROUTE CLEAR',bg:'rgba(16,185,129,0.1)'};
+      const verdict = hasCritical ? {color:'#DC2626',icon:'🚨',text:'SEVERE DISRUPTION ON ROUTE',bg:'rgba(220,38,38,0.08)'} :
+                      hasHigh ? {color:'#F59E0B',icon:'⚠️',text:'DISRUPTION AHEAD',bg:'rgba(245,158,11,0.08)'} :
+                      {color:'#16A34A',icon:'✅',text:'ROUTE CLEAR',bg:'rgba(22,163,74,0.08)'};
 
-      const disruptHtml = affectedDisruptions.length ? `
-        <div style="margin-top:10px">
-          <div style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Disruptions on your route</div>
-          ${affectedDisruptions.slice(0,3).map(d => `
-            <div style="background:var(--rw-bg2);border-left:3px solid ${d.severity==='critical'?'#EF4444':d.severity==='high'?'#F59E0B':'#6B7280'};border-radius:4px;padding:7px 10px;margin-bottom:5px">
-              <div style="font-size:10px;font-weight:600;color:var(--rw-text)">${d.title}</div>
-              <div style="font-size:9px;color:var(--rw-muted)">${d.location}</div>
-            </div>
-          `).join('')}
-        </div>` : '';
+      // Draw route on map if open
+      if (rwMapShown && rwMap) {
+        if (rwRouteLayer) rwMap.removeLayer(rwRouteLayer);
+        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+        rwRouteLayer = L.polyline(coords, {color:'#DC2626', weight:5, opacity:0.8}).addTo(rwMap);
+        L.marker([fromGeo.lat, fromGeo.lon], {
+          icon: L.divIcon({html:'<div style="background:#16A34A;color:white;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">FROM</div>', className:''})
+        }).addTo(rwMap);
+        L.marker([toGeo.lat, toGeo.lon], {
+          icon: L.divIcon({html:'<div style="background:#DC2626;color:white;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">TO</div>', className:''})
+        }).addTo(rwMap);
+        rwMap.fitBounds(rwRouteLayer.getBounds(), {padding:[50,50]});
+      }
 
-      const fromEsc = from.replace(/'/g,"\\'");
-      const toEsc = to.replace(/'/g,"\\'");
+      // Google Maps link
+      const gmapsUrl = `https://www.google.com/maps/dir/${fromGeo.lat},${fromGeo.lon}/${toGeo.lat},${toGeo.lon}`;
+
       result.innerHTML = `
-        <div style="background:${verdict.bg};border:1px solid ${verdict.color};border-radius:8px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
-          <span style="font-size:22px">${verdict.icon}</span>
+        <div style="background:${verdict.bg};border:1px solid ${verdict.color};border-radius:8px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
+          <span style="font-size:24px">${verdict.icon}</span>
           <div>
-            <div style="font-size:12px;font-weight:700;color:${verdict.color};letter-spacing:.05em">${verdict.text}</div>
-            <div style="font-size:11px;color:var(--rw-text);margin-top:2px">🚗 ${esc(from)} → ${esc(to)} · <strong>${duration} min · ${distKm} km</strong></div>
+            <div style="font-size:12px;font-weight:700;color:${verdict.color};letter-spacing:.03em">${verdict.text}</div>
+            <div style="font-size:13px;color:var(--rw-text,#111);margin-top:3px">${from} → ${to}</div>
+            <div style="font-size:11px;color:var(--rw-muted,#666);margin-top:2px">🚗 ${durationMins} minutes · ${distanceMiles} miles</div>
           </div>
         </div>
-        ${disruptHtml}
-        <div style="margin-top:10px;display:flex;gap:8px">
-          <button onclick="rwShareJourney('${fromEsc}','${toEsc}',${duration})" style="background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:6px;padding:6px 12px;color:var(--rw-muted);font-size:10px;cursor:pointer;font-family:'DM Mono',monospace">📤 Share result</button>
-          <button onclick="rwCheckJourney()" style="background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:6px;padding:6px 12px;color:var(--rw-muted);font-size:10px;cursor:pointer;font-family:'DM Mono',monospace">🔄 Refresh</button>
+        ${affectedDisruptions.length ? `
+          <div style="margin-bottom:10px">
+            <div style="font-size:9px;color:var(--rw-muted,#666);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">${affectedDisruptions.length} disruption${affectedDisruptions.length!==1?'s':''} near your route</div>
+            ${affectedDisruptions.slice(0,3).map(d=>`
+              <div style="border-left:3px solid ${d.severity==='critical'?'#DC2626':d.severity==='high'?'#F59E0B':'#6B7280'};padding:7px 10px;margin-bottom:5px;background:var(--rw-bg2,#f9f9f9);border-radius:0 6px 6px 0">
+                <div style="font-size:10px;font-weight:600;color:var(--rw-text,#111)">${d.title}</div>
+                <div style="font-size:9px;color:var(--rw-muted,#666)">${d.location}</div>
+              </div>`).join('')}
+          </div>` : '<div style="font-size:11px;color:#16A34A;margin-bottom:10px">✅ No major disruptions found near this route</div>'}
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a href="${gmapsUrl}" target="_blank" rel="noopener" style="background:var(--rw-accent,#CC0000);color:white;border:none;border-radius:6px;padding:7px 14px;font-size:10px;font-weight:700;cursor:pointer;text-decoration:none;font-family:inherit">Open in Google Maps →</a>
+          <button onclick="rwCheckJourney()" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:7px 14px;color:var(--rw-muted,#666);font-size:10px;cursor:pointer;font-family:inherit">🔄 Refresh</button>
+          <button onclick="rwShareJourney('${from.replace(/'/g,"\\'")}','${to.replace(/'/g,"\\'")}',${durationMins})" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:7px 14px;color:var(--rw-muted,#666);font-size:10px;cursor:pointer;font-family:inherit">📤 Share</button>
         </div>`;
-
-      if (rwMapShown && rwMap) {
-        const coords = orsData.features?.[0]?.geometry?.coordinates || [];
-        if (coords.length) {
-          if (rwRouteLayer) rwRouteLayer.remove();
-          const latLngs = coords.map(c => [c[1], c[0]]);
-          rwRouteLayer = L.polyline(latLngs, {color:'#CC0000',weight:4,opacity:0.8}).addTo(rwMap);
-          rwMap.fitBounds(rwRouteLayer.getBounds(), {padding:[30,30]});
-        }
-      }
       return;
     }
 
