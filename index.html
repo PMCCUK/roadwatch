@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.1.8 -->
+<!-- roadwatch v3.1.9 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1020,6 +1020,47 @@ function rwPlotDisruptions() {
   });
 }
 
+function rwPointNearRoute(routeCoords, lat, lon, bufferKm = 2.0) {
+  for (let i = 0; i < routeCoords.length - 1; i++) {
+    const [lon1, lat1] = routeCoords[i];
+    const [lon2, lat2] = routeCoords[i + 1];
+    const dx = lon2 - lon1, dy = lat2 - lat1;
+    const lenSq = dx*dx + dy*dy;
+    let t = lenSq > 0 ? ((lon - lon1)*dx + (lat - lat1)*dy) / lenSq : 0;
+    t = Math.max(0, Math.min(1, t));
+    const nearLon = lon1 + t*dx, nearLat = lat1 + t*dy;
+    const distLat = (lat - nearLat) * 111;
+    const distLon = (lon - nearLon) * 111 * Math.cos(lat * Math.PI/180);
+    if (Math.sqrt(distLat*distLat + distLon*distLon) < bufferKm) return true;
+  }
+  return false;
+}
+
+const ROAD_COORDS = {
+  'M25': [[51.389,-0.123],[51.35,-0.08],[51.31,0.05],[51.33,0.18]],
+  'M4': [[51.502,-0.345],[51.495,-0.28],[51.490,-0.22]],
+  'M40': [[51.530,-0.28],[51.56,-0.32],[51.60,-0.38]],
+  'M1': [[51.600,-0.30],[51.65,-0.33]],
+  'M3': [[51.389,-0.34],[51.35,-0.38]],
+  'A4': [[51.495,-0.22],[51.492,-0.28],[51.489,-0.32]],
+  'A40': [[51.518,-0.23],[51.515,-0.27],[51.512,-0.32]],
+  'A316': [[51.467,-0.234],[51.454,-0.27],[51.440,-0.30]],
+  'A3': [[51.441,-0.212],[51.420,-0.19],[51.40,-0.17]],
+  'A2': [[51.465,-0.056],[51.450,-0.02],[51.430,0.05]],
+  'A1': [[51.565,-0.073],[51.60,-0.08],[51.63,-0.09]],
+  'A10': [[51.565,-0.073],[51.58,-0.072],[51.60,-0.071]],
+  'A13': [[51.508,0.012],[51.510,0.06],[51.512,0.12]],
+  'A406': [[51.568,-0.234],[51.572,-0.15],[51.568,-0.06],[51.555,0.02]],
+  'A205': [[51.456,-0.078],[51.458,-0.02],[51.455,0.04]],
+  'A102': [[51.487,-0.012],[51.500,-0.008],[51.510,-0.004]],
+  'A20': [[51.456,0.12],[51.44,0.08],[51.42,0.04]],
+  'A23': [[51.456,-0.123],[51.42,-0.12],[51.38,-0.10]],
+  'A24': [[51.423,-0.187],[51.40,-0.19],[51.37,-0.19]],
+  'A30': [[51.467,-0.389],[51.45,-0.42],[51.43,-0.45]],
+  'A41': [[51.568,-0.178],[51.59,-0.20],[51.61,-0.22]],
+  'A400': [[51.549,-0.185],[51.555,-0.18],[51.560,-0.17]],
+};
+
 async function rwCheckJourney() {
   const from = document.getElementById('rw-journey-from').value.trim();
   const to = document.getElementById('rw-journey-to').value.trim();
@@ -1050,12 +1091,29 @@ async function rwCheckJourney() {
       const durationMins = Math.round(route.duration / 60);
       const distanceMiles = (route.distance / 1609.34).toFixed(1);
 
-      // Cross reference disruptions near route
+      const routeCoords = route.geometry.coordinates;
       const affectedDisruptions = rwDisruptions.filter(d => {
-        const loc = (d.location + ' ' + d.title).toLowerCase();
-        const roadMatch = ['a1','a2','a3','a4','a10','a11','a12','a13','a20','a21','a23','a24','a30','a40','a41','a102','a205','a316','a406','m25','m1','m4','m3','m11'].some(r => loc.includes(r));
-        return roadMatch && d.severity !== 'low';
-      });
+        const steps = route.legs?.[0]?.steps || [];
+        const stepRoads = new Set(steps.flatMap(s => [s.name, s.ref].filter(Boolean).map(r => r.toUpperCase())));
+        const dRoads = (d.roads || [d.title?.match(/[AM]\d+/)?.[0]]).filter(Boolean).map(r => r.toUpperCase());
+
+        const roadOnRoute = dRoads.some(r => stepRoads.has(r) || [...stepRoads].some(sr => sr.includes(r) || r.includes(sr)));
+
+        let nearRoute = false;
+        for (const road of dRoads) {
+          const coords = ROAD_COORDS[road];
+          if (coords) {
+            nearRoute = coords.some(([lat, lon]) => rwPointNearRoute(routeCoords, lat, lon, 2.0));
+            if (nearRoute) break;
+          }
+        }
+
+        return roadOnRoute || nearRoute;
+      }).filter(d => d.severity === 'critical' || d.severity === 'high')
+        .sort((a,b) => {
+          const sev = {critical:3, high:2, medium:1, low:0};
+          return (sev[b.severity]||0) - (sev[a.severity]||0);
+        }).slice(0, 8);
 
       const hour = new Date().getHours();
       const isPeak = (hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 19);
@@ -1067,8 +1125,8 @@ async function rwCheckJourney() {
                                 1.05 * disruptionMultiplier;
       const estimatedWithTraffic = Math.round(durationMins * trafficMultiplier);
 
-      const hasCritical = affectedDisruptions.some(d => d.severity === 'critical');
-      const hasHigh = affectedDisruptions.some(d => d.severity === 'high');
+      const hasCritical = affectedDisruptions.length > 0 && affectedDisruptions.some(d => d.severity === 'critical');
+      const hasHigh = affectedDisruptions.length > 0 && affectedDisruptions.some(d => d.severity === 'high');
       const verdict = hasCritical ? {color:'#DC2626',icon:'🚨',text:'SEVERE DISRUPTION ON ROUTE',bg:'rgba(220,38,38,0.08)'} :
                       hasHigh ? {color:'#F59E0B',icon:'⚠️',text:'DISRUPTION AHEAD',bg:'rgba(245,158,11,0.08)'} :
                       {color:'#16A34A',icon:'✅',text:'ROUTE CLEAR',bg:'rgba(22,163,74,0.08)'};
@@ -1105,13 +1163,13 @@ async function rwCheckJourney() {
         </div>
         ${affectedDisruptions.length ? `
           <div style="margin-bottom:10px">
-            <div style="font-size:9px;color:var(--rw-muted,#666);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">${affectedDisruptions.length} disruption${affectedDisruptions.length!==1?'s':''} near your route</div>
+            <div style="font-size:9px;color:var(--rw-muted,#666);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">${affectedDisruptions.length} significant disruption${affectedDisruptions.length!==1?'s':''} on or near your route (high/critical only)</div>
             ${affectedDisruptions.slice(0,3).map(d=>`
               <div style="border-left:3px solid ${d.severity==='critical'?'#DC2626':d.severity==='high'?'#F59E0B':'#6B7280'};padding:7px 10px;margin-bottom:5px;background:var(--rw-bg2,#f9f9f9);border-radius:0 6px 6px 0">
                 <div style="font-size:10px;font-weight:600;color:var(--rw-text,#111)">${d.title}</div>
                 <div style="font-size:9px;color:var(--rw-muted,#666)">${d.location}</div>
               </div>`).join('')}
-          </div>` : '<div style="font-size:11px;color:#16A34A;margin-bottom:10px">✅ No major disruptions found near this route</div>'}
+          </div>` : '<div style="font-size:11px;color:#16A34A;margin-bottom:10px">✅ No significant disruptions on this route</div>'}
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <a href="${gmapsUrl}" target="_blank" rel="noopener" style="background:var(--rw-accent,#CC0000);color:white;border:none;border-radius:6px;padding:7px 14px;font-size:10px;font-weight:700;cursor:pointer;text-decoration:none;font-family:inherit">Open in Google Maps →</a>
           <button onclick="rwCheckJourney()" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:7px 14px;color:var(--rw-muted,#666);font-size:10px;cursor:pointer;font-family:inherit">🔄 Refresh</button>
