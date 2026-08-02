@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.1.2 -->
+<!-- roadwatch v3.1.4 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -889,6 +889,7 @@ const RW_RSS_FEEDS=[
 
 let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all',area:'all'},rwApiKey='';
 let rwRefTimer=null,rwCdTimer=null,rwCdSecs=300,rwAlerts={},rwAlertsPanelOpen=false,rwAudioCtx=null,rwTabTimer=null;
+let rwGChatUrl='',rwGChatSentIds=new Set(),rwAcTimer=null;
 
 function rwGetAudio(){if(!rwAudioCtx)rwAudioCtx=new(window.AudioContext||window.webkitAudioContext)();return rwAudioCtx}
 function rwPlaySound(sev){try{const ctx=rwGetAudio();const freq=sev==='critical'?880:sev==='high'?660:520;const reps=sev==='critical'?3:2;let t=ctx.currentTime;for(let i=0;i<reps;i++){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=freq;o.type='sine';g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.35,t+.05);g.gain.linearRampToValueAtTime(0,t+.28);o.start(t);o.stop(t+.32);t+=.42}}catch{}}
@@ -897,7 +898,9 @@ function rwFlashTab(msg){let on=true;clearInterval(rwTabTimer);rwTabTimer=setInt
 (function rwInit(){
   if(!localStorage.getItem('nh_api_key'))localStorage.setItem('nh_api_key','957702d228fe4b7790394af233e62790');
   if(localStorage.getItem('tfl_api_key')==='84e42584759047669a067464dc4af6b3')localStorage.setItem('tfl_api_key','3bb8014b0089484dbc8d72613e538d2a');
+  if(localStorage.getItem('tfl_api_key')==='d5c24f0683f0a43ba8dcc4e993362532'){localStorage.removeItem('tfl_api_key');}
   rwApiKey=localStorage.getItem('tfl_api_key')||'3bb8014b0089484dbc8d72613e538d2a';
+  localStorage.setItem('tfl_api_key',rwApiKey);
   rwLoadAlerts();rwUpdateNotifStatus();rwInitGChat();
   if(rwApiKey){rwShowDash();rwRefreshAll()}
   if('Notification'in window&&Notification.permission==='default')document.getElementById('rw-notif-bar').style.display='flex';
@@ -1070,7 +1073,6 @@ function rwShareJourney(from, to, duration) {
   }
 }
 
-let rwAcTimer = null;
 async function rwJourneyAC(inputId, acId) {
   clearTimeout(rwAcTimer);
   const val = document.getElementById(inputId).value.trim();
@@ -1137,7 +1139,7 @@ async function rwJourneyAC(inputId, acId) {
           <span class="journey-ac-type">${r.type}</span>
         </div>`
       ).join('');
-      ac.style.display = 'block';
+      ac.setAttribute('style', 'display:block;position:absolute;top:calc(100% + 1px);left:0;right:0;background:#ffffff;border:1px solid #cccccc;border-radius:0 0 8px 8px;z-index:999999;max-height:250px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.25);');
     } catch(e) { ac.style.display = 'none'; }
   }, 300);
 }
@@ -1335,30 +1337,7 @@ async function fetchWebTris(){
       return name.match(/m25|m1\b|m3\b|m4\b|m11|m20|a1\b|a2\b|a3\b|dartford|orbital|london/);
     }).slice(0,20);
     console.log('WebTRIS London sites:',londonSites.length);
-    if(londonSites.length===0)return;
-    const now=new Date();
-    const dd=String(now.getDate()).padStart(2,'0');
-    const mm=String(now.getMonth()+1).padStart(2,'0');
-    const yyyy=now.getFullYear();
-    const today=`${dd}%2F${mm}%2F${yyyy}`;
-    const siteIds=londonSites.map(s=>s.Id||s.id).join(',');
-    const qualityUrl=`https://webtris.highwaysengland.co.uk/api/v1/quality/overall?sites=${siteIds}&start_date=${dd}%2F${mm}%2F${yyyy}&end_date=${dd}%2F${mm}%2F${yyyy}`;
-    const qRes=await fetch(qualityUrl);
-    if(!qRes.ok)return;
-    const qData=await qRes.json();
-    console.log('WebTRIS quality data:',JSON.stringify(qData).slice(0,200));
-    const problematic=(qData.data_quality||[]).filter(q=>{
-      const quality=parseFloat(q.quality||q.Quality||100);
-      return quality<50;
-    });
-    problematic.forEach((q,i)=>{
-      const site=londonSites.find(s=>(s.Id||s.id)==(q.site_id||q.SiteId));
-      if(!site)return;
-      const name=site.Description||site.name||'London Road';
-      const road=name.match(/M\d+|A\d+/)?.[0]||name.slice(0,20);
-      rwDisruptions.unshift({id:'wt-'+(q.site_id||i),category:'Incident',title:road+' — Severe Congestion Detected',desc:`Real-time sensor data shows severe traffic disruption on ${name}. Quality index: ${q.quality||q.Quality}%. Expect significant delays.`,location:name,startDate:isoNow(),startTime:null,endDate:null,endTime:null,severity:'high',roads:[road],source:'WebTRIS / National Highways',sourceUrl:'https://webtris.highwaysengland.co.uk/',hasDiversion:false,isActive:true});
-    });
-    if(problematic.length>0){rwRenderDisruptions();rwRenderStats();rwRenderTicker();}
+    console.log('WebTRIS: found', londonSites.length, 'London monitoring sites');
   }catch(e){console.log('WebTRIS error:',e.message);}
 }
 
@@ -1809,9 +1788,6 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')rwCloseModalNow()});
 // ════════════════════════════════════════════════════════════
 //  GOOGLE CHAT ALERTS
 // ════════════════════════════════════════════════════════════
-let rwGChatUrl = localStorage.getItem('rw_gchat_url') || '';
-let rwGChatSentIds = new Set(JSON.parse(localStorage.getItem('rw_gchat_sent') || '[]'));
-
 function rwSaveGChat() {
   const url = document.getElementById('rw-gchat-url').value.trim();
   if (!url || !url.includes('chat.googleapis.com')) {
@@ -1939,6 +1915,7 @@ async function rwTestGChat() {
 
 function rwInitGChat() {
   rwGChatUrl = localStorage.getItem('rw_gchat_url') || '';
+  rwGChatSentIds = new Set(JSON.parse(localStorage.getItem('rw_gchat_sent') || '[]'));
   if (rwGChatUrl) {
     const input = document.getElementById('rw-gchat-url');
     if (input) input.value = rwGChatUrl;
