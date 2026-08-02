@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.0.7 -->
+<!-- roadwatch v3.1.0 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -498,6 +498,34 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
         <div id="rw-ntfy-status" style="font-size:9px;color:var(--rw-muted);margin-top:5px"></div>
       </div>
     </div>
+    <div id="rw-gchat-setup" style="margin-top:12px;padding:12px;background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:16px">💬</span>
+        <span style="font-size:11px;font-weight:700;color:var(--rw-text)">Google Chat Alerts</span>
+        <span id="rw-gchat-status" style="font-size:9px;padding:2px 7px;border-radius:10px;background:#1F2937;color:#4B5563">NOT CONNECTED</span>
+      </div>
+      <div style="font-size:10px;color:var(--rw-muted);margin-bottom:10px;line-height:1.6">
+        Get Critical alerts posted automatically to your Google Chat space.<br>
+        <a href="https://developers.google.com/chat/how-tos/webhooks" target="_blank" style="color:var(--rw-accent)">How to get your webhook URL →</a>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input id="rw-gchat-url" type="text" placeholder="Paste Google Chat webhook URL…" autocomplete="off"
+          style="flex:1;background:var(--rw-bg);border:1px solid var(--rw-border);border-radius:6px;padding:8px 10px;color:var(--rw-text);font-family:'DM Mono',monospace;font-size:10px;outline:none">
+        <button onclick="rwSaveGChat()" style="background:var(--rw-accent);border:none;border-radius:6px;padding:8px 14px;color:#000;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;cursor:pointer">CONNECT</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--rw-muted);cursor:pointer">
+          <input type="checkbox" id="rw-gchat-critical" checked style="cursor:pointer"> Critical only
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--rw-muted);cursor:pointer">
+          <input type="checkbox" id="rw-gchat-high" style="cursor:pointer"> High severity
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--rw-muted);cursor:pointer">
+          <input type="checkbox" id="rw-gchat-protests" checked style="cursor:pointer"> Protests/Marches
+        </label>
+      </div>
+      <button onclick="rwTestGChat()" id="rw-gchat-test" style="display:none;margin-top:8px;background:transparent;border:1px solid var(--rw-border);border-radius:6px;padding:6px 12px;color:var(--rw-muted);font-size:10px;cursor:pointer;font-family:'DM Mono',monospace">Send test message</button>
+    </div>
   </div>
 
   <!-- Legend -->
@@ -552,6 +580,34 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     </div>
     <button class="alerts-btn-rw" onclick="rwToggleAlerts()">🔔 Alerts</button>
     <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">2:00</span></button>
+  </div>
+
+  <div id="rw-journey-panel" style="display:none;margin:0 16px 14px;border:1px solid var(--rw-border);border-radius:12px;overflow:hidden">
+    <div id="rw-journey-header" onclick="rwToggleJourney()" style="background:var(--rw-bg2);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:14px">🗺️</span>
+        <span style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--rw-accent);letter-spacing:.05em">JOURNEY IMPACT CHECKER</span>
+        <span style="font-size:10px;color:var(--rw-muted);background:var(--rw-bg);padding:2px 8px;border-radius:10px">NEW</span>
+      </div>
+      <span id="rw-journey-chevron" style="color:var(--rw-muted);font-size:12px;transition:transform .2s">▼</span>
+    </div>
+    <div id="rw-journey-body" style="display:none;padding:14px 16px;background:var(--rw-bg)">
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:12px">
+        <div>
+          <label style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">From</label>
+          <input id="rw-journey-from" type="text" placeholder="e.g. Heathrow Airport" autocomplete="off"
+            style="width:100%;background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:7px;padding:9px 12px;color:var(--rw-text);font-family:'DM Mono',monospace;font-size:11px;outline:none;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">To</label>
+          <input id="rw-journey-to" type="text" placeholder="e.g. Canary Wharf" autocomplete="off"
+            style="width:100%;background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:7px;padding:9px 12px;color:var(--rw-text);font-family:'DM Mono',monospace;font-size:11px;outline:none;box-sizing:border-box">
+        </div>
+        <button onclick="rwCheckJourney()" style="background:var(--rw-accent);border:none;border-radius:7px;padding:9px 18px;color:#000;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;letter-spacing:.05em">CHECK →</button>
+      </div>
+      <div id="rw-journey-result" style="display:none"></div>
+      <div style="font-size:9px;color:var(--rw-muted);margin-top:8px">Powered by TfL Journey Planner · Results show current conditions including active disruptions</div>
+    </div>
   </div>
 
   <!-- Layout -->
@@ -829,13 +885,13 @@ function rwFlashTab(msg){let on=true;clearInterval(rwTabTimer);rwTabTimer=setInt
   if(!localStorage.getItem('nh_api_key'))localStorage.setItem('nh_api_key','957702d228fe4b7790394af233e62790');
   if(localStorage.getItem('tfl_api_key')==='84e42584759047669a067464dc4af6b3')localStorage.setItem('tfl_api_key','3bb8014b0089484dbc8d72613e538d2a');
   rwApiKey=localStorage.getItem('tfl_api_key')||'3bb8014b0089484dbc8d72613e538d2a';
-  rwLoadAlerts();rwUpdateNotifStatus();
+  rwLoadAlerts();rwUpdateNotifStatus();rwInitGChat();
   if(rwApiKey){rwShowDash();rwRefreshAll()}
   if('Notification'in window&&Notification.permission==='default')document.getElementById('rw-notif-bar').style.display='flex';
 })();
 
 function rwSaveKey(){const v=(document.getElementById('rw-key-input').value||'').trim();if(!v){alert('Please paste your TfL API key.');return}rwApiKey=v;localStorage.setItem('tfl_api_key',rwApiKey);rwShowDash();rwRefreshAll()}
-function rwShowDash(){document.getElementById('rw-setup').style.display='none';document.getElementById('rw-legend').style.display='flex';document.getElementById('rw-controls').style.display='flex';document.getElementById('rw-disrupt-col').style.display='block';document.getElementById('rw-news-col').style.display='block';document.getElementById('rw-stats').style.display='grid'}
+function rwShowDash(){document.getElementById('rw-setup').style.display='none';document.getElementById('rw-legend').style.display='flex';document.getElementById('rw-controls').style.display='flex';document.getElementById('rw-journey-panel').style.display='block';document.getElementById('rw-disrupt-col').style.display='block';document.getElementById('rw-news-col').style.display='block';document.getElementById('rw-stats').style.display='grid'}
 
 function rwLoadAlerts(){try{const s=JSON.parse(localStorage.getItem('rw_alerts')||'{}');rwAlerts=s;if(s.banner!==undefined)document.getElementById('rw-tog-banner').checked=s.banner;if(s.sound!==undefined)document.getElementById('rw-tog-sound').checked=s.sound;if(s.tab!==undefined)document.getElementById('rw-tog-tab').checked=s.tab;if(s.ntfy!==undefined)document.getElementById('rw-tog-ntfy').checked=s.ntfy;if(s.ntfyTopic)document.getElementById('rw-ntfy-topic').value=s.ntfyTopic;if(s.browser!==undefined)document.getElementById('rw-tog-browser').checked=s.browser;if(s.sevCrit!==undefined)document.getElementById('rw-sev-crit').checked=s.sevCrit;if(s.sevHigh!==undefined)document.getElementById('rw-sev-high').checked=s.sevHigh;if(s.sevMed!==undefined)document.getElementById('rw-sev-med').checked=s.sevMed}catch{}}
 function rwSaveAlerts(){rwAlerts={banner:document.getElementById('rw-tog-banner').checked,sound:document.getElementById('rw-tog-sound').checked,tab:document.getElementById('rw-tog-tab').checked,ntfy:document.getElementById('rw-tog-ntfy').checked,ntfyTopic:document.getElementById('rw-ntfy-topic').value.trim(),browser:document.getElementById('rw-tog-browser').checked,sevCrit:document.getElementById('rw-sev-crit').checked,sevHigh:document.getElementById('rw-sev-high').checked,sevMed:document.getElementById('rw-sev-med').checked};localStorage.setItem('rw_alerts',JSON.stringify(rwAlerts))}
@@ -847,6 +903,132 @@ async function rwTestNtfy(){const topic=document.getElementById('rw-ntfy-topic')
 function rwShouldAlert(sev){if(sev==='critical')return rwAlerts.sevCrit!==false;if(sev==='high')return rwAlerts.sevHigh!==false;if(sev==='medium')return!!rwAlerts.sevMed;return false}
 function rwFireAlerts(d){if(!rwShouldAlert(d.severity))return;if(rwAlerts.sound!==false)rwPlaySound(d.severity);if(rwAlerts.tab!==false)rwFlashTab(d.title);if(rwAlerts.banner!==false){document.getElementById('rw-alert-title').textContent=`${(RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default).icon} NEW ${d.severity.toUpperCase()} DISRUPTION`;document.getElementById('rw-alert-msg').textContent=`${d.title} — ${d.location}`;document.getElementById('rw-alert-time').textContent='Detected '+new Date().toLocaleTimeString('en-GB');const b=document.getElementById('rw-alert-banner');b.style.display='block';setTimeout(()=>b.style.display='none',14000)}const tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default,sc=RW_SEV_CFG[d.severity]||RW_SEV_CFG.low;const t=document.createElement('div');t.className=`toast ${d.severity}`;t.innerHTML=`<div class="toast-hdr"><span class="toast-icon">${tc.icon}</span><span class="toast-lbl" style="color:${sc.color}">${d.severity.toUpperCase()}</span></div><div class="toast-title">${esc(d.title)}</div><div class="toast-loc">📍 ${esc(d.location)}</div>`;const c=document.getElementById('rw-toast-container');c.appendChild(t);t.addEventListener('click',()=>t.remove());setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .5s';setTimeout(()=>t.remove(),500)},7000);if(rwAlerts.browser&&Notification.permission==='granted')new Notification(`${tc.icon} ${d.severity.toUpperCase()} — ${d.title}`,{body:`📍 ${d.location}`,tag:d.id});if(rwAlerts.ntfy&&rwAlerts.ntfyTopic)fetch(`https://ntfy.sh/${encodeURIComponent(rwAlerts.ntfyTopic)}`,{method:'POST',headers:{'Title':`🚨 ${d.severity.toUpperCase()} — ${d.title}`,'Priority':d.severity==='critical'?'urgent':d.severity==='high'?'high':'default','Tags':`warning,london`},body:`📍 ${d.location}\n\n${d.desc||d.title}`}).catch(()=>{})}
 function closeRwAlert(){document.getElementById('rw-alert-banner').style.display='none'}
+
+function rwToggleJourney() {
+  const body = document.getElementById('rw-journey-body');
+  const chevron = document.getElementById('rw-journey-chevron');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  chevron.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+async function rwCheckJourney() {
+  const from = document.getElementById('rw-journey-from').value.trim();
+  const to = document.getElementById('rw-journey-to').value.trim();
+  const result = document.getElementById('rw-journey-result');
+
+  if (!from || !to) {
+    result.style.display = 'block';
+    result.innerHTML = `<div style="color:var(--rw-red);font-size:11px;padding:10px">Please enter both origin and destination.</div>`;
+    return;
+  }
+
+  result.style.display = 'block';
+  result.innerHTML = `<div style="color:var(--rw-muted);font-size:11px;padding:10px;text-align:center">⏳ Calculating journey impact...</div>`;
+
+  try {
+    const API_KEY = rwApiKey || '3bb8014b0089484dbc8d72613e538d2a';
+    const now = new Date();
+    const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    const dateStr = now.toISOString().split('T')[0];
+
+    const url = `https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(from)}/to/${encodeURIComponent(to)}?date=${dateStr.replace(/-/g,'')}&time=${timeStr.replace(':','')}&timeIs=Departing&mode=bus,tube,national-rail,overground,elizabeth-line,dlr,walking&app_key=${API_KEY}`;
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Journey planner returned ' + res.status);
+    const data = await res.json();
+
+    const journeys = data.journeys || [];
+    if (!journeys.length) throw new Error('No journeys found');
+
+    const best = journeys[0];
+    const duration = best.duration || 0;
+    const legs = best.legs || [];
+
+    const routeRoads = legs.map(l => l.instruction?.summary || l.routeOptions?.[0]?.name || '').filter(Boolean);
+    const affectedDisruptions = rwDisruptions.filter(d => {
+      const loc = (d.location + ' ' + d.title + ' ' + d.desc).toLowerCase();
+      return routeRoads.some(r => loc.includes(r.toLowerCase())) ||
+             legs.some(l => (l.path?.stopPoints||[]).some(s => loc.includes((s.name||'').toLowerCase())));
+    });
+
+    const hasCritical = affectedDisruptions.some(d => d.severity === 'critical');
+    const hasHigh = affectedDisruptions.some(d => d.severity === 'high');
+    const verdict = hasCritical ? {color:'#EF4444',icon:'🚨',text:'SEVERE DISRUPTION',bg:'rgba(239,68,68,0.1)'} :
+                    hasHigh ? {color:'#F59E0B',icon:'⚠️',text:'DISRUPTION AHEAD',bg:'rgba(245,158,11,0.1)'} :
+                    {color:'#10B981',icon:'✅',text:'ROUTE CLEAR',bg:'rgba(16,185,129,0.1)'};
+
+    const legsHtml = legs.slice(0,5).map(l => {
+      const mode = l.mode?.name || 'walk';
+      const modeIcon = mode==='walking'?'🚶':mode==='bus'?'🚌':mode==='tube'?'🚇':mode==='national-rail'?'🚂':mode==='elizabeth-line'?'🟣':'🚌';
+      const dep = l.departurePoint?.commonName || '';
+      const arr = l.arrivalPoint?.commonName || '';
+      const mins = l.duration || 0;
+      const line = l.routeOptions?.[0]?.name || '';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--rw-border)">
+        <span style="font-size:14px">${modeIcon}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;color:var(--rw-text);font-weight:600">${line ? line+' · ' : ''}${dep} → ${arr}</div>
+          <div style="font-size:9px;color:var(--rw-muted)">${mins} min</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    const disruptHtml = affectedDisruptions.length ? `
+      <div style="margin-top:10px">
+        <div style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Disruptions on your route</div>
+        ${affectedDisruptions.slice(0,3).map(d => `
+          <div style="background:var(--rw-bg2);border-left:3px solid ${d.severity==='critical'?'#EF4444':d.severity==='high'?'#F59E0B':'#6B7280'};border-radius:4px;padding:7px 10px;margin-bottom:5px">
+            <div style="font-size:10px;font-weight:600;color:var(--rw-text)">${d.title}</div>
+            <div style="font-size:9px;color:var(--rw-muted)">${d.location}</div>
+          </div>
+        `).join('')}
+      </div>` : '';
+
+    const altHtml = journeys.length > 1 ? `
+      <div style="margin-top:10px">
+        <div style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Alternative routes</div>
+        ${journeys.slice(1,3).map((j,i) => `
+          <div style="background:var(--rw-bg2);border-radius:6px;padding:8px 10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:10px;color:var(--rw-text)">Option ${i+2}: ${(j.legs||[]).map(l=>l.mode?.name||'').filter(Boolean).join(' + ')}</span>
+            <span style="font-size:10px;color:var(--rw-accent);font-weight:700">${j.duration} min</span>
+          </div>
+        `).join('')}
+      </div>` : '';
+
+    const fromEsc = from.replace(/'/g,"\\'");
+    const toEsc = to.replace(/'/g,"\\'");
+    result.innerHTML = `
+      <div style="background:${verdict.bg};border:1px solid ${verdict.color};border-radius:8px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:22px">${verdict.icon}</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:${verdict.color};letter-spacing:.05em">${verdict.text}</div>
+          <div style="font-size:11px;color:var(--rw-text);margin-top:2px">${esc(from)} → ${esc(to)} · <strong>${duration} minutes</strong></div>
+        </div>
+      </div>
+      <div style="margin-bottom:8px">${legsHtml}</div>
+      ${disruptHtml}
+      ${altHtml}
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button onclick="rwShareJourney('${fromEsc}','${toEsc}',${duration})" style="background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:6px;padding:6px 12px;color:var(--rw-muted);font-size:10px;cursor:pointer;font-family:'DM Mono',monospace">📤 Share result</button>
+        <button onclick="rwCheckJourney()" style="background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:6px;padding:6px 12px;color:var(--rw-muted);font-size:10px;cursor:pointer;font-family:'DM Mono',monospace">🔄 Refresh</button>
+      </div>`;
+
+  } catch(e) {
+    result.innerHTML = `<div style="color:var(--rw-red);font-size:11px;padding:10px;background:rgba(239,68,68,0.1);border-radius:6px">
+      Could not calculate journey: ${esc(e.message)}. Try being more specific, e.g. "Heathrow Terminal 5" or "Canary Wharf Station".
+    </div>`;
+  }
+}
+
+function rwShareJourney(from, to, duration) {
+  const text = `ROADWATCH Journey Check: ${from} → ${to} currently ${duration} minutes. Check live disruptions: https://pmccuk.github.io/roadwatch`;
+  if (navigator.share) {
+    navigator.share({title:'ROADWATCH Journey Check', text, url:'https://pmccuk.github.io/roadwatch'});
+  } else {
+    navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'));
+  }
+}
 
 async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);fetchNationalHighways();fetchTrafficDelays();fetchNHOpenData();fetchWebTris();fetchCotswoldsData();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
 function rwSetLive(s){const dot=document.getElementById('rw-live-dot'),txt=document.getElementById('rw-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
@@ -908,7 +1090,7 @@ async function rwFetchTfl(){
     });
     const firstLoad=rwKnownIds.size===0&&rwDisruptions.length===0;
     list.forEach(d=>{if(!rwKnownIds.has(d.id)){rwKnownIds.add(d.id);if(!firstLoad)rwFireAlerts(d)}});
-    rwDisruptions=list;rwRenderDisruptions();rwRenderStats();rwRenderTicker();
+    rwDisruptions=list;rwRenderDisruptions();rwRenderStats();rwRenderTicker();rwDisruptions.filter(d=>d.severity==='critical'||d.category==='SpecialEvent').forEach(d=>{rwSendGChatAlert(d)});
   }catch(e){grid.innerHTML=`<div class="state-panel"><div class="state-icon">⚠️</div><div class="state-title-rw" style="color:#EF4444">Error</div><div class="state-sub-rw">${esc(e.message)}</div></div>`}
 }
 
@@ -1499,6 +1681,151 @@ window.switchTab=function(tab){
 };
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')rwCloseModalNow()});
+
+// ════════════════════════════════════════════════════════════
+//  GOOGLE CHAT ALERTS
+// ════════════════════════════════════════════════════════════
+let rwGChatUrl = localStorage.getItem('rw_gchat_url') || '';
+let rwGChatSentIds = new Set(JSON.parse(localStorage.getItem('rw_gchat_sent') || '[]'));
+
+function rwSaveGChat() {
+  const url = document.getElementById('rw-gchat-url').value.trim();
+  if (!url || !url.includes('chat.googleapis.com')) {
+    alert('Please enter a valid Google Chat webhook URL (starts with https://chat.googleapis.com)');
+    return;
+  }
+  rwGChatUrl = url;
+  localStorage.setItem('rw_gchat_url', url);
+  rwUpdateGChatStatus(true);
+  rwTestGChat();
+}
+
+function rwUpdateGChatStatus(connected) {
+  const status = document.getElementById('rw-gchat-status');
+  const testBtn = document.getElementById('rw-gchat-test');
+  if (connected) {
+    status.textContent = 'CONNECTED';
+    status.style.background = 'rgba(16,185,129,0.2)';
+    status.style.color = '#10B981';
+    if (testBtn) testBtn.style.display = 'inline-block';
+  } else {
+    status.textContent = 'NOT CONNECTED';
+    status.style.background = '#1F2937';
+    status.style.color = '#4B5563';
+    if (testBtn) testBtn.style.display = 'none';
+  }
+}
+
+async function rwSendGChatAlert(disruption) {
+  if (!rwGChatUrl) return;
+  if (rwGChatSentIds.has(disruption.id)) return;
+
+  const criticalOnly = document.getElementById('rw-gchat-critical')?.checked;
+  const highEnabled = document.getElementById('rw-gchat-high')?.checked;
+  const protestsEnabled = document.getElementById('rw-gchat-protests')?.checked;
+
+  const isProtest = disruption.category === 'SpecialEvent' && /protest|march|demonstration/i.test(disruption.title + disruption.desc);
+
+  if (criticalOnly && disruption.severity !== 'critical' && !isProtest) return;
+  if (!criticalOnly && !highEnabled && disruption.severity === 'high') return;
+
+  const sevIcon = disruption.severity === 'critical' ? '🚨' : disruption.severity === 'high' ? '⚠️' : 'ℹ️';
+  const sevText = disruption.severity?.toUpperCase() || 'ALERT';
+
+  const message = {
+    cards: [{
+      header: {
+        title: `${sevIcon} ROADWATCH ${sevText} ALERT`,
+        subtitle: new Date().toLocaleString('en-GB', {dateStyle:'short', timeStyle:'short'}),
+        imageUrl: 'https://pmccuk.github.io/roadwatch/icon.png',
+        imageStyle: 'AVATAR'
+      },
+      sections: [{
+        widgets: [
+          {
+            keyValue: {
+              topLabel: 'Disruption',
+              content: disruption.title || 'Road Disruption',
+              contentMultiline: true
+            }
+          },
+          {
+            keyValue: {
+              topLabel: 'Location',
+              content: disruption.location || 'London'
+            }
+          },
+          {
+            keyValue: {
+              topLabel: 'Description',
+              content: (disruption.desc || '').slice(0, 200),
+              contentMultiline: true
+            }
+          },
+          disruption.startDate ? {
+            keyValue: {
+              topLabel: 'Time',
+              content: `${disruption.startDate} ${disruption.startTime || ''} — ${disruption.endDate || 'TBC'} ${disruption.endTime || ''}`
+            }
+          } : null,
+          {
+            buttons: [{
+              textButton: {
+                text: 'VIEW ON ROADWATCH',
+                onClick: { openLink: { url: disruption.sourceUrl || 'https://pmccuk.github.io/roadwatch' } }
+              }
+            }]
+          }
+        ].filter(Boolean)
+      }]
+    }]
+  };
+
+  try {
+    await fetch(rwGChatUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message)
+    });
+    rwGChatSentIds.add(disruption.id);
+    localStorage.setItem('rw_gchat_sent', JSON.stringify([...rwGChatSentIds].slice(-100)));
+    console.log('GChat alert sent for:', disruption.title);
+  } catch(e) {
+    console.log('GChat alert failed:', e.message);
+  }
+}
+
+async function rwTestGChat() {
+  if (!rwGChatUrl) return;
+  const testMsg = {
+    text: `✅ *ROADWATCH connected successfully!*\nYou will now receive Critical alerts for London road disruptions.\n🔗 Dashboard: https://pmccuk.github.io/roadwatch`
+  };
+  try {
+    const res = await fetch(rwGChatUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testMsg)
+    });
+    if (res.ok) alert('✅ Test message sent to Google Chat! Check your space.');
+    else alert('❌ Failed to send. Check your webhook URL.');
+  } catch(e) {
+    alert('❌ Error: ' + e.message);
+  }
+}
+
+function rwInitGChat() {
+  rwGChatUrl = localStorage.getItem('rw_gchat_url') || '';
+  if (rwGChatUrl) {
+    const input = document.getElementById('rw-gchat-url');
+    if (input) input.value = rwGChatUrl;
+    rwUpdateGChatStatus(true);
+  }
+  const yesterday = Date.now() - 86400000;
+  rwGChatSentIds = new Set([...rwGChatSentIds].filter(id => {
+    const d = rwDisruptions.find(x => x.id === id);
+    return d && new Date(d.startDate).getTime() > yesterday;
+  }));
+}
 </script>
 </body>
 </html>
