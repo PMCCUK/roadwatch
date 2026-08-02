@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.2.1 -->
+<!-- roadwatch v3.2.2 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -377,6 +377,8 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
 .journey-ac-type{font-size:8px;color:var(--rw-muted);background:var(--rw-bg);padding:1px 5px;border-radius:3px;text-transform:uppercase;flex-shrink:0}
 .journey-mode-btn{background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:20px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--rw-muted,#666);transition:all .2s;font-family:inherit}
 .journey-mode-btn.active-mode{background:var(--rw-accent,#CC0000);border-color:var(--rw-accent,#CC0000);color:white;font-weight:600}
+.threat-pip{background:rgba(255,255,255,0.15);transition:background .5s}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
 </style>
 </head>
 <body>
@@ -537,6 +539,25 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     </div>
   </div>
 
+  <!-- Threat Bar -->
+  <div id="rw-threat-bar" style="width:100%;padding:7px 18px;display:flex;align-items:center;justify-content:space-between;transition:background .8s ease;display:none;box-sizing:border-box">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div id="rw-threat-dot" style="width:10px;height:10px;border-radius:50%;animation:pulse 1.5s infinite"></div>
+      <span id="rw-threat-label" style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase"></span>
+      <span id="rw-threat-sub" style="font-size:9px;opacity:.7"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-size:9px;opacity:.5">THREAT LEVEL</span>
+      <div style="display:flex;gap:3px">
+        <div class="threat-pip" id="tp1" style="width:18px;height:8px;border-radius:2px"></div>
+        <div class="threat-pip" id="tp2" style="width:18px;height:8px;border-radius:2px"></div>
+        <div class="threat-pip" id="tp3" style="width:18px;height:8px;border-radius:2px"></div>
+        <div class="threat-pip" id="tp4" style="width:18px;height:8px;border-radius:2px"></div>
+        <div class="threat-pip" id="tp5" style="width:18px;height:8px;border-radius:2px"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Legend -->
   <div class="rw-legend" id="rw-legend">
     <span style="font-size:9px;color:var(--rw-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
@@ -590,6 +611,22 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     <button class="alerts-btn-rw" onclick="rwToggleAlerts()">🔔 Alerts</button>
     <button onclick="rwToggleMap()" id="rw-map-btn" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--rw-muted,#666);font-family:inherit">🗺 Map View</button>
     <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">2:00</span></button>
+  </div>
+
+  <!-- AI Briefing Card -->
+  <div id="rw-briefing-card" style="margin:12px 16px;border:1px solid var(--rw-border,#e5e5e5);border-radius:12px;overflow:hidden;display:none">
+    <div style="padding:10px 16px;background:var(--rw-bg2,#f8f9fa);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--rw-border,#e5e5e5)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px">🧠</span>
+        <span style="font-family:'Syne',Georgia,serif;font-size:11px;font-weight:700;color:var(--rw-accent,#CC0000);letter-spacing:.05em">INTELLIGENCE BRIEFING</span>
+        <span id="rw-briefing-time" style="font-size:9px;color:var(--rw-muted,#666)"></span>
+      </div>
+      <button onclick="rwGenerateBriefing(true)" id="rw-briefing-refresh" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:4px 10px;font-size:9px;color:var(--rw-muted,#666);cursor:pointer;font-family:inherit">↻ Refresh</button>
+    </div>
+    <div id="rw-briefing-body" style="padding:14px 16px;font-size:12px;line-height:1.8;color:var(--rw-text,#111)">
+      <div id="rw-briefing-text" style="min-height:40px"></div>
+      <div id="rw-briefing-tags" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"></div>
+    </div>
   </div>
 
   <div id="rw-journey-panel" style="display:none;margin:0 16px 14px;border:1px solid var(--rw-border);border-radius:12px;overflow:visible">
@@ -902,6 +939,7 @@ const RW_RSS_FEEDS=[
 ];
 
 let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all',area:'all'},rwApiKey='';
+let rwLastBriefing=0,rwBriefingText='';
 let rwRefTimer=null,rwCdTimer=null,rwCdSecs=300,rwAlerts={},rwAlertsPanelOpen=false,rwAudioCtx=null,rwTabTimer=null;
 let rwGChatUrl='',rwGChatSentIds=new Set(),rwAcTimer=null;
 let rwJourneyMode='driving';
@@ -923,7 +961,7 @@ function rwFlashTab(msg){let on=true;clearInterval(rwTabTimer);rwTabTimer=setInt
 })();
 
 function rwSaveKey(){const v=(document.getElementById('rw-key-input').value||'').trim();if(!v){alert('Please paste your TfL API key.');return}rwApiKey=v;localStorage.setItem('tfl_api_key',rwApiKey);rwShowDash();rwRefreshAll()}
-function rwShowDash(){document.getElementById('rw-setup').style.display='none';document.getElementById('rw-legend').style.display='flex';document.getElementById('rw-controls').style.display='flex';document.getElementById('rw-journey-panel').style.display='block';document.getElementById('rw-disrupt-col').style.display='block';document.getElementById('rw-news-col').style.display='block';document.getElementById('rw-stats').style.display='grid'}
+function rwShowDash(){document.getElementById('rw-setup').style.display='none';document.getElementById('rw-legend').style.display='flex';document.getElementById('rw-threat-bar').style.display='flex';document.getElementById('rw-briefing-card').style.display='block';document.getElementById('rw-controls').style.display='flex';document.getElementById('rw-journey-panel').style.display='block';document.getElementById('rw-disrupt-col').style.display='block';document.getElementById('rw-news-col').style.display='block';document.getElementById('rw-stats').style.display='grid'}
 
 function rwLoadAlerts(){try{const s=JSON.parse(localStorage.getItem('rw_alerts')||'{}');rwAlerts=s;if(s.banner!==undefined)document.getElementById('rw-tog-banner').checked=s.banner;if(s.sound!==undefined)document.getElementById('rw-tog-sound').checked=s.sound;if(s.tab!==undefined)document.getElementById('rw-tog-tab').checked=s.tab;if(s.ntfy!==undefined)document.getElementById('rw-tog-ntfy').checked=s.ntfy;if(s.ntfyTopic)document.getElementById('rw-ntfy-topic').value=s.ntfyTopic;if(s.browser!==undefined)document.getElementById('rw-tog-browser').checked=s.browser;if(s.sevCrit!==undefined)document.getElementById('rw-sev-crit').checked=s.sevCrit;if(s.sevHigh!==undefined)document.getElementById('rw-sev-high').checked=s.sevHigh;if(s.sevMed!==undefined)document.getElementById('rw-sev-med').checked=s.sevMed}catch{}}
 function rwSaveAlerts(){rwAlerts={banner:document.getElementById('rw-tog-banner').checked,sound:document.getElementById('rw-tog-sound').checked,tab:document.getElementById('rw-tog-tab').checked,ntfy:document.getElementById('rw-tog-ntfy').checked,ntfyTopic:document.getElementById('rw-ntfy-topic').value.trim(),browser:document.getElementById('rw-tog-browser').checked,sevCrit:document.getElementById('rw-sev-crit').checked,sevHigh:document.getElementById('rw-sev-high').checked,sevMed:document.getElementById('rw-sev-med').checked};localStorage.setItem('rw_alerts',JSON.stringify(rwAlerts))}
@@ -1396,7 +1434,7 @@ document.addEventListener('click', e => {
   }
 });
 
-async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);fetchNationalHighways();fetchTrafficDelays();fetchNHOpenData();fetchWebTris();fetchCotswoldsData();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
+async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);fetchNationalHighways();fetchTrafficDelays();fetchNHOpenData();fetchWebTris();fetchCotswoldsData();rwGenerateBriefing();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
 function rwSetLive(s){const dot=document.getElementById('rw-live-dot'),txt=document.getElementById('rw-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
 function rwStartCd(){rwCdSecs=120;clearInterval(rwCdTimer);rwCdTimer=setInterval(()=>{rwCdSecs--;if(rwCdSecs<=0){clearInterval(rwCdTimer);return}const m=Math.floor(rwCdSecs/60),s=String(rwCdSecs%60).padStart(2,'0');document.getElementById('rw-cd').textContent=`${m}:${s}`},1000)}
 
@@ -1700,6 +1738,160 @@ function rwRenderStats(){
   document.getElementById('rw-s-high').textContent=c.high;
   document.getElementById('rw-s-med').textContent=c.medium;
   document.getElementById('rw-s-news').textContent=rwNews.length;
+  rwUpdateThreatBar();
+}
+
+function rwUpdateThreatBar() {
+  const bar = document.getElementById('rw-threat-bar');
+  const dot = document.getElementById('rw-threat-dot');
+  const label = document.getElementById('rw-threat-label');
+  const sub = document.getElementById('rw-threat-sub');
+  if (!bar) return;
+
+  const critical = rwDisruptions.filter(d => d.severity === 'critical').length;
+  const high = rwDisruptions.filter(d => d.severity === 'high').length;
+  const total = rwDisruptions.length;
+  const hasProtests = rwDisruptions.some(d => d.category === 'SpecialEvent');
+  const delayedFlights = (typeof flFlights !== 'undefined' ? flFlights : []).filter(f => (f.arr_delayed||0) >= 30 || (f.dep_delayed||0) >= 30).length;
+
+  let level = 1;
+  if (critical >= 1) level = 3;
+  if (critical >= 3) level = 4;
+  if (critical >= 5 || (critical >= 2 && hasProtests)) level = 5;
+  if (high >= 5 && level < 3) level = 2;
+  if (delayedFlights >= 3 && level < 3) level = Math.min(level + 1, 3);
+
+  const levels = {
+    1: {bg:'#052e16', dot:'#22c55e', text:'ALL CLEAR', sub:'No significant disruptions', pips:1, pipColor:'#22c55e'},
+    2: {bg:'#1a2e05', dot:'#84cc16', text:'LOW DISRUPTION', sub:`${total} minor disruptions active`, pips:2, pipColor:'#84cc16'},
+    3: {bg:'#422006', dot:'#f59e0b', text:'MODERATE DISRUPTION', sub:`${high} high severity · ${critical} critical`, pips:3, pipColor:'#f59e0b'},
+    4: {bg:'#450a0a', dot:'#ef4444', text:'HIGH DISRUPTION', sub:`${critical} critical closures active${hasProtests?' · Protests/events':''}`, pips:4, pipColor:'#ef4444'},
+    5: {bg:'#1a0000', dot:'#dc2626', text:'SEVERE DISRUPTION', sub:`MAJOR INCIDENT · ${critical} critical · ${hasProtests?'Protests active · ':''}${delayedFlights>0?delayedFlights+' flights delayed':''}`, pips:5, pipColor:'#dc2626'},
+  };
+
+  const l = levels[level];
+  bar.style.background = l.bg;
+  dot.style.background = l.dot;
+  dot.style.boxShadow = `0 0 8px ${l.dot}`;
+  label.textContent = l.text;
+  label.style.color = l.dot;
+  sub.textContent = l.sub;
+  sub.style.color = l.dot;
+
+  for (let i = 1; i <= 5; i++) {
+    const pip = document.getElementById('tp'+i);
+    if (pip) pip.style.background = i <= l.pips ? l.pipColor : 'rgba(255,255,255,0.1)';
+  }
+}
+
+async function rwGenerateBriefing(force = false) {
+  if (!force && Date.now() - rwLastBriefing < 10 * 60 * 1000 && rwBriefingText) return;
+
+  const card = document.getElementById('rw-briefing-card');
+  const textEl = document.getElementById('rw-briefing-text');
+  const tagsEl = document.getElementById('rw-briefing-tags');
+  const timeEl = document.getElementById('rw-briefing-time');
+  if (!card || !textEl) return;
+
+  textEl.innerHTML = '<span style="color:var(--rw-muted,#999);font-style:italic">Generating intelligence briefing...</span>';
+  tagsEl.innerHTML = '';
+
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+  const dateStr = now.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long'});
+  const critical = rwDisruptions.filter(d => d.severity === 'critical');
+  const high = rwDisruptions.filter(d => d.severity === 'high');
+  const protests = rwDisruptions.filter(d => d.category === 'SpecialEvent');
+  const closures = rwDisruptions.filter(d => d.category === 'RoadClosure');
+  const flArr = typeof flFlights !== 'undefined' ? flFlights : [];
+  const delayedFlights = flArr.filter(f => (f.arr_delayed||0) >= 30 || (f.dep_delayed||0) >= 30);
+  const nhClosures = rwDisruptions.filter(d => d.source === 'National Highways Open Data');
+
+  const context = `Date/Time: ${dateStr}, ${timeStr}
+Total disruptions: ${rwDisruptions.length}
+Critical: ${critical.length} - ${critical.slice(0,3).map(d=>d.title+' at '+d.location).join('; ')}
+High severity: ${high.length} - ${high.slice(0,3).map(d=>d.title+' at '+d.location).join('; ')}
+Special events/protests: ${protests.length} - ${protests.slice(0,2).map(d=>d.title).join('; ')}
+Road closures: ${closures.length}
+National Highways closures: ${nhClosures.length} - ${nhClosures.slice(0,3).map(d=>d.title).join('; ')}
+Delayed flights (30min+): ${delayedFlights.length} - ${delayedFlights.slice(0,2).map(f=>(f.airline_iata||'')+(f.flight_iata||'')+' '+(f._direction==='arrival'?'arriving':'departing')+' '+(f._airport||'')).join('; ')}
+News headlines: ${rwNews.slice(0,3).map(n=>n.title).join('; ')}`.trim();
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `You are an intelligence briefing system for a London road disruption dashboard used by operations directors, logistics managers and travel professionals.\n\nBased on this real-time data, write a concise professional briefing of 2-3 sentences maximum. Use a factual, direct tone like a traffic control room officer. Start with the most critical information. Mention specific road names, flight numbers and times where available. End with a one-line operational recommendation if warranted.\n\nCurrent data:\n${context}\n\nWrite the briefing now. Do not use bullet points. Do not use headers. Just flowing professional prose.`
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+
+    if (text) {
+      rwBriefingText = text;
+      rwLastBriefing = Date.now();
+
+      textEl.innerHTML = '';
+      const words = text.split(' ');
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i < words.length) { textEl.innerHTML = words.slice(0,i+1).join(' '); i++; }
+        else clearInterval(interval);
+      }, 40);
+
+      const tags = [];
+      if (critical.length > 0) tags.push({text:`${critical.length} Critical`, color:'#dc2626'});
+      if (protests.length > 0) tags.push({text:'Events/Protests', color:'#7c3aed'});
+      if (nhClosures.length > 0) tags.push({text:`${nhClosures.length} NH Closures`, color:'#f59e0b'});
+      if (delayedFlights.length > 0) tags.push({text:`${delayedFlights.length} Flights Delayed`, color:'#2563eb'});
+      if (rwDisruptions.length > 50) tags.push({text:'High Volume', color:'#666'});
+
+      tagsEl.innerHTML = tags.map(t =>
+        `<span style="background:${t.color}18;color:${t.color};border:1px solid ${t.color}40;padding:2px 9px;border-radius:20px;font-size:9px;font-weight:600;letter-spacing:.06em">${t.text}</span>`
+      ).join('');
+
+      timeEl.textContent = `Generated ${timeStr}`;
+    }
+  } catch(e) {
+    textEl.innerHTML = rwGenerateLocalBriefing();
+    timeEl.textContent = `Generated ${timeStr} (local)`;
+    console.log('AI briefing error:', e.message);
+  }
+}
+
+function rwGenerateLocalBriefing() {
+  const now = new Date();
+  const hour = now.getHours();
+  const timeOfDay = hour < 12 ? 'This morning' : hour < 17 ? 'This afternoon' : 'This evening';
+  const critical = rwDisruptions.filter(d => d.severity === 'critical');
+  const protests = rwDisruptions.filter(d => d.category === 'SpecialEvent');
+  const nhClosures = rwDisruptions.filter(d => d.source === 'National Highways Open Data');
+  const flArr = typeof flFlights !== 'undefined' ? flFlights : [];
+  const delayedFlights = flArr.filter(f => (f.arr_delayed||0) >= 30 || (f.dep_delayed||0) >= 30);
+
+  let briefing = `${timeOfDay}: `;
+  const parts = [];
+
+  if (critical.length > 0) parts.push(`${critical.length} critical disruption${critical.length>1?'s':''} active including ${critical[0]?.title || 'road closures'}`);
+  if (nhClosures.length > 0) parts.push(`${nhClosures.length} National Highways planned closure${nhClosures.length>1?'s':''} on the strategic road network`);
+  if (protests.length > 0) parts.push(`${protests.length} special event${protests.length>1?'s':''} or protest${protests.length>1?'s':''} affecting central London`);
+  if (delayedFlights.length > 0) parts.push(`${delayedFlights.length} Asia-London flight${delayedFlights.length>1?'s':''} delayed 30+ minutes`);
+  if (parts.length === 0) parts.push(`${rwDisruptions.length} active disruptions across the London road network — no critical incidents at this time`);
+
+  briefing += parts.join('. ') + '.';
+
+  if (critical.length >= 3 || (critical.length >= 1 && protests.length >= 1)) {
+    briefing += ' Operational recommendation: allow 30+ minutes additional journey time for central London routes.';
+  }
+
+  return briefing;
 }
 
 function rwRenderTicker(){
