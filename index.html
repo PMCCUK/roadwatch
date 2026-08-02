@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.1.1 -->
+<!-- roadwatch v3.1.2 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -368,7 +368,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
   .rw-setup{margin:14px}
   .rw-grid{grid-template-columns:1fr}
 }
-.journey-autocomplete{position:absolute;top:100%;left:0;right:0;background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:0 0 8px 8px;z-index:1000;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.journey-autocomplete{position:absolute;top:100%;left:0;right:0;background:var(--rw-bg2,#fff);border:1px solid var(--rw-border,#ddd);border-top:none;border-radius:0 0 8px 8px;z-index:99999;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.15)}
 .journey-ac-item{padding:9px 12px;font-size:11px;color:var(--rw-text);cursor:pointer;border-bottom:1px solid var(--rw-border);display:flex;align-items:center;gap:8px}
 .journey-ac-item:hover{background:var(--rw-border)}
 .journey-ac-item:last-child{border-bottom:none}
@@ -587,7 +587,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">2:00</span></button>
   </div>
 
-  <div id="rw-journey-panel" style="display:none;margin:0 16px 14px;border:1px solid var(--rw-border);border-radius:12px;overflow:hidden">
+  <div id="rw-journey-panel" style="display:none;margin:0 16px 14px;border:1px solid var(--rw-border);border-radius:12px;overflow:visible">
     <div id="rw-journey-header" onclick="rwToggleJourney()" style="background:var(--rw-bg2);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:14px">🗺️</span>
@@ -600,7 +600,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
       <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:12px">
         <div>
           <label style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">From</label>
-          <div style="position:relative">
+          <div style="position:relative;flex:1;z-index:100">
             <input id="rw-journey-from" type="text" placeholder="e.g. Heathrow Airport" autocomplete="off"
               oninput="rwJourneyAC('rw-journey-from','rw-journey-from-ac')" onkeydown="if(event.key==='Enter')rwCheckJourney()"
               style="width:100%;background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:7px;padding:9px 12px;color:var(--rw-text);font-family:'DM Mono',monospace;font-size:11px;outline:none;box-sizing:border-box">
@@ -609,7 +609,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
         </div>
         <div>
           <label style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">To</label>
-          <div style="position:relative">
+          <div style="position:relative;flex:1;z-index:100">
             <input id="rw-journey-to" type="text" placeholder="e.g. Canary Wharf" autocomplete="off"
               oninput="rwJourneyAC('rw-journey-to','rw-journey-to-ac')" onkeydown="if(event.key==='Enter')rwCheckJourney()"
               style="width:100%;background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:7px;padding:9px 12px;color:var(--rw-text);font-family:'DM Mono',monospace;font-size:11px;outline:none;box-sizing:border-box">
@@ -1075,7 +1075,7 @@ async function rwJourneyAC(inputId, acId) {
   clearTimeout(rwAcTimer);
   const val = document.getElementById(inputId).value.trim();
   const ac = document.getElementById(acId);
-  if (val.length < 2) { ac.style.display = 'none'; return; }
+  if (val.length < 1) { ac.style.display = 'none'; return; }
 
   rwAcTimer = setTimeout(async () => {
     try {
@@ -1127,6 +1127,7 @@ async function rwJourneyAC(inputId, acId) {
         return true;
       }).slice(0,7);
 
+      console.log('AC results for', val, ':', merged.length, merged.map(r=>r.name));
       if (!merged.length) { ac.style.display = 'none'; return; }
 
       ac.innerHTML = merged.map(r =>
