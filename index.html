@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.1.0 -->
+<!-- roadwatch v3.1.1 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -368,6 +368,11 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
   .rw-setup{margin:14px}
   .rw-grid{grid-template-columns:1fr}
 }
+.journey-autocomplete{position:absolute;top:100%;left:0;right:0;background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:0 0 8px 8px;z-index:1000;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.journey-ac-item{padding:9px 12px;font-size:11px;color:var(--rw-text);cursor:pointer;border-bottom:1px solid var(--rw-border);display:flex;align-items:center;gap:8px}
+.journey-ac-item:hover{background:var(--rw-border)}
+.journey-ac-item:last-child{border-bottom:none}
+.journey-ac-type{font-size:8px;color:var(--rw-muted);background:var(--rw-bg);padding:1px 5px;border-radius:3px;text-transform:uppercase;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -595,13 +600,21 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
       <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:12px">
         <div>
           <label style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">From</label>
-          <input id="rw-journey-from" type="text" placeholder="e.g. Heathrow Airport" autocomplete="off"
-            style="width:100%;background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:7px;padding:9px 12px;color:var(--rw-text);font-family:'DM Mono',monospace;font-size:11px;outline:none;box-sizing:border-box">
+          <div style="position:relative">
+            <input id="rw-journey-from" type="text" placeholder="e.g. Heathrow Airport" autocomplete="off"
+              oninput="rwJourneyAC('rw-journey-from','rw-journey-from-ac')" onkeydown="if(event.key==='Enter')rwCheckJourney()"
+              style="width:100%;background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:7px;padding:9px 12px;color:var(--rw-text);font-family:'DM Mono',monospace;font-size:11px;outline:none;box-sizing:border-box">
+            <div id="rw-journey-from-ac" class="journey-autocomplete" style="display:none"></div>
+          </div>
         </div>
         <div>
           <label style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">To</label>
-          <input id="rw-journey-to" type="text" placeholder="e.g. Canary Wharf" autocomplete="off"
-            style="width:100%;background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:7px;padding:9px 12px;color:var(--rw-text);font-family:'DM Mono',monospace;font-size:11px;outline:none;box-sizing:border-box">
+          <div style="position:relative">
+            <input id="rw-journey-to" type="text" placeholder="e.g. Canary Wharf" autocomplete="off"
+              oninput="rwJourneyAC('rw-journey-to','rw-journey-to-ac')" onkeydown="if(event.key==='Enter')rwCheckJourney()"
+              style="width:100%;background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:7px;padding:9px 12px;color:var(--rw-text);font-family:'DM Mono',monospace;font-size:11px;outline:none;box-sizing:border-box">
+            <div id="rw-journey-to-ac" class="journey-autocomplete" style="display:none"></div>
+          </div>
         </div>
         <button onclick="rwCheckJourney()" style="background:var(--rw-accent);border:none;border-radius:7px;padding:9px 18px;color:#000;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;letter-spacing:.05em">CHECK →</button>
       </div>
@@ -932,7 +945,10 @@ async function rwCheckJourney() {
     const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
     const dateStr = now.toISOString().split('T')[0];
 
-    const url = `https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(from)}/to/${encodeURIComponent(to)}?date=${dateStr.replace(/-/g,'')}&time=${timeStr.replace(':','')}&timeIs=Departing&mode=bus,tube,national-rail,overground,elizabeth-line,dlr,walking&app_key=${API_KEY}`;
+    const fromGeo = await rwGeocode(from);
+    const toGeo = await rwGeocode(to);
+    if (!fromGeo || !toGeo) throw new Error('Could not find location: ' + (!fromGeo ? from : to) + '. Try adding "Station" or a postcode.');
+    const url = `https://api.tfl.gov.uk/Journey/JourneyResults/${fromGeo.lat},${fromGeo.lon}/to/${toGeo.lat},${toGeo.lon}?date=${dateStr.replace(/-/g,'')}&time=${timeStr.replace(':','')}&timeIs=Departing&mode=bus,tube,national-rail,overground,elizabeth-line,dlr,walking&app_key=${API_KEY}`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error('Journey planner returned ' + res.status);
@@ -1021,6 +1037,30 @@ async function rwCheckJourney() {
   }
 }
 
+async function rwGeocode(query) {
+  const API_KEY = rwApiKey || '3bb8014b0089484dbc8d72613e538d2a';
+  try {
+    const res = await fetch(`https://api.tfl.gov.uk/StopPoint/Search/${encodeURIComponent(query)}?modes=tube,bus,national-rail,overground,elizabeth-line,dlr&app_key=${API_KEY}`);
+    if (res.ok) {
+      const data = await res.json();
+      const match = data.matches?.[0];
+      if (match) return { lat: match.lat, lon: match.lon, name: match.name };
+    }
+    const res2 = await fetch(`https://api.tfl.gov.uk/geocode/unified/${encodeURIComponent(query)}?app_key=${API_KEY}`);
+    if (res2.ok) {
+      const data2 = await res2.json();
+      const match2 = data2.addresses?.[0] || data2.matches?.[0];
+      if (match2) return { lat: match2.lat || match2.latitude, lon: match2.lon || match2.longitude, name: match2.address || query };
+    }
+    const res3 = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ' London')}&format=json&limit=1&countrycodes=gb`);
+    if (res3.ok) {
+      const data3 = await res3.json();
+      if (data3[0]) return { lat: parseFloat(data3[0].lat), lon: parseFloat(data3[0].lon), name: data3[0].display_name };
+    }
+  } catch(e) { console.log('Geocode error:', e.message); }
+  return null;
+}
+
 function rwShareJourney(from, to, duration) {
   const text = `ROADWATCH Journey Check: ${from} → ${to} currently ${duration} minutes. Check live disruptions: https://pmccuk.github.io/roadwatch`;
   if (navigator.share) {
@@ -1029,6 +1069,89 @@ function rwShareJourney(from, to, duration) {
     navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'));
   }
 }
+
+let rwAcTimer = null;
+async function rwJourneyAC(inputId, acId) {
+  clearTimeout(rwAcTimer);
+  const val = document.getElementById(inputId).value.trim();
+  const ac = document.getElementById(acId);
+  if (val.length < 2) { ac.style.display = 'none'; return; }
+
+  rwAcTimer = setTimeout(async () => {
+    try {
+      const API_KEY = rwApiKey || '3bb8014b0089484dbc8d72613e538d2a';
+      const results = [];
+
+      const isPostcode = /^[A-Z]{1,2}\d/.test(val.toUpperCase());
+
+      if (isPostcode) {
+        const pcRes = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(val.toUpperCase())}/autocomplete`);
+        if (pcRes.ok) {
+          const pcData = await pcRes.json();
+          (pcData.result || []).slice(0,4).forEach(pc => {
+            results.push({ name: pc, type: 'Postcode', icon: '📮' });
+          });
+        }
+      }
+
+      const tflRes = await fetch(`https://api.tfl.gov.uk/StopPoint/Search/${encodeURIComponent(val)}?modes=tube,bus,national-rail,overground,elizabeth-line,dlr&maxResults=5&app_key=${API_KEY}`);
+      if (tflRes.ok) {
+        const tflData = await tflRes.json();
+        (tflData.matches || []).slice(0,5).forEach(m => {
+          const modeIcon = m.modes?.includes('tube') ? '🚇' : m.modes?.includes('national-rail') ? '🚂' : m.modes?.includes('elizabeth-line') ? '🟣' : '🚌';
+          results.push({ name: m.name, type: m.modes?.[0] || 'stop', icon: modeIcon, lat: m.lat, lon: m.lon });
+        });
+      }
+
+      const commonPlaces = [
+        {name:'Heathrow Terminal 2 & 3', type:'Airport', icon:'✈️'},
+        {name:'Heathrow Terminal 4', type:'Airport', icon:'✈️'},
+        {name:'Heathrow Terminal 5', type:'Airport', icon:'✈️'},
+        {name:'Gatwick Airport', type:'Airport', icon:'✈️'},
+        {name:'London City Airport', type:'Airport', icon:'✈️'},
+        {name:'Stansted Airport', type:'Airport', icon:'✈️'},
+        {name:'Canary Wharf', type:'Area', icon:'🏢'},
+        {name:'London Bridge', type:'Station', icon:'🚂'},
+        {name:'Liverpool Street', type:'Station', icon:'🚇'},
+        {name:'Victoria', type:'Station', icon:'🚇'},
+        {name:'Waterloo', type:'Station', icon:'🚂'},
+        {name:'Kings Cross', type:'Station', icon:'🚂'},
+        {name:'Paddington', type:'Station', icon:'🚂'},
+        {name:'Euston', type:'Station', icon:'🚂'},
+      ].filter(p => p.name.toLowerCase().includes(val.toLowerCase()));
+
+      const seen = new Set();
+      const merged = [...results, ...commonPlaces].filter(r => {
+        if (seen.has(r.name)) return false;
+        seen.add(r.name);
+        return true;
+      }).slice(0,7);
+
+      if (!merged.length) { ac.style.display = 'none'; return; }
+
+      ac.innerHTML = merged.map(r =>
+        `<div class="journey-ac-item" onclick="rwSelectAC('${inputId}','${acId}','${r.name.replace(/'/g,"\\'")}')">
+          <span>${r.icon}</span>
+          <span style="flex:1">${r.name}</span>
+          <span class="journey-ac-type">${r.type}</span>
+        </div>`
+      ).join('');
+      ac.style.display = 'block';
+    } catch(e) { ac.style.display = 'none'; }
+  }, 300);
+}
+
+function rwSelectAC(inputId, acId, value) {
+  document.getElementById(inputId).value = value;
+  document.getElementById(acId).style.display = 'none';
+  if (inputId === 'rw-journey-from') document.getElementById('rw-journey-to').focus();
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#rw-journey-panel')) {
+    document.querySelectorAll('.journey-autocomplete').forEach(el => el.style.display = 'none');
+  }
+});
 
 async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);fetchNationalHighways();fetchTrafficDelays();fetchNHOpenData();fetchWebTris();fetchCotswoldsData();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
 function rwSetLive(s){const dot=document.getElementById('rw-live-dot'),txt=document.getElementById('rw-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
