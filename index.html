@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.1.4 -->
+<!-- roadwatch v3.1.5 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -7,6 +7,8 @@
 <title>ROADWATCH + ROADWORKS — London Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -373,6 +375,8 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
 .journey-ac-item:hover{background:var(--rw-border)}
 .journey-ac-item:last-child{border-bottom:none}
 .journey-ac-type{font-size:8px;color:var(--rw-muted);background:var(--rw-bg);padding:1px 5px;border-radius:3px;text-transform:uppercase;flex-shrink:0}
+.journey-mode-btn{background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:20px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--rw-muted,#666);transition:all .2s;font-family:inherit}
+.journey-mode-btn.active-mode{background:var(--rw-accent,#CC0000);border-color:var(--rw-accent,#CC0000);color:white;font-weight:600}
 </style>
 </head>
 <body>
@@ -584,6 +588,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
       <button class="fbtn-rw" onclick="rwSetFilter('area','both',this)">All Areas</button>
     </div>
     <button class="alerts-btn-rw" onclick="rwToggleAlerts()">🔔 Alerts</button>
+    <button onclick="rwToggleMap()" id="rw-map-btn" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--rw-muted,#666);font-family:inherit">🗺 Map View</button>
     <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">2:00</span></button>
   </div>
 
@@ -618,9 +623,20 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
         </div>
         <button onclick="rwCheckJourney()" style="background:var(--rw-accent);border:none;border-radius:7px;padding:9px 18px;color:#000;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;letter-spacing:.05em">CHECK →</button>
       </div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+        <span style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;align-self:center">Mode:</span>
+        <button class="journey-mode-btn active-mode" data-mode="driving" onclick="rwSetMode(this,'driving')">🚗 Car/Coach</button>
+        <button class="journey-mode-btn" data-mode="tube,bus,national-rail,overground,elizabeth-line,dlr,walking" onclick="rwSetMode(this,'tube,bus,national-rail,overground,elizabeth-line,dlr,walking')">🚇 Public Transport</button>
+        <button class="journey-mode-btn" data-mode="walking" onclick="rwSetMode(this,'walking')">🚶 Walking</button>
+        <button class="journey-mode-btn" data-mode="cycling" onclick="rwSetMode(this,'cycling')">🚴 Cycling</button>
+      </div>
       <div id="rw-journey-result" style="display:none"></div>
       <div style="font-size:9px;color:var(--rw-muted);margin-top:8px">Powered by TfL Journey Planner · Results show current conditions including active disruptions</div>
     </div>
+  </div>
+
+  <div id="rw-map-container" style="display:none;margin:0 0 16px;border-radius:12px;overflow:hidden;border:1px solid var(--rw-border,#ddd)">
+    <div id="rw-map" style="height:420px;width:100%"></div>
   </div>
 
   <!-- Layout -->
@@ -890,6 +906,8 @@ const RW_RSS_FEEDS=[
 let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all',area:'all'},rwApiKey='';
 let rwRefTimer=null,rwCdTimer=null,rwCdSecs=300,rwAlerts={},rwAlertsPanelOpen=false,rwAudioCtx=null,rwTabTimer=null;
 let rwGChatUrl='',rwGChatSentIds=new Set(),rwAcTimer=null;
+let rwJourneyMode='driving';
+let rwMap=null,rwMapMarkers=[],rwMapShown=false,rwRouteLayer=null;
 
 function rwGetAudio(){if(!rwAudioCtx)rwAudioCtx=new(window.AudioContext||window.webkitAudioContext)();return rwAudioCtx}
 function rwPlaySound(sev){try{const ctx=rwGetAudio();const freq=sev==='critical'?880:sev==='high'?660:520;const reps=sev==='critical'?3:2;let t=ctx.currentTime;for(let i=0;i<reps;i++){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=freq;o.type='sine';g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.35,t+.05);g.gain.linearRampToValueAtTime(0,t+.28);o.start(t);o.stop(t+.32);t+=.42}}catch{}}
@@ -928,6 +946,80 @@ function rwToggleJourney() {
   chevron.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
+function rwSetMode(btn, mode) {
+  rwJourneyMode = mode;
+  document.querySelectorAll('.journey-mode-btn').forEach(b => b.classList.remove('active-mode'));
+  btn.classList.add('active-mode');
+}
+
+function rwToggleMap() {
+  const container = document.getElementById('rw-map-container');
+  const btn = document.getElementById('rw-map-btn');
+  rwMapShown = !rwMapShown;
+  if (rwMapShown) {
+    container.style.display = 'block';
+    btn.style.background = 'var(--rw-accent,#CC0000)';
+    btn.style.color = 'white';
+    btn.style.borderColor = 'var(--rw-accent,#CC0000)';
+    if (!rwMap) {
+      rwMap = L.map('rw-map').setView([51.505, -0.09], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors', maxZoom: 19
+      }).addTo(rwMap);
+    }
+    setTimeout(() => rwMap.invalidateSize(), 100);
+    rwPlotDisruptions();
+  } else {
+    container.style.display = 'none';
+    btn.style.background = 'transparent';
+    btn.style.color = 'var(--rw-muted,#666)';
+    btn.style.borderColor = 'var(--rw-border,#ddd)';
+  }
+}
+
+function rwPlotDisruptions() {
+  if (!rwMap) return;
+  rwMapMarkers.forEach(m => m.remove());
+  rwMapMarkers = [];
+  if (rwRouteLayer) { rwRouteLayer.remove(); rwRouteLayer = null; }
+  const disruptionsWithCoords = [];
+  rwDisruptions.forEach(d => {
+    if (d.lat && d.lon) disruptionsWithCoords.push(d);
+  });
+  if (!disruptionsWithCoords.length) {
+    const geocodeNext = async (list) => {
+      for (const d of list.slice(0, 20)) {
+        if (!d.lat && d.location) {
+          const geo = await rwGeocode(d.location);
+          if (geo) { d.lat = geo.lat; d.lon = geo.lon; }
+        }
+        if (d.lat && d.lon) {
+          const color = d.severity==='critical'?'#EF4444':d.severity==='high'?'#F59E0B':d.severity==='medium'?'#3B82F6':'#6B7280';
+          const icon = L.divIcon({
+            html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,.4)"></div>`,
+            className: '', iconSize: [12,12], iconAnchor: [6,6]
+          });
+          const marker = L.marker([d.lat, d.lon], {icon}).addTo(rwMap)
+            .bindPopup(`<b>${d.title}</b><br><small>${d.location}</small>`);
+          rwMapMarkers.push(marker);
+        }
+      }
+    };
+    geocodeNext(rwDisruptions);
+    return;
+  }
+  disruptionsWithCoords.slice(0, 20).forEach(d => {
+    const color = d.severity==='critical'?'#EF4444':d.severity==='high'?'#F59E0B':d.severity==='medium'?'#3B82F6':'#6B7280';
+    const icon = L.divIcon({
+      html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,.4)"></div>`,
+      className: '', iconSize: [12,12], iconAnchor: [6,6]
+    });
+    const marker = L.marker([d.lat, d.lon], {icon}).addTo(rwMap)
+      .bindPopup(`<b>${d.title}</b><br><small>${d.location}</small>`);
+    rwMapMarkers.push(marker);
+  });
+}
+
 async function rwCheckJourney() {
   const from = document.getElementById('rw-journey-from').value.trim();
   const to = document.getElementById('rw-journey-to').value.trim();
@@ -943,15 +1035,75 @@ async function rwCheckJourney() {
   result.innerHTML = `<div style="color:var(--rw-muted);font-size:11px;padding:10px;text-align:center">⏳ Calculating journey impact...</div>`;
 
   try {
+    const fromGeo = await rwGeocode(from);
+    const toGeo = await rwGeocode(to);
+    if (!fromGeo || !toGeo) throw new Error('Could not find location: ' + (!fromGeo ? from : to) + '. Try adding "Station" or a postcode.');
+
+    if (rwJourneyMode === 'driving') {
+      const ORS_KEY = '5b3ce3597851110001cf6248b4e6e4f73d5b4a4b9c8f4e5a9c7b3d2e';
+      const orsRes = await fetch(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_KEY}&start=${fromGeo.lon},${fromGeo.lat}&end=${toGeo.lon},${toGeo.lat}`);
+      if (!orsRes.ok) throw new Error('Driving route returned ' + orsRes.status);
+      const orsData = await orsRes.json();
+      const seg = orsData.features?.[0]?.properties?.segments?.[0];
+      if (!seg) throw new Error('No driving route found');
+      const duration = Math.round(seg.duration / 60);
+      const distKm = (seg.distance / 1000).toFixed(1);
+
+      const affectedDisruptions = rwDisruptions.filter(d => {
+        const loc = (d.location + ' ' + d.title + ' ' + d.desc).toLowerCase();
+        return (seg.steps||[]).some(s => loc.includes((s.name||'').toLowerCase()) && s.name);
+      });
+      const hasCritical = affectedDisruptions.some(d => d.severity === 'critical');
+      const hasHigh = affectedDisruptions.some(d => d.severity === 'high');
+      const verdict = hasCritical ? {color:'#EF4444',icon:'🚨',text:'SEVERE DISRUPTION',bg:'rgba(239,68,68,0.1)'} :
+                      hasHigh ? {color:'#F59E0B',icon:'⚠️',text:'DISRUPTION AHEAD',bg:'rgba(245,158,11,0.1)'} :
+                      {color:'#10B981',icon:'✅',text:'ROUTE CLEAR',bg:'rgba(16,185,129,0.1)'};
+
+      const disruptHtml = affectedDisruptions.length ? `
+        <div style="margin-top:10px">
+          <div style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Disruptions on your route</div>
+          ${affectedDisruptions.slice(0,3).map(d => `
+            <div style="background:var(--rw-bg2);border-left:3px solid ${d.severity==='critical'?'#EF4444':d.severity==='high'?'#F59E0B':'#6B7280'};border-radius:4px;padding:7px 10px;margin-bottom:5px">
+              <div style="font-size:10px;font-weight:600;color:var(--rw-text)">${d.title}</div>
+              <div style="font-size:9px;color:var(--rw-muted)">${d.location}</div>
+            </div>
+          `).join('')}
+        </div>` : '';
+
+      const fromEsc = from.replace(/'/g,"\\'");
+      const toEsc = to.replace(/'/g,"\\'");
+      result.innerHTML = `
+        <div style="background:${verdict.bg};border:1px solid ${verdict.color};border-radius:8px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
+          <span style="font-size:22px">${verdict.icon}</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:${verdict.color};letter-spacing:.05em">${verdict.text}</div>
+            <div style="font-size:11px;color:var(--rw-text);margin-top:2px">🚗 ${esc(from)} → ${esc(to)} · <strong>${duration} min · ${distKm} km</strong></div>
+          </div>
+        </div>
+        ${disruptHtml}
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button onclick="rwShareJourney('${fromEsc}','${toEsc}',${duration})" style="background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:6px;padding:6px 12px;color:var(--rw-muted);font-size:10px;cursor:pointer;font-family:'DM Mono',monospace">📤 Share result</button>
+          <button onclick="rwCheckJourney()" style="background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:6px;padding:6px 12px;color:var(--rw-muted);font-size:10px;cursor:pointer;font-family:'DM Mono',monospace">🔄 Refresh</button>
+        </div>`;
+
+      if (rwMapShown && rwMap) {
+        const coords = orsData.features?.[0]?.geometry?.coordinates || [];
+        if (coords.length) {
+          if (rwRouteLayer) rwRouteLayer.remove();
+          const latLngs = coords.map(c => [c[1], c[0]]);
+          rwRouteLayer = L.polyline(latLngs, {color:'#CC0000',weight:4,opacity:0.8}).addTo(rwMap);
+          rwMap.fitBounds(rwRouteLayer.getBounds(), {padding:[30,30]});
+        }
+      }
+      return;
+    }
+
     const API_KEY = rwApiKey || '3bb8014b0089484dbc8d72613e538d2a';
     const now = new Date();
     const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
     const dateStr = now.toISOString().split('T')[0];
-
-    const fromGeo = await rwGeocode(from);
-    const toGeo = await rwGeocode(to);
-    if (!fromGeo || !toGeo) throw new Error('Could not find location: ' + (!fromGeo ? from : to) + '. Try adding "Station" or a postcode.');
-    const url = `https://api.tfl.gov.uk/Journey/JourneyResults/${fromGeo.lat},${fromGeo.lon}/to/${toGeo.lat},${toGeo.lon}?date=${dateStr.replace(/-/g,'')}&time=${timeStr.replace(':','')}&timeIs=Departing&mode=bus,tube,national-rail,overground,elizabeth-line,dlr,walking&app_key=${API_KEY}`;
+    const modeParam = rwJourneyMode === 'walking' ? 'walking' : rwJourneyMode === 'cycling' ? 'cycling' : 'bus,tube,national-rail,overground,elizabeth-line,dlr,walking';
+    const url = `https://api.tfl.gov.uk/Journey/JourneyResults/${fromGeo.lat},${fromGeo.lon}/to/${toGeo.lat},${toGeo.lon}?date=${dateStr.replace(/-/g,'')}&time=${timeStr.replace(':','')}&timeIs=Departing&mode=${modeParam}&app_key=${API_KEY}`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error('Journey planner returned ' + res.status);
@@ -1032,6 +1184,16 @@ async function rwCheckJourney() {
         <button onclick="rwShareJourney('${fromEsc}','${toEsc}',${duration})" style="background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:6px;padding:6px 12px;color:var(--rw-muted);font-size:10px;cursor:pointer;font-family:'DM Mono',monospace">📤 Share result</button>
         <button onclick="rwCheckJourney()" style="background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:6px;padding:6px 12px;color:var(--rw-muted);font-size:10px;cursor:pointer;font-family:'DM Mono',monospace">🔄 Refresh</button>
       </div>`;
+
+    if (rwMapShown && rwMap) {
+      const pts = legs.flatMap(l => (l.path?.lineString ? JSON.parse(l.path.lineString) : []));
+      if (pts.length) {
+        if (rwRouteLayer) rwRouteLayer.remove();
+        const latLngs = pts.map(p => [p[1], p[0]]);
+        rwRouteLayer = L.polyline(latLngs, {color:'#3B82F6',weight:4,opacity:0.8}).addTo(rwMap);
+        rwMap.fitBounds(rwRouteLayer.getBounds(), {padding:[30,30]});
+      }
+    }
 
   } catch(e) {
     result.innerHTML = `<div style="color:var(--rw-red);font-size:11px;padding:10px;background:rgba(239,68,68,0.1);border-radius:6px">
@@ -1435,6 +1597,7 @@ function rwRenderDisruptions(){
       <div class="card-foot-rw"><div class="card-date-rw">${ds}</div>${d.hasDiversion?'<span class="div-tag">↪ Diversion</span>':''}</div>
       <div class="card-src-rw"><span class="src-badge-rw" style="background:#1a1205;color:#F59E0B;border:1px solid #F59E0B33">TfL</span>${d.sourceUrl?`<a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener" style="color:#F59E0B;text-decoration:none">${esc(d.source)}</a>`:esc(d.source)}</div>
     </div>`}).join('');
+  if (rwMapShown) rwPlotDisruptions();
 }
 
 function rwRenderNews(){
