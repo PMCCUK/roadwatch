@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.4.4 -->
+<!-- roadwatch v3.4.5 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -614,6 +614,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
           </div>
         </div>
         <button onclick="rwCheckJourney()" style="background:var(--rw-accent);border:none;border-radius:7px;padding:9px 18px;color:#000;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;letter-spacing:.05em">CHECK →</button>
+        <button onclick="rwClearJourney()" id="rw-journey-clear" style="display:none;background:transparent;border:1px solid #e5e5e5;border-radius:7px;padding:9px 14px;font-size:11px;color:#6B7280;cursor:pointer;font-family:inherit;transition:all .2s" onmouseover="this.style.borderColor='#111';this.style.color='#111'" onmouseout="this.style.borderColor='#e5e5e5';this.style.color='#6B7280'">✕ Clear</button>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
         <span style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;align-self:center">Mode:</span>
@@ -1312,14 +1313,14 @@ async function rwCheckJourney() {
       // Draw route on map if open
       if (rwMapShown && rwMap) {
         if (rwRouteLayer) rwMap.removeLayer(rwRouteLayer);
+        if (window.rwRouteMarkers) { window.rwRouteMarkers.forEach(m=>{try{rwMap.removeLayer(m)}catch(e){}}); }
+        window.rwRouteMarkers = [];
         const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
         rwRouteLayer = L.polyline(coords, {color:'#DC2626', weight:5, opacity:0.8}).addTo(rwMap);
-        L.marker([fromGeo.lat, fromGeo.lon], {
-          icon: L.divIcon({html:'<div style="background:#16A34A;color:white;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">FROM</div>', className:''})
-        }).addTo(rwMap);
-        L.marker([toGeo.lat, toGeo.lon], {
-          icon: L.divIcon({html:'<div style="background:#DC2626;color:white;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">TO</div>', className:''})
-        }).addTo(rwMap);
+        window.rwRouteMarkers.push(
+          L.marker([fromGeo.lat, fromGeo.lon], {icon: L.divIcon({html:'<div style="background:#16A34A;color:white;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">FROM</div>', className:''})}).addTo(rwMap),
+          L.marker([toGeo.lat, toGeo.lon], {icon: L.divIcon({html:'<div style="background:#DC2626;color:white;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">TO</div>', className:''})}).addTo(rwMap)
+        );
         rwMap.fitBounds(rwRouteLayer.getBounds(), {padding:[50,50]});
       }
 
@@ -1374,6 +1375,8 @@ async function rwCheckJourney() {
           <button onclick="rwCheckJourney()" style="background:transparent;border:1px solid #e5e5e5;border-radius:6px;padding:7px 14px;color:#6B7280;font-size:10px;cursor:pointer;font-family:inherit">🔄 Refresh</button>
           <button onclick="rwShareJourney('${from.replace(/'/g,"\\'")}','${to.replace(/'/g,"\\'")}',${durationMins})" style="background:transparent;border:1px solid #e5e5e5;border-radius:6px;padding:7px 14px;color:#6B7280;font-size:10px;cursor:pointer;font-family:inherit">📤 Share</button>
         </div>`;
+      const clearBtnD = document.getElementById('rw-journey-clear');
+      if (clearBtnD) clearBtnD.style.display = 'inline-block';
       return;
     }
 
@@ -1495,10 +1498,15 @@ async function rwCheckJourney() {
         <button onclick="rwCheckJourney()" style="background:transparent;border:1px solid #e5e5e5;border-radius:6px;padding:7px 14px;color:#6B7280;font-size:10px;cursor:pointer;font-family:inherit">🔄 Refresh</button>
       </div>`;
 
+    const clearBtnPT = document.getElementById('rw-journey-clear');
+    if (clearBtnPT) clearBtnPT.style.display = 'inline-block';
+
     if (rwMapShown && rwMap) {
       const pts = legs.flatMap(l => (l.path?.lineString ? JSON.parse(l.path.lineString) : []));
       if (pts.length) {
         if (rwRouteLayer) rwRouteLayer.remove();
+        if (window.rwRouteMarkers) { window.rwRouteMarkers.forEach(m=>{try{rwMap.removeLayer(m)}catch(e){}}); }
+        window.rwRouteMarkers = [];
         const latLngs = pts.map(p => [p[1], p[0]]);
         rwRouteLayer = L.polyline(latLngs, {color:'#3B82F6',weight:4,opacity:0.8}).addTo(rwMap);
         rwMap.fitBounds(rwRouteLayer.getBounds(), {padding:[30,30]});
@@ -1510,6 +1518,22 @@ async function rwCheckJourney() {
       Could not calculate journey: ${esc(e.message)}. Try being more specific, e.g. "Heathrow Terminal 5" or "Canary Wharf Station".
     </div>`;
   }
+}
+
+function rwClearJourney(){
+  document.getElementById('rw-journey-from').value='';
+  document.getElementById('rw-journey-to').value='';
+  const result=document.getElementById('rw-journey-result');
+  if(result){result.style.display='none';result.innerHTML='';}
+  const clearBtn=document.getElementById('rw-journey-clear');
+  if(clearBtn)clearBtn.style.display='none';
+  if(rwRouteLayer){try{rwMap.removeLayer(rwRouteLayer);}catch(e){} rwRouteLayer=null;}
+  if(window.rwRouteMarkers){
+    window.rwRouteMarkers.forEach(m=>{try{rwMap.removeLayer(m);}catch(e){}});
+    window.rwRouteMarkers=[];
+  }
+  if(rwMap&&rwMapShown)rwMap.flyTo([51.505,-0.09],10,{duration:1});
+  document.getElementById('rw-journey-from').focus();
 }
 
 const LOCATION_ALIASES = {
