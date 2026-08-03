@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.4.2 -->
+<!-- roadwatch v3.4.3 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -583,39 +583,15 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
 
   <!-- Itineraries Panel -->
   <div id="rw-itinerary-panel" style="margin:0 0 0;border-bottom:1px solid #f0f0f0">
-    <div style="padding:12px 18px;display:flex;align-items:center;justify-content:space-between">
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:16px">📍</span>
-        <span style="font-family:Georgia,serif;font-size:12px;font-weight:700;color:#111;letter-spacing:.02em">MY ITINERARIES</span>
-        <span style="font-size:9px;color:#9CA3AF;background:#F3F4F6;padding:2px 7px;border-radius:10px">SAVED ROUTES</span>
+    <div style="padding:12px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:13px">📍</span>
+        <span style="font-family:Georgia,serif;font-size:12px;font-weight:700;color:#111">Active Tour Routes</span>
         <span id="rw-itin-count" style="font-size:9px;color:#9CA3AF"></span>
       </div>
-      <button onclick="rwShowAddItinerary()" style="background:#111;border:none;border-radius:6px;padding:5px 12px;font-size:10px;color:white;cursor:pointer;font-family:inherit;font-weight:600">+ Add Route</button>
     </div>
-    <div id="rw-itin-empty" style="display:none;padding:0 18px 12px;font-size:11px;color:#9CA3AF">No saved routes yet. Add your common journeys to track their status.</div>
+    <div id="rw-itin-empty" style="display:none;padding:0 18px 12px;font-size:11px;color:#9CA3AF">No tours loaded.</div>
     <div id="rw-itinerary-list" style="padding:0 18px 12px;display:flex;gap:8px;flex-wrap:wrap"></div>
-    <div id="rw-itinerary-form" style="display:none;padding:12px 18px;background:#F9FAFB;border-top:1px solid #f0f0f0">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end">
-        <div>
-          <label style="font-size:9px;color:#6B7280;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Route Name</label>
-          <input id="rw-itin-name" type="text" placeholder="e.g. Airport Run" style="width:100%;border:1px solid #e5e5e5;border-radius:6px;padding:8px 10px;font-size:11px;font-family:inherit;outline:none;box-sizing:border-box">
-        </div>
-        <div style="position:relative">
-          <label style="font-size:9px;color:#6B7280;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">From</label>
-          <input id="rw-itin-from" type="text" placeholder="e.g. Heathrow T5" oninput="rwJourneyAC('rw-itin-from','rw-itin-from-ac')" style="width:100%;border:1px solid #e5e5e5;border-radius:6px;padding:8px 10px;font-size:11px;font-family:inherit;outline:none;box-sizing:border-box">
-          <div id="rw-itin-from-ac" class="journey-autocomplete" style="display:none"></div>
-        </div>
-        <div style="position:relative">
-          <label style="font-size:9px;color:#6B7280;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">To</label>
-          <input id="rw-itin-to" type="text" placeholder="e.g. Canary Wharf" oninput="rwJourneyAC('rw-itin-to','rw-itin-to-ac')" style="width:100%;border:1px solid #e5e5e5;border-radius:6px;padding:8px 10px;font-size:11px;font-family:inherit;outline:none;box-sizing:border-box">
-          <div id="rw-itin-to-ac" class="journey-autocomplete" style="display:none"></div>
-        </div>
-        <div style="display:flex;gap:6px;padding-bottom:1px">
-          <button onclick="rwSaveItinerary()" style="background:#111;border:none;border-radius:6px;padding:9px 14px;font-size:10px;color:white;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap">Save</button>
-          <button onclick="rwHideAddItinerary()" style="background:transparent;border:1px solid #e5e5e5;border-radius:6px;padding:9px 10px;font-size:10px;color:#6B7280;cursor:pointer;font-family:inherit">✕</button>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- Journey Panel -->
@@ -979,30 +955,60 @@ function switchTab(tab){
 // ════════════════════════════════════════════════════════════
 const RW_TYPE_CFG={RoadClosure:{icon:'🚫',color:'#DC2626',bg:'#FEE2E2',label:'Road Closure'},Works:{icon:'⚠️',color:'#F59E0B',bg:'#FEF3C7',label:'Works'},Planned:{icon:'📋',color:'#8B5CF6',bg:'#0a0a1a',label:'Planned Works'},SpecialEvent:{icon:'🎪',color:'#8B5CF6',bg:'#EDE9FE',label:'Special Event'},Incident:{icon:'🔴',color:'#EF4444',bg:'#FEE2E2',label:'Incident'},default:{icon:'⚠️',color:'#F59E0B',bg:'#FEF3C7',label:'Disruption'}};
 const RW_SEV_CFG={critical:{color:'#DC2626',label:'Critical'},high:{color:'#EF4444',label:'High'},medium:{color:'#F59E0B',label:'Moderate'},low:{color:'#10B981',label:'Low'}};
-const TOUR_ITINERARIES=[
-  // ═══ TOUR 1 — Scotland/Wales/Cotswolds (Aug 5-12 2026) ═══
-  {id:'t1-d1',name:'🏴󠁧󠁢󠁳󠁣󠁴󠁿 T1 Day 1 — EDI → Fort William',from:'Edinburgh Airport',to:'Fort William',roads:['A8','A9','M9','A82','A830'],keywords:['edinburgh','a9','m9','stirling','a82','fort william','a830','inverness','perth']},
-  {id:'t1-d2',name:'🏴󠁧󠁢󠁳󠁣󠁴󠁿 T1 Day 2 — Skye Loop',from:'Fort William',to:'Glenfinnan',roads:['A830','A87','A850','A863'],keywords:['fort william','mallaig','a830','skye','portree','broadford','a87','a850','glenfinnan']},
-  {id:'t1-d3',name:'🏔 T1 Day 3 — Glencoe → Kendal',from:'Glen Coe',to:'Kendal',roads:['A82','M74','M6','A65','A590'],keywords:['glencoe','a82','m74','m6','carlisle','penrith','kendal','a65','a590','ballachulish']},
-  {id:'t1-d4',name:'🌊 T1 Day 4 — Lake District Loop',from:'Kendal',to:'Windermere',roads:['A591','A593','A592'],keywords:['kendal','rydal','grasmere','hawkshead','windermere','bowness','a591','a593','lake district']},
-  {id:'t1-d5',name:'🏴󠁧󠁢󠁷󠁬󠁳󠁿 T1 Day 5 — Kendal → Chester via Wales',from:'Kendal',to:'Chester',roads:['M6','M56','A55','A5','A483'],keywords:['kendal','m6','m56','a55','conwy','llangollen','a5','chester','north wales','wrexham']},
-  {id:'t1-d6',name:'🏔 T1 Day 6 — Chester → Snowdon',from:'Chester',to:'Llanberis',roads:['A55','A4086','A487'],keywords:['chester','a55','llanberis','snowdon','a4086','caernarfon','bangor','a487']},
-  {id:'t1-d7',name:'🌸 T1 Day 7 — Chester → Cotswolds → London',from:'Chester',to:'London Wembley',roads:['M6','M42','A46','A44','A429','A40','M40'],keywords:['chester','m6','m42','a46','chipping campden','bourton on water','a429','a40','m40','wembley','cotswolds']},
-  {id:'t1-d8',name:'🌊 T1 Day 8 — London → Seven Sisters',from:'London Wembley',to:'Seaford',roads:['A23','A27','A259','M23'],keywords:['wembley','a23','m23','brighton','seaford','seven sisters','a27','a259','east sussex']},
-  // ═══ TOUR 2 — Osaka Phil Orchestra (Jun 22-28 2026) ═══
-  {id:'t2-d5',name:'🎻 T2 Day 5 — Manchester Airport',from:'Manchester Airport',to:'Leonardo Hotel Manchester',roads:['M56','M60','A57'],keywords:['manchester','m56','m60','a57','manchester airport','m1 5le']},
-  {id:'t2-d6',name:'🎻 T2 Day 6 — Manchester → Heathrow via M6/M40',from:'Manchester',to:'Heathrow Terminal 4',roads:['M6','M42','M40','A40','A4','M25','A30'],keywords:['manchester','m6','keele','stoke','st5 5hg','m42','m40','oxford services','ox33 1lj','a40','cadogan hall','sw1x','heathrow','tw6','hounslow','a316','m25'],stops:[{name:'Keele Services M6',coords:[53.003,-2.273]},{name:'Oxford Services M40',coords:[51.748,-1.138]},{name:'Cadogan Hall SW1X',coords:[51.494,-0.158]},{name:'Heathrow T4',coords:[51.460,-0.448]}]},
-  // ═══ TOUR 3 — UK Grand Tour (Jun 22 - Jul 1 2026) ═══
-  {id:'t3-d1',name:'🇬🇧 T3 Day 1 — Heathrow → Oxford → Cotswolds → Birmingham',from:'Heathrow Radisson Blu UB3 5AW',to:'Park Regis Birmingham B15 1DT',roads:['M4','A34','A40','A429','A46','M42','A38'],keywords:['heathrow','ub3','m4','a34','oxford','a40','bourton on water','a429','cotswolds','a46','m42','birmingham','b15','broad street']},
-  {id:'t3-d2',name:'🏭 T3 Day 2 — Birmingham → Liverpool → Manchester',from:'Birmingham',to:'Manchester Crowne Plaza M4 4AF',roads:['M6','A449','M62','M57','M60'],keywords:['birmingham','m6','albrighton','wolverhampton','a449','liverpool','m62','m57','albert dock','manchester','m60','old trafford','m4 4af','shudehill']},
-  {id:'t3-d3',name:'🌊 T3 Day 3 — Manchester → Lake District → Glasgow',from:'Manchester',to:'Glasgow Crowne Plaza G3 8QT',roads:['M60','M6','A591','A592','M6','M74','M8'],keywords:['manchester','m60','m6','windermere','a591','a592','bowness','lake district','m74','glasgow','m8','g3','congress road']},
-  {id:'t3-d4',name:'🏔 T3 Day 4 — Glasgow → Glencoe → Loch Ness → Aviemore',from:'Glasgow',to:'Aviemore Coylumbridge PH22 1QN',roads:['M8','A82','A9','A86'],keywords:['glasgow','m8','a82','glencoe','ballachulish','fort augustus','loch ness','a9','aviemore','ph22','cairngorms']},
-  {id:'t3-d5',name:'🏰 T3 Day 5 — Aviemore → Edinburgh → Glasgow',from:'Aviemore',to:'Glasgow Airport Courtyard PA3 2SJ',roads:['A9','M90','A90','A8','M8'],keywords:['aviemore','a9','perth','m90','edinburgh','royal mile','castle terrace','johnston terrace','m8','glasgow airport','pa3','paisley']},
-  {id:'t3-d6',name:'🏛 T3 Day 6 — Glasgow → Newcastle → York → Leeds',from:'Glasgow',to:'Ramada Leeds LS9 0AS',roads:['M8','M74','A68','A1','A1M','A64','M1'],keywords:['glasgow','m8','m74','newcastle','a68','a1','a1m','york','york minster','a64','leeds','m1','ls9','skelton lake']},
-  {id:'t3-d7',name:'🎓 T3 Day 7 — Leeds → Cambridge → Heathrow',from:'Leeds',to:'Heathrow Radisson Blu UB3 5AW',roads:['M1','A1M','A14','M11','M25','M4'],keywords:['leeds','m1','a1m','cambridge','a14','queens road','m11','m25','m4','heathrow','ub3']},
-  {id:'t3-d8',name:'🏰 T3 Day 8 — Heathrow → Windsor → Eastbourne',from:'Heathrow',to:'Eastbourne Birling Gap',roads:['A4','A332','M3','A3','A27','A22','A259'],keywords:['heathrow','a4','a332','windsor','windsor castle','m3','a3','a27','eastbourne','a22','a259','birling gap','seven sisters','beachy head']},
-  {id:'t3-d9',name:'🏙 T3 Day 9 — Heathrow → London City Tour',from:'Heathrow',to:'Central London',roads:['M4','A4','A40','A302','A3212','A3211'],keywords:['heathrow','m4','a4','a40','westminster','buckingham palace','big ben','parliament square','downing street','british museum','regent park','a302','a3212']},
-  {id:'t3-d10',name:'🏙 T3 Day 10 — London City → Heathrow',from:'Central London',to:'Heathrow Airport',roads:['A3211','A4','M4','A316'],keywords:['tower bridge','tower of london','st pauls','millennium bridge','the shard','a4','m4','heathrow','a316']},
+const TOURS=[
+  {
+    id:'tour1',
+    name:'Scotland, Wales & Cotswolds',
+    emoji:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+    from:'Edinburgh',
+    to:'London',
+    dates:'5–12 Aug 2026',
+    color:'#DC2626',
+    legs:[
+      {id:'t1-d1',date:'2026-08-05',name:'EDI → Fort William',from:'Edinburgh Airport EH12 9DN',to:'Fort William PH33 6AN',roads:['A8','A9','M9','A82'],keywords:['edinburgh','a9','m9','stirling','a82','fort william','perth','m90']},
+      {id:'t1-d2',date:'2026-08-06',name:'Fort William → Skye → Glenfinnan',from:'Fort William PH33 6AN',to:'Glenfinnan PH37 4LT',roads:['A830','A87','A850','A863'],keywords:['fort william','mallaig','a830','skye','portree','broadford','a87','a850','glenfinnan']},
+      {id:'t1-d3',date:'2026-08-07',name:'Glencoe → Kendal',from:'Glencoe PH49 4HT',to:'Kendal LA9 4DQ',roads:['A82','M74','M6','A65'],keywords:['glencoe','a82','m74','m6','carlisle','penrith','kendal','a65','ballachulish']},
+      {id:'t1-d4',date:'2026-08-08',name:'Lake District Loop',from:'Kendal LA9 4DQ',to:'Windermere LA23 1AQ',roads:['A591','A593','A592'],keywords:['kendal','grasmere','windermere','a591','a593','lake district','ambleside']},
+      {id:'t1-d5',date:'2026-08-09',name:'Kendal → Conwy → Chester',from:'Kendal LA9 4DQ',to:'Chester CH1 2DG',roads:['M6','M56','A55','A5'],keywords:['kendal','m6','m56','a55','conwy','llangollen','a5','chester','north wales']},
+      {id:'t1-d6',date:'2026-08-10',name:'Chester → Snowdon → Chester',from:'Chester CH1 2DG',to:'Llanberis LL55 4TY',roads:['A55','A4086'],keywords:['chester','a55','llanberis','snowdon','a4086','caernarfon','bangor']},
+      {id:'t1-d7',date:'2026-08-11',name:'Chester → Cotswolds → London',from:'Chester CH1 2DG',to:'Wembley HA9 0NP',roads:['M6','M42','A46','A429','M40','A40'],keywords:['chester','m6','m42','a46','chipping campden','bourton on water','a429','m40','wembley','cotswolds']},
+      {id:'t1-d8',date:'2026-08-12',name:'London → Seven Sisters',from:'Wembley HA9 0NP',to:'Birling Gap BN20 0AB',roads:['A23','M23','A27','A259'],keywords:['wembley','a23','m23','seaford','seven sisters','a27','a259','eastbourne']},
+    ]
+  },
+  {
+    id:'tour2',
+    name:'Osaka Philharmony Orchestra',
+    emoji:'🎻',
+    from:'Manchester',
+    to:'Heathrow',
+    dates:'25–28 Jun 2026',
+    color:'#2563EB',
+    legs:[
+      {id:'t2-d1',date:'2026-06-25',name:'Vienna/Paris → Manchester Airport',from:'Manchester Airport M90 1QX',to:'Leonardo Hotel Manchester M1 5LE',roads:['M56','M60','A57'],keywords:['manchester','m56','m60','a57','manchester airport']},
+      {id:'t2-d2',date:'2026-06-27',name:'Manchester → London → Heathrow T4',from:'Leonardo Hotel Manchester M1 5LE',to:'Heathrow Terminal 4 TW6 3FJ',roads:['M6','M42','M40','A40','A4','M25'],keywords:['manchester','m6','keele','st5 5hg','m42','m40','oxford','ox33 1lj','a40','cadogan hall','sw1x','heathrow','tw6','m25','a316']},
+    ]
+  },
+  {
+    id:'tour3',
+    name:'UK Grand Tour',
+    emoji:'🇬🇧',
+    from:'Heathrow',
+    to:'Heathrow',
+    dates:'22 Jun – 1 Jul 2026',
+    color:'#16A34A',
+    legs:[
+      {id:'t3-d1',date:'2026-06-22',name:'Heathrow → Oxford → Cotswolds → Birmingham',from:'Heathrow Airport UB3 5AW',to:'Birmingham B15 1DT',roads:['M4','A34','A40','A429','A46','M42'],keywords:['heathrow','m4','a34','oxford','a40','bourton on water','a429','a46','m42','birmingham']},
+      {id:'t3-d2',date:'2026-06-23',name:'Birmingham → Liverpool → Manchester',from:'Birmingham B15 1DT',to:'Manchester M4 4AF',roads:['M6','M62','M57','M60'],keywords:['birmingham','m6','albrighton','liverpool','m62','m57','manchester','m60','old trafford']},
+      {id:'t3-d3',date:'2026-06-24',name:'Manchester → Lake District → Glasgow',from:'Manchester M4 4AF',to:'Glasgow G3 8QT',roads:['M60','M6','A591','M74','M8'],keywords:['manchester','m6','windermere','a591','lake district','m74','glasgow','m8']},
+      {id:'t3-d4',date:'2026-06-25',name:'Glasgow → Glencoe → Loch Ness → Aviemore',from:'Glasgow G3 8QT',to:'Aviemore PH22 1QN',roads:['M8','A82','A9'],keywords:['glasgow','m8','a82','glencoe','fort augustus','loch ness','a9','aviemore']},
+      {id:'t3-d5',date:'2026-06-26',name:'Aviemore → Edinburgh → Glasgow Airport',from:'Aviemore PH22 1QN',to:'Glasgow Airport PA3 2SJ',roads:['A9','M90','A8','M8'],keywords:['aviemore','a9','perth','m90','edinburgh','m8','glasgow airport','pa3','paisley']},
+      {id:'t3-d6',date:'2026-06-27',name:'Glasgow → Newcastle → York → Leeds',from:'Glasgow Airport PA3 2SJ',to:'Leeds LS9 0AS',roads:['M8','M74','A68','A1','A1M','A64','M1'],keywords:['glasgow','m74','newcastle','a68','a1','a1m','york','a64','leeds','m1']},
+      {id:'t3-d7',date:'2026-06-28',name:'Leeds → Cambridge → Heathrow',from:'Leeds LS9 0AS',to:'Heathrow Airport UB3 5AW',roads:['M1','A1M','A14','M11','M25','M4'],keywords:['leeds','m1','a1m','cambridge','a14','m11','m25','m4','heathrow']},
+      {id:'t3-d8',date:'2026-06-29',name:'Heathrow → Windsor → Eastbourne',from:'Heathrow Airport UB3 5AW',to:'Birling Gap BN20 0AB',roads:['A4','A332','M3','A3','A27','A259'],keywords:['heathrow','a4','windsor','m3','a27','eastbourne','a259','birling gap','seven sisters']},
+      {id:'t3-d9',date:'2026-06-30',name:'Heathrow → London City Tour → Heathrow',from:'Heathrow Airport UB3 5AW',to:'Central London WC2N 5DN',roads:['M4','A4','A40','A302','A3212'],keywords:['heathrow','m4','a4','westminster','buckingham palace','big ben','parliament','british museum','regent park']},
+      {id:'t3-d10',date:'2026-07-01',name:'London City → Heathrow Departure',from:'Central London WC2N 5DN',to:'Heathrow Airport TW6 1EW',roads:['A4','M4','A316'],keywords:['tower bridge','st pauls','the shard','a4','m4','heathrow','a316']},
+    ]
+  }
 ];
 
 const RW_RSS_FEEDS=[
@@ -1019,7 +1025,7 @@ const RW_RSS_FEEDS=[
 ];
 
 let rwDisruptions=[],rwNews=[],rwAllNewsRaw=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all',area:'london'},rwApiKey='';
-let rwItineraries=JSON.parse(localStorage.getItem('rw_itineraries')||'[]');
+let rwItineraries=TOURS.flatMap(tour=>tour.legs.map(leg=>({...leg,tourId:tour.id,tourName:tour.name,tourColor:tour.color})));
 let rwActiveItinerary=null,rwItineraryImpacts={};
 let rwShowModerate=false;
 let rwLastBriefing=0,rwBriefingText='';
@@ -1039,11 +1045,10 @@ function rwFlashTab(msg){let on=true;clearInterval(rwTabTimer);rwTabTimer=setInt
   rwApiKey=localStorage.getItem('tfl_api_key')||'3bb8014b0089484dbc8d72613e538d2a';
   localStorage.setItem('tfl_api_key',rwApiKey);
   rwLoadAlerts();rwUpdateNotifStatus();rwInitGChat();
-  if(!localStorage.getItem('rw_tour_loaded_v3')){
-    rwItineraries=TOUR_ITINERARIES;
-    localStorage.setItem('rw_itineraries',JSON.stringify(rwItineraries));
-    localStorage.setItem('rw_tour_loaded_v3','1');
-  }
+  localStorage.removeItem('rw_itineraries');
+  localStorage.removeItem('rw_tour_loaded');
+  localStorage.removeItem('rw_tour_loaded_v2');
+  localStorage.removeItem('rw_tour_loaded_v3');
   rwRenderItineraries();
   if(rwApiKey){
     rwShowDash();
@@ -2244,131 +2249,93 @@ function rwRenderItineraries(){
   const empty=document.getElementById('rw-itin-empty');
   const count=document.getElementById('rw-itin-count');
   if(!list)return;
-  if(!rwItineraries.length){
-    if(empty)empty.style.display='block';
-    list.style.display='none';
-    return;
-  }
   if(empty)empty.style.display='none';
   list.style.display='flex';
-  const todayId=rwGetTodaysTourDay();
-  const todayIdx=rwItineraries.findIndex(i=>i.id===todayId);
-  let visibleItins;
-  if(todayIdx>=0){
-    const start=Math.max(0,todayIdx-1);
-    const end=Math.min(rwItineraries.length,todayIdx+4);
-    visibleItins=rwItineraries.slice(start,end);
-  }else{
-    visibleItins=rwItineraries.slice(0,5);
-  }
-  const hiddenCount=rwItineraries.length-visibleItins.length;
-  if(count)count.textContent=rwItineraries.length+' legs · showing '+visibleItins.length;
-  list.innerHTML=visibleItins.map(itin=>{
-    const impact=rwItineraryImpacts?.[itin.id];
-    const hasCritical=impact?.hasCritical;
-    const hasHigh=impact?.hasHigh;
-    const isToday=itin.id===todayId;
-    const statusColor=hasCritical?'#DC2626':hasHigh?'#D97706':'#16A34A';
-    const statusDot=hasCritical?'🔴':hasHigh?'🟡':'🟢';
-    const statusText=hasCritical?'Critical':hasHigh?'Delays':'Clear';
-    return`<div style="border:1px solid ${isToday?'#111':'#e5e5e5'};border-left:3px solid ${isToday?'#111':statusColor};border-radius:8px;padding:10px 14px;background:${isToday?'#fafafa':'white'};min-width:180px;max-width:220px;position:relative">
-      ${isToday?`<div style="position:absolute;top:-8px;left:12px;background:#111;color:white;font-size:8px;font-weight:700;padding:1px 7px;border-radius:3px;letter-spacing:.06em">TODAY</div>`:''}
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:5px">
-        <span style="font-size:11px;font-weight:700;color:#111;line-height:1.3">${esc(itin.name)}</span>
-        <span style="font-size:10px;color:${statusColor};font-weight:600;white-space:nowrap">${statusDot} ${statusText}</span>
+  if(count)count.textContent=TOURS.length+' tours';
+  const today=new Date();
+  list.innerHTML=TOURS.map(tour=>{
+    const todayLeg=tour.legs.find(leg=>{
+      const legDate=new Date(leg.date);
+      return legDate.toDateString()===today.toDateString();
+    });
+    let worstStatus='clear';
+    let totalDisruptions=0;
+    let affectedLegs=0;
+    tour.legs.forEach(leg=>{
+      const impact=rwItineraryImpacts?.[leg.id];
+      if(impact?.hasCritical){worstStatus='critical';affectedLegs++;}
+      else if(impact?.hasHigh&&worstStatus!=='critical'){worstStatus='high';affectedLegs++;}
+      totalDisruptions+=(impact?.count||0);
+    });
+    const statusColor=worstStatus==='critical'?'#DC2626':worstStatus==='high'?'#D97706':'#16A34A';
+    const statusDot=worstStatus==='critical'?'🔴':worstStatus==='high'?'🟡':'🟢';
+    const statusText=worstStatus==='critical'?'Critical disruption':worstStatus==='high'?'Delays on route':'All clear';
+    return`<div style="border:1px solid #e5e5e5;border-left:4px solid ${tour.color};border-radius:10px;background:white;overflow:hidden;min-width:240px;max-width:280px;box-shadow:0 1px 4px rgba(0,0,0,.04)">
+      <div style="padding:12px 14px;border-bottom:1px solid #f5f5f5">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
+          <div style="font-size:13px;font-weight:700;color:#111;line-height:1.3">${tour.emoji} ${esc(tour.name)}</div>
+          <span style="font-size:11px;color:${statusColor};font-weight:700;white-space:nowrap;margin-left:8px">${statusDot}</span>
+        </div>
+        <div style="font-size:10px;color:#6B7280;margin-bottom:4px">${esc(tour.from)} → ${esc(tour.to)}</div>
+        <div style="font-size:9px;color:#9CA3AF">${esc(tour.dates)} · ${tour.legs.length} days</div>
       </div>
-      <div style="font-size:9px;color:#9CA3AF;margin-bottom:8px;line-height:1.4">${esc(itin.from.split(' ').slice(0,3).join(' '))} → ${esc(itin.to.split(' ').slice(0,3).join(' '))}</div>
-      ${impact?.count?`<div style="font-size:9px;color:${statusColor};margin-bottom:6px">${impact.count} disruption${impact.count!==1?'s':''} on route</div>`:''}
-      <div style="display:flex;gap:5px">
-        <button onclick="rwCheckItineraryJourney('${itin.id}')" style="flex:1;background:${isToday?'#111':'#f9f9f9'};border:1px solid ${isToday?'#111':'#e5e5e5'};border-radius:5px;padding:5px 0;font-size:9px;color:${isToday?'white':'#374151'};cursor:pointer;font-family:inherit;font-weight:600">Check route</button>
-        <button onclick="rwFocusItinOnMap('${itin.id}')" style="background:#f9f9f9;border:1px solid #e5e5e5;border-radius:5px;padding:5px 8px;font-size:9px;cursor:pointer;font-family:inherit" title="Show on map">🗺</button>
-        <button onclick="rwDeleteItinerary('${itin.id}')" style="background:transparent;border:1px solid #f0f0f0;border-radius:5px;padding:5px 6px;font-size:9px;color:#d1d5db;cursor:pointer;font-family:inherit" title="Remove">✕</button>
+      <div style="padding:10px 14px;border-bottom:1px solid #f5f5f5;background:${worstStatus==='clear'?'#f0fdf4':worstStatus==='critical'?'#fef2f2':'#fffbeb'}">
+        <div style="font-size:11px;font-weight:600;color:${statusColor};margin-bottom:${totalDisruptions>0?'4px':'0'}">${statusText}</div>
+        ${totalDisruptions>0?`<div style="font-size:10px;color:#6B7280">${totalDisruptions} disruption${totalDisruptions!==1?'s':''} across ${affectedLegs} leg${affectedLegs!==1?'s':''}</div>`:''}
+      </div>
+      ${todayLeg?`<div style="padding:10px 14px;border-bottom:1px solid #f5f5f5;background:#f9f9f9">
+        <div style="font-size:9px;font-weight:700;color:#111;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Today</div>
+        <div style="font-size:11px;color:#374151;font-weight:600;margin-bottom:2px">${esc(todayLeg.name)}</div>
+        <div style="font-size:9px;color:#9CA3AF">${esc(todayLeg.from.split(' ')[0])} → ${esc(todayLeg.to.split(' ')[0])}</div>
+      </div>`:''}
+      <div style="padding:10px 14px;display:flex;gap:6px">
+        ${todayLeg
+          ?`<button onclick="rwCheckItineraryJourney('${todayLeg.id}')" style="flex:1;background:#111;border:none;border-radius:6px;padding:7px 0;font-size:10px;color:white;cursor:pointer;font-family:inherit;font-weight:600">Check today →</button>`
+          :`<button onclick="rwCheckItineraryJourney('${tour.legs[0].id}')" style="flex:1;background:#f3f4f6;border:1px solid #e5e5e5;border-radius:6px;padding:7px 0;font-size:10px;color:#374151;cursor:pointer;font-family:inherit;font-weight:600">Check route</button>`
+        }
+        <button onclick="rwFocusItinOnMap('${tour.id}')" style="background:#f3f4f6;border:1px solid #e5e5e5;border-radius:6px;padding:7px 10px;font-size:10px;cursor:pointer" title="Show on map">🗺</button>
       </div>
     </div>`;
   }).join('');
-  if(hiddenCount>0){
-    list.innerHTML+=`<div style="display:flex;align-items:center;justify-content:center;min-width:120px;border:1px dashed #e5e5e5;border-radius:8px;padding:10px 14px;cursor:pointer;color:#9CA3AF;font-size:10px" onclick="rwShowAllItineraries()">+ ${hiddenCount} more legs</div>`;
-  }
-}
-
-let rwShowingAllItins=false;
-function rwShowAllItineraries(){
-  rwShowingAllItins=true;
-  const list=document.getElementById('rw-itinerary-list');
-  const count=document.getElementById('rw-itin-count');
-  if(count)count.textContent=rwItineraries.length+' legs · all shown';
-  const todayId=rwGetTodaysTourDay();
-  list.innerHTML=rwItineraries.map(itin=>{
-    const impact=rwItineraryImpacts?.[itin.id];
-    const hasCritical=impact?.hasCritical;
-    const hasHigh=impact?.hasHigh;
-    const isToday=itin.id===todayId;
-    const statusColor=hasCritical?'#DC2626':hasHigh?'#D97706':'#16A34A';
-    const statusDot=hasCritical?'🔴':hasHigh?'🟡':'🟢';
-    const statusText=hasCritical?'Critical':hasHigh?'Delays':'Clear';
-    return`<div style="border:1px solid ${isToday?'#111':'#e5e5e5'};border-left:3px solid ${isToday?'#111':statusColor};border-radius:8px;padding:10px 14px;background:white;min-width:180px;max-width:220px;position:relative">
-      ${isToday?`<div style="position:absolute;top:-8px;left:12px;background:#111;color:white;font-size:8px;font-weight:700;padding:1px 7px;border-radius:3px">TODAY</div>`:''}
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:5px">
-        <span style="font-size:11px;font-weight:700;color:#111">${esc(itin.name)}</span>
-        <span style="font-size:10px;color:${statusColor};font-weight:600">${statusDot} ${statusText}</span>
-      </div>
-      <div style="font-size:9px;color:#9CA3AF;margin-bottom:8px">${esc(itin.from.split(' ').slice(0,3).join(' '))} → ${esc(itin.to.split(' ').slice(0,3).join(' '))}</div>
-      ${impact?.count?`<div style="font-size:9px;color:${statusColor};margin-bottom:6px">${impact.count} disruption${impact.count!==1?'s':''}</div>`:''}
-      <div style="display:flex;gap:5px">
-        <button onclick="rwCheckItineraryJourney('${itin.id}')" style="flex:1;background:#f9f9f9;border:1px solid #e5e5e5;border-radius:5px;padding:5px 0;font-size:9px;color:#374151;cursor:pointer;font-family:inherit;font-weight:600">Check</button>
-        <button onclick="rwFocusItinOnMap('${itin.id}')" style="background:#f9f9f9;border:1px solid #e5e5e5;border-radius:5px;padding:5px 8px;font-size:9px;cursor:pointer">🗺</button>
-      </div>
-    </div>`;
-  }).join('')+`<div style="display:flex;align-items:center;justify-content:center;min-width:100px;border:1px dashed #e5e5e5;border-radius:8px;padding:10px;cursor:pointer;color:#9CA3AF;font-size:10px" onclick="rwShowingAllItins=false;rwRenderItineraries()">Show less ↑</div>`;
 }
 
 async function rwFocusItinOnMap(id){
-  const itin=rwItineraries.find(i=>i.id===id);
-  if(!itin||!rwMap)return;
+  if(!rwMap)return;
   if(!rwMapShown){
     rwMapShown=true;
     document.getElementById('rw-map-container').style.display='block';
-    setTimeout(()=>{rwMap.invalidateSize();},100);
+    setTimeout(()=>{rwMap?.invalidateSize();},100);
   }
+  const tour=TOURS.find(t=>t.id===id);
+  const leg=rwItineraries.find(i=>i.id===id);
   try{
-    const fromGeo=await rwGeocode(itin.from);
-    const toGeo=await rwGeocode(itin.to);
-    if(fromGeo&&toGeo){
-      const bounds=L.latLngBounds([[fromGeo.lat,fromGeo.lon],[toGeo.lat,toGeo.lon]]);
-      rwMap.fitBounds(bounds,{padding:[60,60],maxZoom:10});
-    }else if(fromGeo){
-      rwMap.flyTo([fromGeo.lat,fromGeo.lon],10,{duration:1});
+    if(tour){
+      const fromGeo=await rwGeocode(tour.legs[0].from);
+      const toGeo=await rwGeocode(tour.legs[tour.legs.length-1].to);
+      if(fromGeo&&toGeo)rwMap.fitBounds([[fromGeo.lat,fromGeo.lon],[toGeo.lat,toGeo.lon]],{padding:[80,80]});
+    }else if(leg){
+      const fromGeo=await rwGeocode(leg.from);
+      const toGeo=await rwGeocode(leg.to);
+      if(fromGeo&&toGeo)rwMap.fitBounds([[fromGeo.lat,fromGeo.lon],[toGeo.lat,toGeo.lon]],{padding:[60,60],maxZoom:10});
     }
   }catch(e){}
   document.getElementById('rw-map-container')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function rwCheckItineraryImpacts(){
-  rwItineraries.forEach(itin=>{
-    const fromLower=itin.from.toLowerCase();
-    const toLower=itin.to.toLowerCase();
-    const combined=fromLower+' '+toLower;
-    const keywords=new Set();
-    combined.split(/\s+/).forEach(w=>{if(w.length>3)keywords.add(w);});
-    Object.entries(ITIN_ROUTE_ROAD_MAP).forEach(([place,roads])=>{
-      if(combined.includes(place))roads.forEach(r=>keywords.add(r));
-    });
-    (combined.match(/\b[AM]\d+[A-Z]?\b/gi)||[]).forEach(r=>keywords.add(r.toLowerCase()));
+  rwItineraries.forEach(leg=>{
+    const keywords=new Set([...(leg.keywords||[]),...(leg.roads||[]).map(r=>r.toLowerCase())]);
+    leg.from.toLowerCase().split(/\s+/).forEach(w=>{if(w.length>3)keywords.add(w);});
+    leg.to.toLowerCase().split(/\s+/).forEach(w=>{if(w.length>3)keywords.add(w);});
     const affected=rwDisruptions.filter(d=>{
       if(d.severity!=='critical'&&d.severity!=='high')return false;
-      const loc=(d.location+' '+d.title+' '+d.desc+' '+(d.roads||[]).join(' ')).toLowerCase();
+      const loc=(d.location+' '+d.title+' '+(d.roads||[]).join(' ')).toLowerCase();
       const isRelevant=[...keywords].some(kw=>kw.length>2&&loc.includes(kw));
       if(!isRelevant)return false;
-      const desc=(d.desc||d.comments||'').toLowerCase();
-      const isMajorImpact=
-        d.category==='RoadClosure'||
-        d.category==='Incident'||
-        d.category==='SpecialEvent'||
-        /closed|closure|blocked|protest|march|accident|collision|road works on major/i.test(desc)||
-        d.severity==='critical';
-      return isMajorImpact;
+      const desc=(d.desc||'').toLowerCase();
+      return d.category==='RoadClosure'||d.category==='Incident'||d.category==='SpecialEvent'||/closed|closure|blocked|accident|protest/i.test(desc)||d.severity==='critical';
     });
-    rwItineraryImpacts[itin.id]={
+    rwItineraryImpacts[leg.id]={
       hasCritical:affected.some(d=>d.severity==='critical'),
       hasHigh:affected.some(d=>d.severity==='high'),
       count:affected.length,
