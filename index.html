@@ -949,6 +949,8 @@ const RW_RSS_FEEDS=[
   {name:'Motorway Incidents',cls:'google',url:'https://news.google.com/rss/search?q=UK+motorway+accident+road+closed+major+incident+today&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'M25 Incidents',cls:'google',url:'https://news.google.com/rss/search?q=M25+M1+M6+M4+accident+closed+carriageway+today&hl=en-GB&gl=GB&ceid=GB:en'},
   {name:'Traffic England',cls:'google',url:'https://news.google.com/rss/search?q=motorway+closed+major+incident+carriageway+UK+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Motorway News',cls:'google',url:'https://news.google.com/rss/search?q=M25+M1+M6+M4+M62+motorway+accident+closed&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'UK Traffic',cls:'google',url:'https://news.google.com/rss/search?q=UK+motorway+closed+accident+traffic+delays+today&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
 
 let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all',area:'london'},rwApiKey='';
@@ -1066,10 +1068,11 @@ function rwPlotDisruptions() {
   const sevWeight = {critical:1.0, high:0.7, medium:0.4, moderate:0.4, low:0.2};
 
   const toRender = rwDisruptions.filter(d => {
-    if(d.severity!=='critical'&&d.severity!=='high')return false;
+    if(d._isMotorwayIncident)return true;
+    if(!rwShowModerate&&(d.severity==='moderate'||d.severity==='medium'||d.severity==='low'))return false;
     if(rwFilters.area==='london')return !d.area||d.area==='london'||d.area==='tfl';
     if(rwFilters.area==='cotswolds')return d.area==='cotswolds';
-    if(rwFilters.area==='motorways')return d.source==='National Highways'||d.id?.startsWith('nh-group-');
+    if(rwFilters.area==='motorways')return d._isMotorwayIncident||d.source==='National Highways';
     return true;
   });
 
@@ -1657,7 +1660,7 @@ document.addEventListener('click', e => {
   }
 });
 
-async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);fetchNationalHighways();fetchTrafficDelays();fetchNHOpenData();fetchWebTris();fetchCotswoldsData();rwGenerateBriefing();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
+async function rwRefreshAll(){rwSetLive('scanning');clearTimeout(rwRefTimer);clearInterval(rwCdTimer);await Promise.all([rwFetchTfl(),rwFetchNews()]);rwProcessMotorwayNews();fetchNationalHighways();fetchTrafficDelays();fetchNHOpenData();fetchWebTris();fetchCotswoldsData();rwGenerateBriefing();document.getElementById('rw-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById('rw-updated').style.display='block';rwSetLive('live');rwStartCd();rwRefTimer=setTimeout(rwRefreshAll,2*60*1000)}
 function rwSetLive(s){const dot=document.getElementById('rw-live-dot'),txt=document.getElementById('rw-live-text');if(s==='scanning'){dot.classList.add('scanning');txt.textContent='SCANNING'}else{dot.classList.remove('scanning');txt.textContent='LIVE'}}
 function rwStartCd(){rwCdSecs=120;clearInterval(rwCdTimer);rwCdTimer=setInterval(()=>{rwCdSecs--;if(rwCdSecs<=0){clearInterval(rwCdTimer);return}const m=Math.floor(rwCdSecs/60),s=String(rwCdSecs%60).padStart(2,'0');document.getElementById('rw-cd').textContent=`${m}:${s}`},1000)}
 
@@ -1958,27 +1961,30 @@ async function rwFetchNews(){
 }
 
 function rwProcessMotorwayNews(){
-  const MAJOR_KW=['accident','collision','fatal','overturned','jackknifed','road closed','carriageway closed','all lanes','vehicle fire','major incident','serious incident','multi-vehicle'];
-  const MINOR_KW=['cleared','now clear','all clear','monitoring','advisory','broken down','roadworks','planned'];
-  const MWAY_MID={'M1':[52.500,-1.200],'M2':[51.330,0.620],'M3':[51.220,-1.280],'M4':[51.520,-1.800],'M5':[51.800,-2.300],'M6':[52.800,-1.800],'M8':[55.880,-3.800],'M11':[51.850,0.120],'M18':[53.530,-1.100],'M20':[51.200,0.800],'M23':[51.180,-0.180],'M25':[51.380,-0.300],'M27':[50.920,-1.380],'M40':[51.750,-1.200],'M42':[52.380,-1.780],'M48':[51.590,-2.650],'M56':[53.360,-2.380],'M60':[53.470,-2.280],'M61':[53.600,-2.580],'M62':[53.680,-1.580],'M65':[53.770,-2.330],'M66':[53.680,-2.230],'M74':[55.500,-3.800],'M80':[56.020,-3.980],'A1':[53.000,-0.300],'A2':[51.280,0.580],'A3':[51.150,-0.550],'A14':[52.300,0.380],'A19':[54.500,-1.180],'A55':[53.180,-3.480]};
+  console.log('rwProcessMotorwayNews: total news items:',rwNews.length);
+  console.log('Sample news titles:',rwNews.slice(0,5).map(n=>n.title));
+  const MOTORWAY_MIDPOINTS={'M1':[52.500,-1.200],'M2':[51.330,0.620],'M3':[51.220,-1.280],'M4':[51.520,-1.800],'M5':[51.800,-2.300],'M6':[52.800,-1.800],'M8':[55.880,-3.800],'M11':[51.850,0.120],'M18':[53.530,-1.100],'M20':[51.200,0.800],'M23':[51.180,-0.180],'M25':[51.380,-0.300],'M27':[50.920,-1.380],'M40':[51.750,-1.200],'M42':[52.380,-1.780],'M48':[51.590,-2.650],'M56':[53.360,-2.380],'M60':[53.470,-2.280],'M61':[53.600,-2.580],'M62':[53.680,-1.580],'M65':[53.770,-2.330],'M66':[53.680,-2.230],'M74':[55.500,-3.800],'M80':[56.020,-3.980]};
   rwDisruptions=rwDisruptions.filter(d=>!d._isMotorwayIncident);
   let added=0;
   rwNews.forEach((n,i)=>{
     const combined=(n.title+' '+(n.desc||'')).toLowerCase();
-    if(!MAJOR_KW.some(kw=>combined.includes(kw)))return;
-    if(MINOR_KW.some(kw=>combined.includes(kw)))return;
-    const roadMatch=(n.title+' '+(n.desc||'')).match(/\b(M\d+[A-Z]?|A\d+[A-Z]?)\b/);
+    const roadMatch=(n.title+' '+(n.desc||'')).match(/\b(M\d+[A-Z]?)\b/);
     if(!roadMatch)return;
     const road=roadMatch[1];
-    if(!road.startsWith('M')&&!['A1','A2','A3','A14','A19','A55'].includes(road))return;
-    const isCritical=/fatal|fatality|road closed|carriageway closed|all lanes|vehicle fire|overturned|jackknifed|multi-vehicle/i.test(combined);
-    const base=MWAY_MID[road]||[52.0,-1.5];
-    const coords=[base[0]+(Math.random()-0.5)*0.3,base[1]+(Math.random()-0.5)*0.3];
-    const id='mway-news-'+i;
+    const hasIncident=/accident|collision|crash|closed|closure|incident|delay|disruption|traffic|congestion|blocked|obstruction/i.test(combined);
+    if(!hasIncident)return;
+    const isIrrelevant=/sport|cricket|football|concert|celebrity|weather forecast|housing|politics|election/i.test(n.title);
+    if(isIrrelevant)return;
+    const isCritical=/fatal|fatality|road closed|carriageway closed|all lanes|vehicle fire|overturned|jackknifed|serious accident/i.test(combined);
+    let coords=MOTORWAY_MIDPOINTS[road];
+    if(coords){coords=[coords[0]+(Math.random()-0.5)*0.2,coords[1]+(Math.random()-0.5)*0.2];}
+    else{coords=[52.0+(Math.random()-0.5)*2,-1.5+(Math.random()-0.5)*3];}
+    const id='mway-news-'+road+'-'+i;
     if(rwDisruptions.find(d=>d.id===id))return;
+    console.log('Adding motorway incident:',road,n.title.slice(0,50));
     rwDisruptions.unshift({
       id,category:'Incident',
-      title:road+' — '+(isCritical?'Major Incident':'Serious Incident'),
+      title:road+' — '+(isCritical?'Major Incident':'Traffic Incident'),
       desc:n.title+'. '+(n.desc||'').slice(0,200),
       location:road+' — UK Motorway Network',
       startDate:isoNow(),startTime:null,endDate:null,endTime:null,
