@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.2.4 -->
+<!-- roadwatch v3.2.5 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1751,6 +1751,122 @@ async function fetchCotswoldsData(){
   }catch(e){console.log('Cotswolds data error:',e.message);}
 }
 
+function rwBuildCard(d,i){
+  const jsonStr=JSON.stringify(JSON.stringify(d));
+  const sevColor=d.severity==='critical'?'#DC2626':d.severity==='high'?'#F59E0B':d.severity==='medium'?'#6B7280':'#9CA3AF';
+  const sevBg=d.severity==='critical'?'rgba(220,38,38,0.08)':d.severity==='high'?'rgba(245,158,11,0.06)':'rgba(107,114,128,0.05)';
+
+  // NH group cards — span full row, amber background, road chips
+  if(d.id?.startsWith('nh-group-')){
+    const regionName=(d.title||'').replace(/^🛣\s*/,'').replace(/\s*—\s*\d+\s*Planned.*$/,'');
+    const count=(d.title||'').match(/(\d+)\s*Planned/)?.[1]||'';
+    const roadChips=(d.roads||[]).map(r=>`<span style="display:inline-block;font-size:9px;font-weight:700;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;border-radius:3px;padding:2px 6px">${esc(r)}</span>`).join('');
+    return`<div onclick='rwOpenModal(${jsonStr})' style="grid-column:1/-1;border:1px solid #FDE68A;border-left:4px solid #F59E0B;border-radius:10px;padding:0;overflow:hidden;cursor:pointer;background:#FFFBEB;transition:box-shadow .15s;animation:fadeUp .25s ease both;animation-delay:${i*.02}s" onmouseover="this.style.boxShadow='0 4px 16px rgba(245,158,11,0.15)'" onmouseout="this.style.boxShadow='none'">
+      <div style="padding:10px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #FDE68A">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;font-weight:700;color:#92400E;letter-spacing:.04em">🛣 ${esc(regionName)}</span>
+          ${count?`<span style="font-size:9px;font-weight:700;color:#fff;background:#F59E0B;border-radius:10px;padding:2px 7px">${count} closures</span>`:''}
+        </div>
+        <span style="font-size:9px;font-weight:700;color:#92400E;background:#FEF3C7;padding:2px 8px;border-radius:4px">HIGH</span>
+      </div>
+      <div style="padding:10px 14px">
+        <div style="font-size:10px;font-weight:700;color:#92400E;letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px">PLANNED OVERNIGHT CLOSURES</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">${roadChips||'<span style="font-size:10px;color:#92400E">Various roads</span>'}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-size:10px;font-weight:600;color:#374151;background:#F3F4F6;padding:3px 8px;border-radius:4px">⏱ 22:00 – 05:30</span>
+          <span style="font-size:10px;font-weight:600;color:#059669;background:#ECFDF5;padding:3px 8px;border-radius:4px">↪ Signed Diversions</span>
+          <span style="font-size:9px;color:#F59E0B;background:#FFFBEB;border:1px solid #FDE68A;padding:2px 6px;border-radius:4px">NH</span>
+        </div>
+      </div>
+      <div style="padding:6px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #FDE68A">
+        <span style="font-size:9px;color:#92400E">National Highways</span>
+        <a href="https://nationalhighways.co.uk/travel-updates/road-closure-report/" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:9px;color:#92400E;text-decoration:none">Source →</a>
+      </div>
+    </div>`;
+  }
+
+  // Road code from location brackets or first road
+  const roadMatch=(d.location||d.title||'').match(/\[([A-Z]\d+[A-Z]?)\]|^([A-Z]\d+[A-Z]?)\b/);
+  const roadCode=roadMatch?.[1]||roadMatch?.[2]||(d.roads?.[0])||'';
+
+  // Action type classification
+  const desc=(d.desc||d.comments||'').toLowerCase();
+  const titleLow=(d.title||'').toLowerCase();
+  const actionMap=[
+    [/road is closed|road closed|full closure|carriageway closed/,'ROAD CLOSED'],
+    [/contraflow/,'CONTRAFLOW'],
+    [/tunnel.*closed|closed.*tunnel/,'TUNNEL CLOSED'],
+    [/bridge.*closed|closed.*bridge/,'BRIDGE CLOSED'],
+    [/burst water|water main|burst main/,'BURST WATER MAIN'],
+    [/gas works|gas leak|gas main/,'GAS WORKS'],
+    [/lane.*clos|clos.*lane/,'LANE CLOSED'],
+    [/temporary signals|traffic signals|traffic lights/,'TEMP SIGNALS'],
+    [/broken down|breakdown/,'BROKEN DOWN VEHICLE'],
+    [/crane/,'CRANE OPERATION'],
+    [/resurfacing|surfacing/,'RESURFACING'],
+    [/diversion/,'DIVERSION ACTIVE'],
+    [/emergency/,'EMERGENCY WORKS'],
+    [/planned.*closure|overnight.*closure/,'PLANNED CLOSURE'],
+    [/protest|march|demonstration/,'PROTEST/MARCH'],
+    [/event|concert|festival|cricket|football/,'EVENT'],
+    [/incident/,'INCIDENT'],
+  ];
+  let action='DISRUPTION';
+  for(const[pattern,label]of actionMap){if(pattern.test(desc)||pattern.test(titleLow)){action=label;break;}}
+
+  // Junction span
+  const jctMatch=desc.match(/jct?\s*(\d+[a-z]?)\s*(?:to|-)\s*jct?\s*(\d+[a-z]?)/i)||
+                 (d.title||'').match(/J(\d+[a-z]?)\s*(?:→|to|-)\s*J(\d+[a-z]?)/i);
+  const junctions=jctMatch?`J${jctMatch[1]} → J${jctMatch[2]}`:'';
+
+  // Direction
+  const dirMatch=desc.match(/\b(northbound|southbound|eastbound|westbound|clockwise|anti-clockwise|both directions|all directions)\b/i);
+  const direction=dirMatch?dirMatch[1].charAt(0).toUpperCase()+dirMatch[1].slice(1).toLowerCase():'';
+
+  // Time string
+  const timeStr=d.startTime&&d.endTime?d.startTime+'–'+d.endTime:d.startTime||'';
+
+  // Timing badge
+  const nowTs=Date.now();
+  const startTs=d.startDate?new Date(d.startDate+'T'+(d.startTime||'00:00')).getTime():null;
+  const endTs=d.endDate?new Date(d.endDate+'T'+(d.endTime||'23:59')).getTime():null;
+  const isLive=startTs&&startTs<=nowTs&&(!endTs||endTs>=nowTs);
+  const isToday=startTs&&new Date(startTs).toDateString()===new Date().toDateString();
+  const timingLabel=isLive?'NOW':isToday?'TODAY':d.startDate?new Date(d.startDate).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
+  const timingColor=isLive?'#DC2626':isToday?'#F59E0B':'#6B7280';
+
+  const hasDiversion=d.hasDiversion||/diversion/i.test(desc);
+  const isNH=d.source==='National Highways'||d.source==='National Highways Open Data';
+  const cleanLoc=(d.location||'').replace(/\[.*?\]/g,'').replace(/\s+/g,' ').trim().slice(0,60);
+
+  return`<div onclick='rwOpenModal(${jsonStr})' style="border:1px solid ${sevColor}30;border-left:4px solid ${sevColor};border-radius:10px;padding:0;overflow:hidden;cursor:pointer;background:white;transition:box-shadow .15s;animation:fadeUp .25s ease both;animation-delay:${i*.02}s" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid #f0f0f0">
+      <div style="display:flex;align-items:center;gap:8px">
+        ${roadCode?`<span style="font-family:Georgia,serif;font-size:18px;font-weight:700;color:#111;letter-spacing:-0.02em">${esc(roadCode)}</span>`:''}
+        ${d.category==='SpecialEvent'?'<span style="font-size:13px">🎪</span>':d.category==='Incident'?'<span style="font-size:13px">🔴</span>':''}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        ${timingLabel?`<span style="font-size:9px;font-weight:700;color:${timingColor};letter-spacing:.08em">${timingLabel}</span>`:''}
+        <span style="font-size:9px;font-weight:700;color:${sevColor};background:${sevBg};padding:2px 7px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase">${(d.severity||'').toUpperCase()}</span>
+      </div>
+    </div>
+    <div style="padding:10px 14px">
+      <div style="font-size:13px;font-weight:800;color:${sevColor};letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px">${action}</div>
+      ${junctions||direction?`<div style="font-size:13px;font-weight:600;color:#111;margin-bottom:4px">${esc([junctions,direction].filter(Boolean).join(' · '))}</div>`:''}
+      <div style="font-size:11px;color:#555;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 ${esc(cleanLoc)}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        ${timeStr?`<span style="font-size:10px;font-weight:600;color:#374151;background:#F3F4F6;padding:3px 8px;border-radius:4px">⏱ ${esc(timeStr)}</span>`:''}
+        ${hasDiversion?`<span style="font-size:10px;font-weight:600;color:#059669;background:#ECFDF5;padding:3px 8px;border-radius:4px">↪ Diversion Active</span>`:''}
+        ${isNH?`<span style="font-size:9px;color:#F59E0B;background:#FFFBEB;padding:2px 6px;border-radius:4px">NH</span>`:''}
+      </div>
+    </div>
+    <div style="padding:6px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f5f5f5">
+      <span style="font-size:9px;color:#9CA3AF">${esc(d.source||'TfL')}</span>
+      ${d.sourceUrl?`<a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:9px;color:#6B7280;text-decoration:none">Source →</a>`:''}
+    </div>
+  </div>`;
+}
+
 function rwRenderDisruptions(){
   let f=rwDisruptions.filter(d=>{
     const typeOk=rwFilters.type==='all'||d.category===rwFilters.type;
@@ -1765,19 +1881,8 @@ function rwRenderDisruptions(){
   document.getElementById('rw-disrupt-cnt').textContent=`${f.length} disruption${f.length!==1?'s':''}`;
   const grid=document.getElementById('rw-grid');
   if(!f.length){grid.innerHTML=`<div class="state-panel"><div class="state-icon">${rwDisruptions.length?'🔍':'✅'}</div><div class="state-title-rw">${rwDisruptions.length?'No matches':'No active disruptions'}</div><div class="state-sub-rw">${rwDisruptions.length?'Adjust filters.':'TfL reports no disruptions right now.'}</div></div>`;return}
-  grid.innerHTML=f.map((d,i)=>{
-    const tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default,sc=RW_SEV_CFG[d.severity]||RW_SEV_CFG.low;
-    const du=daysUntil(d.startDate),duc=du==='Now'||du==='Today'?'#EF4444':du==='Tomorrow'?'#F59E0B':'#6B7280';
-    const rtags=(d.roads||[]).length<=3?(d.roads||[]).map(r=>`<span class="road-tag-rw">${esc(r)}</span>`).join(''):'';
-    const ds=d.startDate?fmtDate(d.startDate)+(d.startTime?` · ${d.startTime}`:''):'Ongoing';
-    return`<div class="d-card-rw" style="animation-delay:${i*.04}s;border-left:3px solid ${sc.color}" onclick='rwOpenModal(${JSON.stringify(JSON.stringify(d))})'>
-      <div class="card-top"><div class="badge-row"><span class="badge" style="background:${tc.bg};color:${tc.color}">${tc.icon} ${tc.label}</span><span class="badge" style="background:#1F2937;color:${sc.color};border:1px solid ${sc.color}33">● ${sc.label}</span></div>${du?`<span class="days-lbl" style="color:${duc}">${du}</span>`:''}</div>
-      <div class="card-title-rw">${esc(d.title)}</div>
-      <div class="card-loc-rw">📍 ${esc(d.location)}</div>
-      <div class="card-desc-rw" style="font-size:12px">${esc(trunc(d.desc||d.title,120))}</div>
-      <div class="card-foot-rw"><div class="road-tags" style="margin:0">${rtags}</div><div class="card-date-rw">${ds}${d.hasDiversion?' · ↪':''}</div></div>
-    </div>`}).join('');
-  if (rwMapShown) rwPlotDisruptions();
+  grid.innerHTML=f.map((d,i)=>rwBuildCard(d,i)).join('');
+  if(rwMapShown)rwPlotDisruptions();
 }
 function rwToggleModerate(){
   rwShowModerate=!rwShowModerate;
