@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.3.7 -->
+<!-- roadwatch v3.4.0 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -977,6 +977,32 @@ function switchTab(tab){
 // ════════════════════════════════════════════════════════════
 const RW_TYPE_CFG={RoadClosure:{icon:'🚫',color:'#DC2626',bg:'#FEE2E2',label:'Road Closure'},Works:{icon:'⚠️',color:'#F59E0B',bg:'#FEF3C7',label:'Works'},Planned:{icon:'📋',color:'#8B5CF6',bg:'#0a0a1a',label:'Planned Works'},SpecialEvent:{icon:'🎪',color:'#8B5CF6',bg:'#EDE9FE',label:'Special Event'},Incident:{icon:'🔴',color:'#EF4444',bg:'#FEE2E2',label:'Incident'},default:{icon:'⚠️',color:'#F59E0B',bg:'#FEF3C7',label:'Disruption'}};
 const RW_SEV_CFG={critical:{color:'#DC2626',label:'Critical'},high:{color:'#EF4444',label:'High'},medium:{color:'#F59E0B',label:'Moderate'},low:{color:'#10B981',label:'Low'}};
+const TOUR_ITINERARIES=[
+  // ═══ TOUR 1 — Scotland/Wales/Cotswolds (Aug 5-12 2026) ═══
+  {id:'t1-d1',name:'🏴󠁧󠁢󠁳󠁣󠁴󠁿 T1 Day 1 — EDI → Fort William',from:'Edinburgh Airport',to:'Fort William',roads:['A8','A9','M9','A82','A830'],keywords:['edinburgh','a9','m9','stirling','a82','fort william','a830','inverness','perth']},
+  {id:'t1-d2',name:'🏴󠁧󠁢󠁳󠁣󠁴󠁿 T1 Day 2 — Skye Loop',from:'Fort William',to:'Glenfinnan',roads:['A830','A87','A850','A863'],keywords:['fort william','mallaig','a830','skye','portree','broadford','a87','a850','glenfinnan']},
+  {id:'t1-d3',name:'🏔 T1 Day 3 — Glencoe → Kendal',from:'Glen Coe',to:'Kendal',roads:['A82','M74','M6','A65','A590'],keywords:['glencoe','a82','m74','m6','carlisle','penrith','kendal','a65','a590','ballachulish']},
+  {id:'t1-d4',name:'🌊 T1 Day 4 — Lake District Loop',from:'Kendal',to:'Windermere',roads:['A591','A593','A592'],keywords:['kendal','rydal','grasmere','hawkshead','windermere','bowness','a591','a593','lake district']},
+  {id:'t1-d5',name:'🏴󠁧󠁢󠁷󠁬󠁳󠁿 T1 Day 5 — Kendal → Chester via Wales',from:'Kendal',to:'Chester',roads:['M6','M56','A55','A5','A483'],keywords:['kendal','m6','m56','a55','conwy','llangollen','a5','chester','north wales','wrexham']},
+  {id:'t1-d6',name:'🏔 T1 Day 6 — Chester → Snowdon',from:'Chester',to:'Llanberis',roads:['A55','A4086','A487'],keywords:['chester','a55','llanberis','snowdon','a4086','caernarfon','bangor','a487']},
+  {id:'t1-d7',name:'🌸 T1 Day 7 — Chester → Cotswolds → London',from:'Chester',to:'London Wembley',roads:['M6','M42','A46','A44','A429','A40','M40'],keywords:['chester','m6','m42','a46','chipping campden','bourton on water','a429','a40','m40','wembley','cotswolds']},
+  {id:'t1-d8',name:'🌊 T1 Day 8 — London → Seven Sisters',from:'London Wembley',to:'Seaford',roads:['A23','A27','A259','M23'],keywords:['wembley','a23','m23','brighton','seaford','seven sisters','a27','a259','east sussex']},
+  // ═══ TOUR 2 — Osaka Phil Orchestra (Jun 22-28 2026) ═══
+  {id:'t2-d5',name:'🎻 T2 Day 5 — Manchester Airport',from:'Manchester Airport',to:'Leonardo Hotel Manchester',roads:['M56','M60','A57'],keywords:['manchester','m56','m60','a57','manchester airport','m1 5le']},
+  {id:'t2-d6',name:'🎻 T2 Day 6 — Manchester → Heathrow via M6/M40',from:'Manchester',to:'Heathrow Terminal 4',roads:['M6','M42','M40','A40','A4','M25','A30'],keywords:['manchester','m6','keele','stoke','st5 5hg','m42','m40','oxford services','ox33 1lj','a40','cadogan hall','sw1x','heathrow','tw6','hounslow','a316','m25'],stops:[{name:'Keele Services M6',coords:[53.003,-2.273]},{name:'Oxford Services M40',coords:[51.748,-1.138]},{name:'Cadogan Hall SW1X',coords:[51.494,-0.158]},{name:'Heathrow T4',coords:[51.460,-0.448]}]},
+  // ═══ TOUR 3 — UK Grand Tour (Jun 22 - Jul 1 2026) ═══
+  {id:'t3-d1',name:'🇬🇧 T3 Day 1 — Heathrow → Oxford → Cotswolds → Birmingham',from:'Heathrow Radisson Blu UB3 5AW',to:'Park Regis Birmingham B15 1DT',roads:['M4','A34','A40','A429','A46','M42','A38'],keywords:['heathrow','ub3','m4','a34','oxford','a40','bourton on water','a429','cotswolds','a46','m42','birmingham','b15','broad street']},
+  {id:'t3-d2',name:'🏭 T3 Day 2 — Birmingham → Liverpool → Manchester',from:'Birmingham',to:'Manchester Crowne Plaza M4 4AF',roads:['M6','A449','M62','M57','M60'],keywords:['birmingham','m6','albrighton','wolverhampton','a449','liverpool','m62','m57','albert dock','manchester','m60','old trafford','m4 4af','shudehill']},
+  {id:'t3-d3',name:'🌊 T3 Day 3 — Manchester → Lake District → Glasgow',from:'Manchester',to:'Glasgow Crowne Plaza G3 8QT',roads:['M60','M6','A591','A592','M6','M74','M8'],keywords:['manchester','m60','m6','windermere','a591','a592','bowness','lake district','m74','glasgow','m8','g3','congress road']},
+  {id:'t3-d4',name:'🏔 T3 Day 4 — Glasgow → Glencoe → Loch Ness → Aviemore',from:'Glasgow',to:'Aviemore Coylumbridge PH22 1QN',roads:['M8','A82','A9','A86'],keywords:['glasgow','m8','a82','glencoe','ballachulish','fort augustus','loch ness','a9','aviemore','ph22','cairngorms']},
+  {id:'t3-d5',name:'🏰 T3 Day 5 — Aviemore → Edinburgh → Glasgow',from:'Aviemore',to:'Glasgow Airport Courtyard PA3 2SJ',roads:['A9','M90','A90','A8','M8'],keywords:['aviemore','a9','perth','m90','edinburgh','royal mile','castle terrace','johnston terrace','m8','glasgow airport','pa3','paisley']},
+  {id:'t3-d6',name:'🏛 T3 Day 6 — Glasgow → Newcastle → York → Leeds',from:'Glasgow',to:'Ramada Leeds LS9 0AS',roads:['M8','M74','A68','A1','A1M','A64','M1'],keywords:['glasgow','m8','m74','newcastle','a68','a1','a1m','york','york minster','a64','leeds','m1','ls9','skelton lake']},
+  {id:'t3-d7',name:'🎓 T3 Day 7 — Leeds → Cambridge → Heathrow',from:'Leeds',to:'Heathrow Radisson Blu UB3 5AW',roads:['M1','A1M','A14','M11','M25','M4'],keywords:['leeds','m1','a1m','cambridge','a14','queens road','m11','m25','m4','heathrow','ub3']},
+  {id:'t3-d8',name:'🏰 T3 Day 8 — Heathrow → Windsor → Eastbourne',from:'Heathrow',to:'Eastbourne Birling Gap',roads:['A4','A332','M3','A3','A27','A22','A259'],keywords:['heathrow','a4','a332','windsor','windsor castle','m3','a3','a27','eastbourne','a22','a259','birling gap','seven sisters','beachy head']},
+  {id:'t3-d9',name:'🏙 T3 Day 9 — Heathrow → London City Tour',from:'Heathrow',to:'Central London',roads:['M4','A4','A40','A302','A3212','A3211'],keywords:['heathrow','m4','a4','a40','westminster','buckingham palace','big ben','parliament square','downing street','british museum','regent park','a302','a3212']},
+  {id:'t3-d10',name:'🏙 T3 Day 10 — London City → Heathrow',from:'Central London',to:'Heathrow Airport',roads:['A3211','A4','M4','A316'],keywords:['tower bridge','tower of london','st pauls','millennium bridge','the shard','a4','m4','heathrow','a316']},
+];
+
 const RW_RSS_FEEDS=[
   {name:'BBC News',cls:'bbc',url:'https://feeds.bbci.co.uk/news/england/london/rss.xml'},
   {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+disruption+traffic+today&hl=en-GB&gl=GB&ceid=GB:en'},
@@ -1011,12 +1037,10 @@ function rwFlashTab(msg){let on=true;clearInterval(rwTabTimer);rwTabTimer=setInt
   rwApiKey=localStorage.getItem('tfl_api_key')||'3bb8014b0089484dbc8d72613e538d2a';
   localStorage.setItem('tfl_api_key',rwApiKey);
   rwLoadAlerts();rwUpdateNotifStatus();rwInitGChat();
-  if(rwItineraries.length===0){
-    rwItineraries=[
-      {id:1,name:'Airport Run',from:'Heathrow Terminal 5',to:'Canary Wharf',created:new Date().toISOString()},
-      {id:2,name:'City Commute',from:'Victoria Station',to:'Liverpool Street',created:new Date().toISOString()},
-    ];
+  if(!localStorage.getItem('rw_tour_loaded_v3')){
+    rwItineraries=TOUR_ITINERARIES;
     localStorage.setItem('rw_itineraries',JSON.stringify(rwItineraries));
+    localStorage.setItem('rw_tour_loaded_v3','1');
   }
   rwRenderItineraries();
   if(rwApiKey){
@@ -1268,6 +1292,18 @@ function rwPlotDisruptions() {
             <div style="width:14px;height:14px;background:#F59E0B;border-radius:50%;border:2px solid white;display:flex;align-items:center;justify-content:center;font-size:7px;color:white;font-weight:800;flex-shrink:0">!</div>
             Major UK incident
           </div>
+          <div style="border-top:1px solid #f0f0f0;padding-top:8px;margin-top:4px">
+            <div style="font-weight:700;font-size:10px;margin-bottom:5px">Active Tour Routes</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#DC2626;margin-bottom:3px">
+              <div style="width:16px;height:2px;border-top:2px dashed #DC2626;flex-shrink:0"></div> Scotland/Wales (Aug)
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#2563EB;margin-bottom:3px">
+              <div style="width:16px;height:2px;border-top:2px dashed #2563EB;flex-shrink:0"></div> Osaka Phil (Jun)
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#16A34A">
+              <div style="width:16px;height:2px;border-top:2px dashed #16A34A;flex-shrink:0"></div> UK Grand Tour (Jun-Jul)
+            </div>
+          </div>
         </div>`;
       return div;
     };
@@ -1278,23 +1314,54 @@ function rwPlotDisruptions() {
   const countEl=document.getElementById('rw-map-count');
   if(countEl)countEl.textContent=heatPoints.length+' disruptions mapped'+(motorwayCount>0?' · '+motorwayCount+' major UK incidents':'');
 
-  if(rwItineraries.length>0){
-    if(window.rwItinCorridors){window.rwItinCorridors.forEach(l=>{try{rwMap.removeLayer(l)}catch(e){}});}
-    window.rwItinCorridors=[];
-    rwItineraries.forEach(async itin=>{
-      try{
-        const fromGeo=await rwGeocode(itin.from);
-        const toGeo=await rwGeocode(itin.to);
-        if(!fromGeo||!toGeo)return;
-        const line=L.polyline([[fromGeo.lat,fromGeo.lon],[toGeo.lat,toGeo.lon]],{color:'#111',weight:2,opacity:0.25,dashArray:'4,6'}).addTo(rwMap);
-        const fromDot=L.circleMarker([fromGeo.lat,fromGeo.lon],{radius:5,fillColor:'#111',color:'white',weight:2,opacity:1,fillOpacity:1}).addTo(rwMap);
-        fromDot.bindTooltip(itin.name+': '+itin.from,{permanent:false,direction:'top'});
-        const toDot=L.circleMarker([toGeo.lat,toGeo.lon],{radius:5,fillColor:'#DC2626',color:'white',weight:2,opacity:1,fillOpacity:1}).addTo(rwMap);
-        toDot.bindTooltip(itin.name+': '+itin.to,{permanent:false,direction:'top'});
-        window.rwItinCorridors.push(line,fromDot,toDot);
-      }catch(e){}
-    });
-  }
+  // Draw tour route lines
+  const TOUR1_WAYPOINTS=[[55.950,-3.362],[56.116,-3.937],[56.817,-5.105],[57.006,-5.829],[57.413,-6.196],[57.419,-5.642],[56.877,-5.431],[56.817,-5.105],[56.679,-5.102],[54.325,-2.742],[54.459,-2.956],[54.369,-2.902],[54.325,-2.742],[53.293,-3.727],[52.972,-3.157],[53.189,-2.891],[53.118,-4.128],[53.189,-2.891],[52.052,-1.692],[51.884,-1.756],[51.559,-0.279],[50.769,0.099]];
+  const TOUR2_WAYPOINTS=[[53.354,-2.275],[53.479,-2.245],[53.003,-2.273],[51.748,-1.138],[51.494,-0.158],[51.460,-0.448]];
+  const TOUR3_WAYPOINTS=[[51.477,-0.461],[51.752,-1.257],[51.884,-1.756],[52.476,-1.905],[52.671,-2.270],[53.400,-2.992],[53.479,-2.245],[54.369,-2.902],[55.864,-4.252],[56.679,-5.102],[57.142,-4.682],[57.192,-3.825],[55.950,-3.188],[55.864,-4.252],[54.978,-1.613],[53.959,-1.082],[53.800,-1.549],[52.205,0.119],[51.477,-0.461],[51.484,-0.604],[50.769,0.099],[51.477,-0.461],[51.500,-0.126]];
+  const tourDefs=[
+    {points:TOUR1_WAYPOINTS,color:'#DC2626',name:'Scotland/Wales Tour (Aug)'},
+    {points:TOUR2_WAYPOINTS,color:'#2563EB',name:'Osaka Phil Tour (Jun)'},
+    {points:TOUR3_WAYPOINTS,color:'#16A34A',name:'UK Grand Tour (Jun-Jul)'},
+  ];
+  if(window.rwTourCorridors)window.rwTourCorridors.forEach(l=>{try{rwMap.removeLayer(l)}catch(e){}});
+  window.rwTourCorridors=[];
+  tourDefs.forEach(t=>{
+    const line=L.polyline(t.points,{color:t.color,weight:2,opacity:0.4,dashArray:'6,8'}).addTo(rwMap);
+    line.bindTooltip(t.name,{sticky:true});
+    window.rwTourCorridors.push(line);
+  });
+  const ALL_STOPS=[
+    {coords:[55.950,-3.362],label:'Edinburgh',day:'T1 Day 1',color:'#DC2626'},
+    {coords:[56.817,-5.105],label:'Fort William',day:'T1 Day 1-3',color:'#DC2626'},
+    {coords:[57.413,-6.196],label:'Portree Skye',day:'T1 Day 2',color:'#DC2626'},
+    {coords:[54.325,-2.742],label:'Kendal',day:'T1 Day 3-5',color:'#DC2626'},
+    {coords:[53.189,-2.891],label:'Chester',day:'T1 Day 5-7',color:'#DC2626'},
+    {coords:[51.884,-1.756],label:'Bourton on Water',day:'T1 Day 7',color:'#DC2626'},
+    {coords:[51.559,-0.279],label:'London Wembley',day:'T1 Day 7-8',color:'#DC2626'},
+    {coords:[53.354,-2.275],label:'Manchester Airport',day:'T2 Day 5',color:'#2563EB'},
+    {coords:[53.003,-2.273],label:'Keele Services',day:'T2 Day 6',color:'#2563EB'},
+    {coords:[51.748,-1.138],label:'Oxford Services M40',day:'T2 Day 6',color:'#2563EB'},
+    {coords:[51.460,-0.448],label:'Heathrow T4',day:'T2 Day 6-7',color:'#2563EB'},
+    {coords:[51.477,-0.461],label:'Heathrow (Base)',day:'T3 Day 1,7-10',color:'#16A34A'},
+    {coords:[51.752,-1.257],label:'Oxford',day:'T3 Day 1',color:'#16A34A'},
+    {coords:[52.476,-1.905],label:'Birmingham',day:'T3 Day 1-2',color:'#16A34A'},
+    {coords:[53.400,-2.992],label:'Liverpool',day:'T3 Day 2',color:'#16A34A'},
+    {coords:[53.479,-2.245],label:'Manchester',day:'T3 Day 2-3',color:'#16A34A'},
+    {coords:[54.369,-2.902],label:'Windermere',day:'T3 Day 3',color:'#16A34A'},
+    {coords:[55.864,-4.252],label:'Glasgow',day:'T3 Day 3-6',color:'#16A34A'},
+    {coords:[57.192,-3.825],label:'Aviemore',day:'T3 Day 4-5',color:'#16A34A'},
+    {coords:[55.950,-3.188],label:'Edinburgh',day:'T3 Day 5',color:'#16A34A'},
+    {coords:[54.978,-1.613],label:'Newcastle',day:'T3 Day 6',color:'#16A34A'},
+    {coords:[53.959,-1.082],label:'York',day:'T3 Day 6',color:'#16A34A'},
+    {coords:[52.205,0.119],label:'Cambridge',day:'T3 Day 7',color:'#16A34A'},
+    {coords:[51.484,-0.604],label:'Windsor',day:'T3 Day 8',color:'#16A34A'},
+    {coords:[50.769,0.099],label:'Eastbourne/Seven Sisters',day:'T3 Day 8',color:'#16A34A'},
+  ];
+  ALL_STOPS.forEach(stop=>{
+    const marker=L.circleMarker(stop.coords,{radius:5,fillColor:stop.color,color:'white',weight:2,opacity:1,fillOpacity:0.9}).addTo(rwMap);
+    marker.bindTooltip(`<b>${stop.label}</b><br><span style="font-size:10px">${stop.day}</span>`,{permanent:false,direction:'top'});
+    window.rwTourCorridors.push(marker);
+  });
 }
 
 function rwPointNearRoute(routeCoords, lat, lon, bufferKm = 2.0) {
@@ -2222,6 +2289,20 @@ function rwBuildCard(d,i){
       ${d.sourceUrl?`<a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:9px;color:#6B7280;text-decoration:none">Source →</a>`:''}
     </div>
   </div>`;
+}
+
+function rwGetTodaysTourDay(){
+  const today=new Date();
+  const t1s=new Date('2026-08-05');
+  const t1d=Math.floor((today-t1s)/864e5);
+  if(t1d>=0&&t1d<=7)return['t1-d1','t1-d2','t1-d3','t1-d4','t1-d5','t1-d6','t1-d7','t1-d8'][t1d];
+  const t2s=new Date('2026-06-26');
+  const t2d=Math.floor((today-t2s)/864e5);
+  if(t2d>=0&&t2d<=2)return['t2-d5','t2-d6','t2-d6'][t2d];
+  const t3s=new Date('2026-06-22');
+  const t3d=Math.floor((today-t3s)/864e5);
+  if(t3d>=0&&t3d<=9)return['t3-d1','t3-d2','t3-d3','t3-d4','t3-d5','t3-d6','t3-d7','t3-d8','t3-d9','t3-d10'][t3d];
+  return null;
 }
 
 function rwShowAddItinerary(){document.getElementById('rw-itinerary-form').style.display='block';document.getElementById('rw-itin-name').focus();}
