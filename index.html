@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.4.3 -->
+<!-- roadwatch v3.4.4 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -582,17 +582,6 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
   </div>
 
   <!-- Itineraries Panel -->
-  <div id="rw-itinerary-panel" style="margin:0 0 0;border-bottom:1px solid #f0f0f0">
-    <div style="padding:12px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:13px">📍</span>
-        <span style="font-family:Georgia,serif;font-size:12px;font-weight:700;color:#111">Active Tour Routes</span>
-        <span id="rw-itin-count" style="font-size:9px;color:#9CA3AF"></span>
-      </div>
-    </div>
-    <div id="rw-itin-empty" style="display:none;padding:0 18px 12px;font-size:11px;color:#9CA3AF">No tours loaded.</div>
-    <div id="rw-itinerary-list" style="padding:0 18px 12px;display:flex;gap:8px;flex-wrap:wrap"></div>
-  </div>
 
   <!-- Journey Panel -->
   <div id="rw-journey-panel" style="display:none;margin:10px 16px 0;border:1px solid var(--rw-border);border-radius:12px;overflow:visible">
@@ -657,6 +646,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Met Police</span>
     <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Gloucestershire Highways</span>
     <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Every 2 min</span>
+    <span class="src-pill" style="border:1px solid #111;border-radius:10px;padding:2px 8px"><span style="font-size:8px;color:#111;font-weight:700;letter-spacing:.05em">📍 3 tours active</span></span>
   </div>
 
   <!-- Stats -->
@@ -666,6 +656,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     <div class="stat-card-rw"><div class="stat-num" id="rw-s-high" style="color:#FB923C">0</div><div class="stat-lbl">High</div></div>
     <div class="stat-card-rw"><div class="stat-num" id="rw-s-med" style="color:#FBBF24">0</div><div class="stat-lbl">Moderate</div></div>
     <div class="stat-card-rw"><div class="stat-num" id="rw-s-news" style="color:#60A5FA">0</div><div class="stat-lbl">News</div></div>
+    <div class="stat-card-rw"><div class="stat-num" id="rw-s-route" style="color:#A78BFA">0</div><div class="stat-lbl">On Route</div></div>
   </div>
 
   <!-- Controls -->
@@ -1049,7 +1040,6 @@ function rwFlashTab(msg){let on=true;clearInterval(rwTabTimer);rwTabTimer=setInt
   localStorage.removeItem('rw_tour_loaded');
   localStorage.removeItem('rw_tour_loaded_v2');
   localStorage.removeItem('rw_tour_loaded_v3');
-  rwRenderItineraries();
   if(rwApiKey){
     rwShowDash();
     setTimeout(()=>{
@@ -1140,13 +1130,12 @@ function rwPlotDisruptions() {
 
   const heatPoints=[];
   const sevWeight={critical:1.0,high:0.7,medium:0.4};
-  const toPlot=rwDisruptions.filter(d=>{
-    if(d.severity==='low')return false;
-    return rwItineraries.length===0||rwIsDisruptionRelevantToItineraries(d);
-  });
+  const toPlot=rwDisruptions.filter(d=>d.severity!=='low');
 
   toPlot.forEach(d=>{
-    const weight=Math.min(1.0,(sevWeight[d.severity]||0.3)+(rwItineraries.length>0&&rwIsDisruptionRelevantToItineraries(d)?0.4:0));
+    const isRelevant=rwIsDisruptionRelevantToItineraries(d);
+    const baseWeight=sevWeight[d.severity]||0.3;
+    const weight=isRelevant?baseWeight:baseWeight*0.2;
     const roads=[...(d.roads||[]),...((d.title+' '+d.location).match(/\b([AM]\d+[A-Z]?)\b/g)||[])].filter(Boolean);
     let coords=null;
     if(d._lat&&d._lon){coords=[d._lat+(Math.random()-0.5)*0.01,d._lon+(Math.random()-0.5)*0.01];}
@@ -1162,11 +1151,11 @@ function rwPlotDisruptions() {
     heatPoints.push([coords[0],coords[1],weight]);
     if(d.severity==='critical'||d.severity==='high'){
       const color=d.severity==='critical'?'#DC2626':'#F59E0B';
-      const sz=d.severity==='critical'?16:11;
-      const isItinRelevant=rwItineraries.length>0&&rwIsDisruptionRelevantToItineraries(d);
-      const icon=L.divIcon({html:`<div style="background:${color};border-radius:50%;width:${sz}px;height:${sz}px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);${isItinRelevant?'outline:2px solid #111;outline-offset:2px':''}"></div>`,className:'',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+      const sz=isRelevant?(d.severity==='critical'?16:11):(d.severity==='critical'?12:8);
+      const opacity=isRelevant?'1':'0.45';
+      const icon=L.divIcon({html:`<div style="background:${color};border-radius:50%;width:${sz}px;height:${sz}px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);opacity:${opacity};${isRelevant?'outline:2px solid #111;outline-offset:2px':''}"></div>`,className:'',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
       const marker=L.marker(coords,{icon}).addTo(rwMap);
-      marker.bindPopup(`<div style="font-family:Georgia,serif;min-width:220px;padding:4px">${isItinRelevant?'<div style="background:#111;color:white;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;margin-bottom:6px;display:inline-block">📍 AFFECTS YOUR ROUTE</div><br>':''}<div style="font-weight:700;font-size:13px;color:${color};margin-bottom:4px">${esc(d.title)}</div><div style="font-size:11px;color:#555;margin-bottom:6px">📍 ${esc((d.location||'').replace(/\[.*?\]/g,'').trim().slice(0,60))}</div><div style="font-size:11px;color:#333;line-height:1.5;margin-bottom:8px">${esc((d.desc||'').slice(0,160))}</div>${d.sourceUrl?`<a href="${esc(d.sourceUrl)}" target="_blank" style="font-size:10px;color:#DC2626;font-weight:600">Source →</a>`:''}</div>`,{maxWidth:280});
+      marker.bindPopup(`<div style="font-family:Georgia,serif;min-width:220px;padding:4px">${isRelevant?'<div style="background:#111;color:white;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;margin-bottom:6px;display:inline-block">📍 ON YOUR ROUTE</div><br>':''}<div style="font-weight:700;font-size:13px;color:${color};margin-bottom:4px">${esc(d.title)}</div><div style="font-size:11px;color:#555;margin-bottom:6px">📍 ${esc((d.location||'').replace(/\[.*?\]/g,'').trim().slice(0,60))}</div><div style="font-size:11px;color:#333;line-height:1.5;margin-bottom:8px">${esc((d.desc||'').slice(0,160))}</div>${d.sourceUrl?`<a href="${esc(d.sourceUrl)}" target="_blank" style="font-size:10px;color:#DC2626;font-weight:600">Source →</a>`:''}</div>`,{maxWidth:280});
       rwMapMarkers.push(marker);
     }
   });
@@ -2190,7 +2179,7 @@ function rwBuildCard(d,i){
         <span style="font-size:9px;font-weight:700;color:${sevColor};background:${sevBg};padding:2px 7px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase">${(d.severity||'').toUpperCase()}</span>
       </div>
     </div>
-    ${d._itinRelevant&&rwItineraries.length>0?`<div style="background:#111;color:white;font-size:9px;font-weight:700;padding:3px 14px;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:6px"><span>📍</span> AFFECTS YOUR ROUTE</div>`:''}
+    ${d._itinRelevant?'<div style="font-size:8px;font-weight:700;color:white;background:#111;padding:2px 8px;letter-spacing:.06em">📍 ON YOUR ROUTE</div>':''}
     <div style="padding:10px 14px">
       <div style="font-size:13px;font-weight:800;color:${sevColor};letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px">${action}</div>
       ${junctions||direction?`<div style="font-size:13px;font-weight:600;color:#111;margin-bottom:4px">${esc([junctions,direction].filter(Boolean).join(' · '))}</div>`:''}
@@ -2342,7 +2331,6 @@ function rwCheckItineraryImpacts(){
       disruptions:affected.slice(0,3)
     };
   });
-  rwRenderItineraries();
 }
 
 function rwLoadItinerary(id){
@@ -2512,9 +2500,10 @@ function rwRenderNews(){
 }
 
 function rwRenderStats(){
-  // Stat cards for counts are updated by rwRenderDisruptions() to reflect visible items
-  // This function handles news count + threat bar
   document.getElementById('rw-s-news').textContent=rwNews.length;
+  const onRoute=rwDisruptions.filter(d=>(d.severity==='critical'||d.severity==='high')&&rwIsDisruptionRelevantToItineraries(d)).length;
+  const el=document.getElementById('rw-s-route');
+  if(el)el.textContent=onRoute;
   rwUpdateThreatBar();
 }
 
@@ -2589,16 +2578,19 @@ async function rwGenerateBriefing(force = false) {
   const delayedFlights = flArr.filter(f => (f.arr_delayed||0) >= 30 || (f.dep_delayed||0) >= 30);
   const nhClosures = rwDisruptions.filter(d => d.source === 'National Highways Open Data');
 
-  const itinImpacts = rwItineraries.map(itin => {
-    const impact = rwItineraryImpacts?.[itin.id];
-    if (impact?.hasCritical) return `${itin.name} (${itin.from} → ${itin.to}) is critically affected`;
-    if (impact?.hasHigh) return `${itin.name} (${itin.from} → ${itin.to}) has delays`;
+  const todayLegId=rwGetTodaysTourDay();
+  const todayLeg=rwItineraries.find(i=>i.id===todayLegId);
+  const todayTour=TOURS.find(t=>t.legs.some(l=>l.id===todayLegId));
+  const todayContext=todayLeg
+    ?`TODAY'S ACTIVE ROUTE: ${todayTour?.name} — ${todayLeg.name} (${todayLeg.from} → ${todayLeg.to} via ${(todayLeg.roads||[]).join(', ')})`
+    :'No active tour leg today.';
+  const itinImpacts=rwItineraries.map(itin=>{
+    const impact=rwItineraryImpacts?.[itin.id];
+    if(impact?.hasCritical)return`${itin.name} (${itin.from} → ${itin.to}) is critically affected`;
+    if(impact?.hasHigh)return`${itin.name} (${itin.from} → ${itin.to}) has delays`;
     return null;
   }).filter(Boolean);
-  const itinContext = rwItineraries.length > 0
-    ? '\nSaved routes to prioritise: ' + rwItineraries.map(i => i.name + ' (' + i.from + ' to ' + i.to + ')').join('; ')
-    + (itinImpacts.length ? '\nRoute impacts: ' + itinImpacts.join('; ') : '')
-    : '';
+  const itinContext='\n'+todayContext+(itinImpacts.length?'\nRoute impacts: '+itinImpacts.join('; '):'');
 
   const context = `Date/Time: ${dateStr}, ${timeStr}
 Total disruptions: ${rwDisruptions.length}
@@ -2676,6 +2668,9 @@ function rwGenerateLocalBriefing() {
   const nhGroups = rwDisruptions.filter(d => d.id?.startsWith('nh-group-')&&(d.area==='london'||!d.area));
   const flArr = typeof flFlights !== 'undefined' ? flFlights : [];
   const delayed = flArr.filter(f => (f.arr_delayed||0) >= 30 || (f.dep_delayed||0) >= 30);
+  const todayLegId=rwGetTodaysTourDay();
+  const todayLeg=rwItineraries.find(i=>i.id===todayLegId);
+  const todayTour=TOURS.find(t=>t.legs.some(l=>l.id===todayLegId));
 
   const sentences = [];
 
@@ -2707,6 +2702,12 @@ function rwGenerateLocalBriefing() {
 
   if (critical.length >= 3 || (critical.length >= 1 && protests.length >= 1)) {
     sentences.push(`Allow 30+ minutes additional time on any central London route.`);
+  }
+
+  if (todayLeg) {
+    const impact=rwItineraryImpacts?.[todayLeg.id];
+    const impactText=impact?.hasCritical?' — CRITICAL disruption on route':impact?.hasHigh?' — delays on route':'';
+    sentences.push(`Active tour leg: ${todayTour?.name} — ${todayLeg.name} (${todayLeg.from} → ${todayLeg.to})${impactText}.`);
   }
 
   return sentences.join(' ');
