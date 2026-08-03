@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.2.2 -->
+<!-- roadwatch v3.2.3 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -608,6 +608,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
       <button class="fbtn-rw" onclick="rwSetFilter('area','cotswolds',this)">🌿 Cotswolds</button>
       <button class="fbtn-rw" onclick="rwSetFilter('area','both',this)">All Areas</button>
     </div>
+    <button id="rw-moderate-toggle" class="alerts-btn-rw" style="border-color:#F59E0B;color:#F59E0B" onclick="rwToggleModerate()">Show Moderate</button>
     <button class="alerts-btn-rw" onclick="rwToggleAlerts()">🔔 Alerts</button>
     <button onclick="rwToggleMap()" id="rw-map-btn" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--rw-muted,#666);font-family:inherit">🗺 Map View</button>
     <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">2:00</span></button>
@@ -939,6 +940,7 @@ const RW_RSS_FEEDS=[
 ];
 
 let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all',area:'all'},rwApiKey='';
+let rwShowModerate=false;
 let rwLastBriefing=0,rwBriefingText='';
 let rwRefTimer=null,rwCdTimer=null,rwCdSecs=300,rwAlerts={},rwAlertsPanelOpen=false,rwAudioCtx=null,rwTabTimer=null;
 let rwGChatUrl='',rwGChatSentIds=new Set(),rwAcTimer=null;
@@ -1440,6 +1442,21 @@ function rwStartCd(){rwCdSecs=120;clearInterval(rwCdTimer);rwCdTimer=setInterval
 
 function rwMapCat(c){if(!c)return'default';c=c.toLowerCase();if(c.includes('closure'))return'RoadClosure';if(c.includes('event')||c.includes('special'))return'SpecialEvent';if(c.includes('incident'))return'Incident';return'Works'}
 function rwMapSev(s){if(!s)return'low';s=s.toLowerCase();if(s==='serious'||s==='blocker')return'critical';if(s==='moderate'||s==='significant')return'high';if(s==='minimal'||s==='minor')return'medium';return'low'}
+function rwBuildTitle(d){
+  const loc=d.location||d.commonName||'';
+  const desc=d.comments||d.description||'';
+  const roadMatch=loc.match(/\[([A-Z0-9]+)\]/);
+  const road=roadMatch?roadMatch[1]:loc.split('(')[0].trim().slice(0,30);
+  const action=/closed|closure/i.test(desc)?'Road Closed':
+               /contraflow/i.test(desc)?'Contraflow':
+               /signals|traffic lights/i.test(desc)?'Traffic Signals':
+               /lane/i.test(desc)?'Lane Restrictions':
+               /burst|leak|water main/i.test(desc)?'Emergency Works':
+               /crane/i.test(desc)?'Crane Operation':
+               /broken down/i.test(desc)?'Broken Down Vehicle':
+               'Works';
+  return road?road+' — '+action:action;
+}
 function rwNormActive(d){
   const roads=(d.roads||[]).map(r=>r.displayName||r.id).filter(Boolean);
   const desc=[d.comments,d.additionalInfo].filter(Boolean).join(' ').trim()||d.description||'';
@@ -1451,7 +1468,7 @@ function rwNormActive(d){
   let delayMinutes=0;
   const dm=dl.match(/(\d+)\s*(?:minute|min)/);if(dm)delayMinutes=parseInt(dm[1]);
   if(d.comments||d.description){const text=((d.comments||'')+' '+(d.description||'')).toLowerCase();const delayMatch=text.match(/(\d+)\s*(?:minute|min)/);if(delayMatch){d._delayMinutes=parseInt(delayMatch[1]);if(d._delayMinutes>=60&&sev!=='critical')sev='critical';else if(d._delayMinutes>=30&&sev==='low')sev='high';}}
-  return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:sev,roads,source:'TfL Traffic Control',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:d.hasDiversions||false,isActive:true,delayMinutes}
+  return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:rwBuildTitle(d)||d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:sev,roads,source:'TfL Traffic Control',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:d.hasDiversions||false,isActive:true,delayMinutes}
 }
 function rwNormPlanned(d){const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);return{id:d.id||rnd(),category:'Planned',title:d.description||'Planned works',desc:d.additionalInfo||d.description||'',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:false,isActive:false}}
 
@@ -1483,6 +1500,7 @@ async function rwFetchTfl(){
     }catch(e){console.log('TfL planned error:',e.message);}
     list=list.filter((item,index,self)=>index===self.findIndex(x=>x.id===item.id));
     const seen=new Set();list=list.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().trim();if(seen.has(key))return false;seen.add(key);return true});
+    const seenLoc=new Set();list=list.filter(d=>{const key=(d.location||'').toLowerCase().replace(/\s+/g,'').slice(0,40);if(!key||seenLoc.has(key))return false;seenLoc.add(key);return true});
     list.sort((a,b)=>{const o={critical:0,high:1,medium:2,low:3};const dd=(o[a.severity]??4)-(o[b.severity]??4);if(dd!==0)return dd;if(a.isActive!==b.isActive)return a.isActive?-1:1;return(a.startDate||'').localeCompare(b.startDate||'')});
 
     // ── Inject verified ongoing disruptions (add items here when needed) ──
@@ -1589,14 +1607,40 @@ async function fetchNHOpenData(){
     });
     console.log('NH OpenData London relevant:',newItems.length);
     if(newItems.length>0){
-      const existIds=new Set(rwDisruptions.map(d=>d.id));
-      const fresh=newItems.filter(it=>!existIds.has(it.id));
-      if(fresh.length>0){
-        rwDisruptions=[...fresh,...rwDisruptions];
-        const seen=new Set();
-        rwDisruptions=rwDisruptions.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().replace(/\s+/g,'');if(seen.has(key))return false;seen.add(key);return true;});
-        rwRenderDisruptions();rwRenderStats();rwRenderTicker();
-      }
+      // Group by region, replace individual items with one summary card per region
+      const nhByRegion={};
+      newItems.forEach(d=>{
+        const loc=(d.location||d.title||'').toLowerCase();
+        const region=loc.includes('m25')?'M25 Orbital':
+                     (loc.includes('m1')||loc.includes('m6'))?'Midlands/North':
+                     (loc.includes('m4')||loc.includes('m3')||loc.includes('m27'))?'South West':
+                     (loc.includes('m20')||loc.includes('m2')||loc.includes('a2'))?'South East/Kent':
+                     'National Network';
+        if(!nhByRegion[region])nhByRegion[region]=[];
+        nhByRegion[region].push(d);
+      });
+      // Remove old individual NH Open Data items and old group cards
+      rwDisruptions=rwDisruptions.filter(d=>d.source!=='National Highways Open Data'||d._nhGroup);
+      rwDisruptions=rwDisruptions.filter(d=>!d.id||!d.id.startsWith('nh-group-'));
+      // Add one summary card per region
+      Object.entries(nhByRegion).forEach(([region,items])=>{
+        const roads=[...new Set(items.map(d=>d.roads?.[0]).filter(Boolean))].slice(0,6).join(', ');
+        rwDisruptions.push({
+          id:'nh-group-'+region.replace(/\s/g,'-'),
+          category:'RoadClosure',
+          title:region+' — '+items.length+' Overnight Closures',
+          desc:'National Highways planned overnight maintenance on '+(roads||'various roads')+'. All closures 22:00–05:30 with signed diversions.',
+          location:region,
+          startDate:items[0]?.startDate,
+          startTime:'22:00',endDate:null,endTime:'05:30',
+          severity:'high',
+          roads:[...new Set(items.flatMap(d=>d.roads||[]))].slice(0,8),
+          source:'National Highways',
+          sourceUrl:'https://nationalhighways.co.uk/travel-updates/road-closure-report/',
+          hasDiversion:true,isActive:true,_nhGroup:items
+        });
+      });
+      rwRenderDisruptions();rwRenderStats();rwRenderTicker();
     }
   }catch(e){console.log('NH OpenData error:',e.message);}
 }
@@ -1690,30 +1734,36 @@ async function fetchCotswoldsData(){
 }
 
 function rwRenderDisruptions(){
-  const f=rwDisruptions.filter(d=>{
+  let f=rwDisruptions.filter(d=>{
     const typeOk=rwFilters.type==='all'||d.category===rwFilters.type;
     const sevOk=rwFilters.sev==='all'||d.severity===rwFilters.sev;
     const areaOk=rwFilters.area==='all'?(!d.area||d.area!=='cotswolds'):rwFilters.area==='cotswolds'?d.area==='cotswolds':true;
     return typeOk&&sevOk&&areaOk;
   });
+  if(!rwShowModerate)f=f.filter(d=>d.severity!=='medium');
+  const moderateCount=rwDisruptions.filter(d=>d.severity==='medium').length;
+  const btn=document.getElementById('rw-moderate-toggle');
+  if(btn)btn.textContent=rwShowModerate?'Hide Moderate':'Show Moderate ('+moderateCount+')';
   document.getElementById('rw-disrupt-cnt').textContent=`${f.length} disruption${f.length!==1?'s':''}`;
   const grid=document.getElementById('rw-grid');
   if(!f.length){grid.innerHTML=`<div class="state-panel"><div class="state-icon">${rwDisruptions.length?'🔍':'✅'}</div><div class="state-title-rw">${rwDisruptions.length?'No matches':'No active disruptions'}</div><div class="state-sub-rw">${rwDisruptions.length?'Adjust filters.':'TfL reports no disruptions right now.'}</div></div>`;return}
   grid.innerHTML=f.map((d,i)=>{
     const tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default,sc=RW_SEV_CFG[d.severity]||RW_SEV_CFG.low;
     const du=daysUntil(d.startDate),duc=du==='Now'||du==='Today'?'#EF4444':du==='Tomorrow'?'#F59E0B':'#6B7280';
-    const rtags=(d.roads||[]).slice(0,4).map(r=>`<span class="road-tag-rw">${esc(r)}</span>`).join('')+((d.roads||[]).length>4?`<span class="road-tag-rw">+${d.roads.length-4}</span>`:'');
-    const ds=d.startDate?fmtDate(d.startDate)+(d.startTime?` · ${d.startTime}`:'')+(d.endDate&&d.endDate!==d.startDate?` → ${fmtDate(d.endDate)}`:''):'Ongoing';
-    return`<div class="d-card-rw" style="animation-delay:${i*.04}s" onclick='rwOpenModal(${JSON.stringify(JSON.stringify(d))})'>
-      <div class="card-top"><div class="badge-row"><span class="badge" style="background:${tc.bg};color:${tc.color}">${tc.icon} ${tc.label}</span><span class="badge" style="background:#1F2937;color:${sc.color};border:1px solid ${sc.color}33">● ${sc.label}</span>${d.isActive?'<span class="badge" style="background:#0f2617;color:#10B981;border:1px solid #10B98133">● LIVE</span>':''}${d.delayMinutes>30?`<span class="badge" style="background:#1a0505;color:#EF4444;border:1px solid #EF444433">⏱ +${d.delayMinutes}min</span>`:''}</div>${du?`<span class="days-lbl" style="color:${duc}">${du}</span>`:''}</div>
+    const rtags=(d.roads||[]).length<=3?(d.roads||[]).map(r=>`<span class="road-tag-rw">${esc(r)}</span>`).join(''):'';
+    const ds=d.startDate?fmtDate(d.startDate)+(d.startTime?` · ${d.startTime}`:''):'Ongoing';
+    return`<div class="d-card-rw" style="animation-delay:${i*.04}s;border-left:3px solid ${sc.color}" onclick='rwOpenModal(${JSON.stringify(JSON.stringify(d))})'>
+      <div class="card-top"><div class="badge-row"><span class="badge" style="background:${tc.bg};color:${tc.color}">${tc.icon} ${tc.label}</span><span class="badge" style="background:#1F2937;color:${sc.color};border:1px solid ${sc.color}33">● ${sc.label}</span></div>${du?`<span class="days-lbl" style="color:${duc}">${du}</span>`:''}</div>
       <div class="card-title-rw">${esc(d.title)}</div>
       <div class="card-loc-rw">📍 ${esc(d.location)}</div>
-      <div class="card-desc-rw">${esc(trunc(d.desc||d.title,140))}</div>
-      ${rtags?`<div class="road-tags">${rtags}</div>`:''}
-      <div class="card-foot-rw"><div class="card-date-rw">${ds}</div>${d.hasDiversion?'<span class="div-tag">↪ Diversion</span>':''}</div>
-      <div class="card-src-rw"><span class="src-badge-rw" style="background:#1a1205;color:#F59E0B;border:1px solid #F59E0B33">TfL</span>${d.sourceUrl?`<a href="${esc(d.sourceUrl)}" target="_blank" rel="noopener" style="color:#F59E0B;text-decoration:none">${esc(d.source)}</a>`:esc(d.source)}</div>
+      <div class="card-desc-rw" style="font-size:12px">${esc(trunc(d.desc||d.title,120))}</div>
+      <div class="card-foot-rw"><div class="road-tags" style="margin:0">${rtags}</div><div class="card-date-rw">${ds}${d.hasDiversion?' · ↪':''}</div></div>
     </div>`}).join('');
   if (rwMapShown) rwPlotDisruptions();
+}
+function rwToggleModerate(){
+  rwShowModerate=!rwShowModerate;
+  rwRenderDisruptions();
 }
 
 function rwRenderNews(){
