@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.4.1 -->
+<!-- roadwatch v3.4.2 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1110,8 +1110,8 @@ function rwPlotDisruptions() {
   const TOUR1_WP=[[55.950,-3.362],[56.817,-5.105],[57.413,-6.196],[56.817,-5.105],[56.679,-5.102],[54.325,-2.742],[54.369,-2.902],[54.325,-2.742],[53.293,-3.727],[53.189,-2.891],[53.118,-4.128],[53.189,-2.891],[52.052,-1.692],[51.884,-1.756],[51.559,-0.279],[50.769,0.099]];
   const TOUR2_WP=[[53.354,-2.275],[53.479,-2.245],[53.003,-2.273],[51.748,-1.138],[51.494,-0.158],[51.460,-0.448]];
   const TOUR3_WP=[[51.477,-0.461],[51.752,-1.257],[51.884,-1.756],[52.476,-1.905],[52.671,-2.270],[53.400,-2.992],[53.479,-2.245],[54.369,-2.902],[55.864,-4.252],[56.679,-5.102],[57.142,-4.682],[57.192,-3.825],[55.950,-3.188],[55.864,-4.252],[54.978,-1.613],[53.959,-1.082],[53.800,-1.549],[52.205,0.119],[51.477,-0.461],[51.484,-0.604],[50.769,0.099],[51.477,-0.461],[51.500,-0.126]];
-  [[TOUR1_WP,'#DC2626','Scotland/Wales Tour Aug'],[TOUR2_WP,'#2563EB','Osaka Phil Jun'],[TOUR3_WP,'#16A34A','UK Grand Tour Jun-Jul']].forEach(([wp,color,name])=>{
-    const line=L.polyline(wp,{color,weight:2,opacity:0.3,dashArray:'4,8'}).addTo(rwMap);
+  [[TOUR1_WP,'#1a1a1a','Scotland/Wales Tour Aug'],[TOUR2_WP,'#1a3a6b','Osaka Phil Jun'],[TOUR3_WP,'#1a4a1a','UK Grand Tour Jun-Jul']].forEach(([wp,color,name])=>{
+    const line=L.polyline(wp,{color,weight:2.5,opacity:0.5,dashArray:'5,6'}).addTo(rwMap);
     line.bindTooltip(name,{sticky:true,direction:'top'});
     window.rwTourCorridors.push(line);
   });
@@ -1518,7 +1518,79 @@ async function rwCheckJourney() {
   }
 }
 
+const LOCATION_ALIASES = {
+  'edinburgh airport': 'Edinburgh Airport EH12 9DN',
+  'glasgow airport': 'Glasgow Airport PA3 2SW',
+  'manchester airport': 'Manchester Airport M90 1QX',
+  'heathrow': 'Heathrow Airport TW6 1EW',
+  'heathrow terminal 4': 'Heathrow Terminal 4 TW6 3XA',
+  'heathrow terminal 5': 'Heathrow Terminal 5 TW6 2GA',
+  'heathrow radisson blu ub3 5aw': 'Bath Road Heathrow UB3 5AW',
+  'gatwick': 'Gatwick Airport RH6 0NP',
+  'gatwick airport': 'Gatwick Airport RH6 0NP',
+  'stansted airport': 'Stansted Airport CM24 1RW',
+  'luton airport': 'Luton Airport LU2 9LY',
+  'city airport': 'London City Airport E16 2PX',
+  'fort william': 'Fort William PH33 6AN',
+  'glen coe': 'Glencoe PH49 4HT',
+  'glencoe': 'Glencoe PH49 4HT',
+  'glenfinnan': 'Glenfinnan PH37 4LT',
+  'mallaig': 'Mallaig PH41 4PX',
+  'portree': 'Portree IV51 9EL',
+  'broadford': 'Broadford IV49 9AB',
+  'aviemore': 'Aviemore PH22 1PP',
+  'fort augustus': 'Fort Augustus PH32 4DS',
+  'loch ness': 'Fort Augustus PH32 4DS',
+  'kendal': 'Kendal LA9 4DQ',
+  'windermere': 'Windermere LA23 1AQ',
+  'grasmere': 'Grasmere LA22 9RR',
+  'conwy': 'Conwy LL32 8LD',
+  'llangollen': 'Llangollen LL20 8PS',
+  'llanberis': 'Llanberis LL55 4TY',
+  'bourton on water': 'Bourton on the Water GL54 2BY',
+  'bourton-on-water': 'Bourton on the Water GL54 2BY',
+  'chipping campden': 'Chipping Campden GL55 6AT',
+  'lower slaughter': 'Lower Slaughter GL54 2EY',
+  'london wembley': 'Wembley HA9 0NP',
+  'seaford': 'Seaford BN25 4AB',
+  'birling gap': 'Birling Gap BN20 0AB',
+  'seven sisters': 'Birling Gap BN20 0AB',
+  'cambridge': 'Cambridge CB2 1TN',
+  'windsor': 'Windsor SL4 1NJ',
+  'eastbourne': 'Eastbourne BN25 4AB',
+  'albrighton': 'Albrighton WV7 3EA',
+  'keele services': 'Keele ST5 5HG',
+  'oxford services': 'Oxford Services OX33 1LJ',
+  'cadogan hall': 'Sloane Terrace London SW1X 9DQ',
+  'newcastle': 'Newcastle upon Tyne NE1 4SG',
+  'newcastle u tyne': 'Newcastle upon Tyne NE1 4SG',
+  'york': 'York YO1 7HH',
+  'leeds': 'Leeds LS1 1PJ',
+  'liverpool': 'Liverpool L1 8JQ',
+  'chester': 'Chester CH1 2DG',
+  'birmingham': 'Birmingham B1 1BB',
+  'park regis birmingham b15 1dt': 'Broad Street Birmingham B15 1DT',
+  'glasgow crowne plaza g3 8qt': 'Congress Road Glasgow G3 8QT',
+  'aviemore coylumbridge ph22 1qn': 'Coylumbridge Aviemore PH22 1QN',
+  'glasgow airport courtyard pa3 2sj': 'Marchburn Drive Paisley PA3 2SJ',
+  'ramada leeds ls9 0as': 'Skelton Lake Leeds LS9 0AS',
+  'central london': 'Trafalgar Square London WC2N 5DN',
+  'heathrow airport': 'Heathrow Airport TW6 1EW',
+};
+
+function rwResolveLocation(input) {
+  if (!input) return input;
+  const lower = input.toLowerCase().trim();
+  if (LOCATION_ALIASES[lower]) return LOCATION_ALIASES[lower];
+  for (const [alias, resolved] of Object.entries(LOCATION_ALIASES)) {
+    if (lower.includes(alias) || alias.includes(lower)) return resolved;
+  }
+  return input;
+}
+
 async function rwGeocode(query) {
+  query = rwResolveLocation(query);
+  console.log('Geocoding:', query);
   const API_KEY = rwApiKey || '3bb8014b0089484dbc8d72613e538d2a';
   try {
     const res = await fetch(`https://api.tfl.gov.uk/StopPoint/Search/${encodeURIComponent(query)}?modes=tube,bus,national-rail,overground,elizabeth-line,dlr&app_key=${API_KEY}`);
@@ -2285,7 +2357,16 @@ function rwCheckItineraryImpacts(){
     const affected=rwDisruptions.filter(d=>{
       if(d.severity!=='critical'&&d.severity!=='high')return false;
       const loc=(d.location+' '+d.title+' '+d.desc+' '+(d.roads||[]).join(' ')).toLowerCase();
-      return[...keywords].some(kw=>kw.length>2&&loc.includes(kw));
+      const isRelevant=[...keywords].some(kw=>kw.length>2&&loc.includes(kw));
+      if(!isRelevant)return false;
+      const desc=(d.desc||d.comments||'').toLowerCase();
+      const isMajorImpact=
+        d.category==='RoadClosure'||
+        d.category==='Incident'||
+        d.category==='SpecialEvent'||
+        /closed|closure|blocked|protest|march|accident|collision|road works on major/i.test(desc)||
+        d.severity==='critical';
+      return isMajorImpact;
     });
     rwItineraryImpacts[itin.id]={
       hasCritical:affected.some(d=>d.severity==='critical'),
@@ -2310,7 +2391,20 @@ function rwLoadItinerary(id){
   document.getElementById('rw-journey-panel')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function rwCheckItineraryJourney(id){rwLoadItinerary(id);setTimeout(()=>rwCheckJourney(),300);}
+function rwCheckItineraryJourney(id){
+  const itin=rwItineraries.find(i=>i.id===id);
+  if(!itin)return;
+  const resolvedFrom=rwResolveLocation(itin.from);
+  const resolvedTo=rwResolveLocation(itin.to);
+  document.getElementById('rw-journey-from').value=resolvedFrom;
+  document.getElementById('rw-journey-to').value=resolvedTo;
+  const body=document.getElementById('rw-journey-body');
+  const chevron=document.getElementById('rw-journey-chevron');
+  if(body)body.style.display='block';
+  if(chevron)chevron.style.transform='rotate(180deg)';
+  document.getElementById('rw-journey-panel')?.scrollIntoView({behavior:'smooth',block:'start'});
+  setTimeout(()=>rwCheckJourney(),400);
+}
 
 async function rwPlotItineraryOnMap(itin){
   if(!rwMap||!itin)return;
@@ -2369,7 +2463,14 @@ function rwIsDisruptionRelevantToItineraries(d){
   const keywords=rwGetItineraryRouteKeywords();
   if(!keywords)return true;
   const loc=(d.location+' '+d.title+' '+d.desc+' '+(d.roads||[]).join(' ')).toLowerCase();
-  return[...keywords].some(kw=>kw.length>2&&loc.includes(kw));
+  const isRelevant=[...keywords].some(kw=>kw.length>2&&loc.includes(kw));
+  if(!isRelevant)return false;
+  const desc=(d.desc||'').toLowerCase();
+  const is30Min=d.severity==='critical'||
+    d.category==='RoadClosure'||
+    d.category==='Incident'||
+    /closed|closure|blocked|accident|protest/i.test(desc);
+  return is30Min;
 }
 
 function rwRenderDisruptions(){
