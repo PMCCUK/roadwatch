@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.3.5 -->
+<!-- roadwatch v3.3.7 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1124,7 +1124,9 @@ function rwPlotDisruptions() {
   });
 
   toRender.forEach(d => {
-    const weight = sevWeight[d.severity] || 0.3;
+    const baseWeight = sevWeight[d.severity] || 0.3;
+    const itinBoost = (rwItineraries.length>0 && rwIsDisruptionRelevantToItineraries(d)) ? 0.4 : 0;
+    const weight = Math.min(1.0, baseWeight + itinBoost);
 
     // Fast path: use stored coords for motorway incidents
     if (d._lat && d._lon) {
@@ -1275,6 +1277,24 @@ function rwPlotDisruptions() {
   const motorwayCount=toRender.filter(d=>d._isMotorwayIncident).length;
   const countEl=document.getElementById('rw-map-count');
   if(countEl)countEl.textContent=heatPoints.length+' disruptions mapped'+(motorwayCount>0?' · '+motorwayCount+' major UK incidents':'');
+
+  if(rwItineraries.length>0){
+    if(window.rwItinCorridors){window.rwItinCorridors.forEach(l=>{try{rwMap.removeLayer(l)}catch(e){}});}
+    window.rwItinCorridors=[];
+    rwItineraries.forEach(async itin=>{
+      try{
+        const fromGeo=await rwGeocode(itin.from);
+        const toGeo=await rwGeocode(itin.to);
+        if(!fromGeo||!toGeo)return;
+        const line=L.polyline([[fromGeo.lat,fromGeo.lon],[toGeo.lat,toGeo.lon]],{color:'#111',weight:2,opacity:0.25,dashArray:'4,6'}).addTo(rwMap);
+        const fromDot=L.circleMarker([fromGeo.lat,fromGeo.lon],{radius:5,fillColor:'#111',color:'white',weight:2,opacity:1,fillOpacity:1}).addTo(rwMap);
+        fromDot.bindTooltip(itin.name+': '+itin.from,{permanent:false,direction:'top'});
+        const toDot=L.circleMarker([toGeo.lat,toGeo.lon],{radius:5,fillColor:'#DC2626',color:'white',weight:2,opacity:1,fillOpacity:1}).addTo(rwMap);
+        toDot.bindTooltip(itin.name+': '+itin.to,{permanent:false,direction:'top'});
+        window.rwItinCorridors.push(line,fromDot,toDot);
+      }catch(e){}
+    });
+  }
 }
 
 function rwPointNearRoute(routeCoords, lat, lon, bufferKm = 2.0) {
@@ -2186,6 +2206,7 @@ function rwBuildCard(d,i){
         <span style="font-size:9px;font-weight:700;color:${sevColor};background:${sevBg};padding:2px 7px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase">${(d.severity||'').toUpperCase()}</span>
       </div>
     </div>
+    ${d._itinRelevant&&rwItineraries.length>0?`<div style="background:#111;color:white;font-size:9px;font-weight:700;padding:3px 14px;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:6px"><span>📍</span> AFFECTS YOUR ROUTE</div>`:''}
     <div style="padding:10px 14px">
       <div style="font-size:13px;font-weight:800;color:${sevColor};letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px">${action}</div>
       ${junctions||direction?`<div style="font-size:13px;font-weight:600;color:#111;margin-bottom:4px">${esc([junctions,direction].filter(Boolean).join(' · '))}</div>`:''}
@@ -2254,19 +2275,17 @@ function rwCheckItineraryImpacts(){
   rwItineraries.forEach(itin=>{
     const fromLower=itin.from.toLowerCase();
     const toLower=itin.to.toLowerCase();
-    const routeHints=[
-      ...fromLower.split(/\s+/),
-      ...toLower.split(/\s+/),
-      ...(fromLower.includes('heathrow')||toLower.includes('heathrow')?['m4','a4','a316','heathrow']:[]),
-      ...(fromLower.includes('gatwick')||toLower.includes('gatwick')?['m23','a23','gatwick']:[]),
-      ...(fromLower.includes('canary wharf')||toLower.includes('canary wharf')?['a13','a12','a102','docklands']:[]),
-      ...(fromLower.includes('city')||toLower.includes('city')?['a1','a10','a11','a13','city']:[]),
-      ...(fromLower.includes('westminster')||toLower.includes('westminster')?['a4','a3212','whitehall','westminster']:[]),
-    ];
+    const combined=fromLower+' '+toLower;
+    const keywords=new Set();
+    combined.split(/\s+/).forEach(w=>{if(w.length>3)keywords.add(w);});
+    Object.entries(ITIN_ROUTE_ROAD_MAP).forEach(([place,roads])=>{
+      if(combined.includes(place))roads.forEach(r=>keywords.add(r));
+    });
+    (combined.match(/\b[AM]\d+[A-Z]?\b/gi)||[]).forEach(r=>keywords.add(r.toLowerCase()));
     const affected=rwDisruptions.filter(d=>{
       if(d.severity!=='critical'&&d.severity!=='high')return false;
-      const loc=(d.location+' '+d.title+' '+(d.roads||[]).join(' ')).toLowerCase();
-      return routeHints.some(hint=>hint.length>2&&loc.includes(hint));
+      const loc=(d.location+' '+d.title+' '+d.desc+' '+(d.roads||[]).join(' ')).toLowerCase();
+      return[...keywords].some(kw=>kw.length>2&&loc.includes(kw));
     });
     rwItineraryImpacts[itin.id]={
       hasCritical:affected.some(d=>d.severity==='critical'),
@@ -2276,7 +2295,6 @@ function rwCheckItineraryImpacts(){
     };
   });
   rwRenderItineraries();
-  if(rwMapShown&&rwActiveItinerary)rwPlotItineraryOnMap(rwActiveItinerary);
 }
 
 function rwLoadItinerary(id){
@@ -2306,6 +2324,52 @@ async function rwPlotItineraryOnMap(itin){
     L.marker([toGeo.lat,toGeo.lon],{icon:L.divIcon({html:`<div style="background:#DC2626;color:white;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)">${esc(itin.name)}: TO</div>`,className:''})}).addTo(rwMap);
     rwMap.fitBounds(window.rwItinLayer.getBounds(),{padding:[60,60]});
   }catch(e){console.log('Itinerary map error:',e.message);}
+}
+
+const ITIN_ROUTE_ROAD_MAP={
+  'heathrow':['m4','a4','a316','a3044','a30','m25','a312'],
+  'gatwick':['m23','a23','m25','a217'],
+  'stansted':['m11','a120','a1184'],
+  'luton':['m1','a1081','a505','m25'],
+  'city airport':['a13','a1020','a117','docklands'],
+  'canary wharf':['a13','a12','a102','a1203','a1206','docklands','isle of dogs'],
+  'liverpool street':['a10','a11','a1209','bishopsgate','city'],
+  'victoria':['a3212','a202','buckingham palace road','vauxhall'],
+  'waterloo':['a301','stamford street','southbank'],
+  'london bridge':['a3','a200','borough','tooley street'],
+  'kings cross':['a501','a1','euston road','pentonville'],
+  'paddington':['a40','a402','praed street','westway'],
+  'euston':['a501','a4200','euston road'],
+  'west end':['a4','a400','a501','oxford street','regent street'],
+  'city':['a1','a10','a11','a13','a3211','london wall','aldgate'],
+  'westminster':['a3212','a302','whitehall','parliament square'],
+  'greenwich':['a102','a2','a200','blackwall tunnel'],
+  'croydon':['a23','a232','a212'],
+  'wimbledon':['a24','a219','a238'],
+  'richmond':['a316','a205','a3'],
+  'putney':['a316','a219','a3'],
+  'chelsea':['a3212','a308'],
+  'knightsbridge':['a315','a4'],
+  'hammersmith':['a4','a316','a219'],
+};
+function rwGetItineraryRouteKeywords(){
+  if(!rwItineraries.length)return null;
+  const keywords=new Set();
+  rwItineraries.forEach(itin=>{
+    const combined=(itin.from+' '+itin.to).toLowerCase();
+    combined.split(/\s+/).forEach(w=>{if(w.length>3)keywords.add(w);});
+    Object.entries(ITIN_ROUTE_ROAD_MAP).forEach(([place,roads])=>{
+      if(combined.includes(place)){roads.forEach(r=>keywords.add(r));keywords.add(place);}
+    });
+    (combined.match(/\b[AM]\d+[A-Z]?\b/gi)||[]).forEach(r=>keywords.add(r.toLowerCase()));
+  });
+  return keywords;
+}
+function rwIsDisruptionRelevantToItineraries(d){
+  const keywords=rwGetItineraryRouteKeywords();
+  if(!keywords)return true;
+  const loc=(d.location+' '+d.title+' '+d.desc+' '+(d.roads||[]).join(' ')).toLowerCase();
+  return[...keywords].some(kw=>kw.length>2&&loc.includes(kw));
 }
 
 function rwRenderDisruptions(){
@@ -2344,6 +2408,15 @@ function rwRenderDisruptions(){
   document.getElementById('rw-s-crit').textContent=visSev.critical;
   document.getElementById('rw-s-high').textContent=visSev.high;
   document.getElementById('rw-s-med').textContent=visSev.medium;
+  if(rwItineraries.length>0){
+    f=f.map(d=>({...d,_itinRelevant:rwIsDisruptionRelevantToItineraries(d)}));
+    f.sort((a,b)=>{
+      if(a._itinRelevant&&!b._itinRelevant)return -1;
+      if(!a._itinRelevant&&b._itinRelevant)return 1;
+      const sev={critical:4,high:3,medium:2,low:1};
+      return(sev[b.severity]||0)-(sev[a.severity]||0);
+    });
+  }
   const grid=document.getElementById('rw-grid');
   if(!f.length){grid.innerHTML=`<div class="state-panel"><div class="state-icon">${rwDisruptions.length?'🔍':'✅'}</div><div class="state-title-rw">${rwDisruptions.length?'No matches':'No active disruptions'}</div><div class="state-sub-rw">${rwDisruptions.length?'Try "Show All" or adjust filters.':'TfL reports no disruptions right now.'}</div></div>`;return}
   grid.innerHTML=f.map((d,i)=>rwBuildCard(d,i)).join('');
@@ -2448,6 +2521,17 @@ async function rwGenerateBriefing(force = false) {
   const delayedFlights = flArr.filter(f => (f.arr_delayed||0) >= 30 || (f.dep_delayed||0) >= 30);
   const nhClosures = rwDisruptions.filter(d => d.source === 'National Highways Open Data');
 
+  const itinImpacts = rwItineraries.map(itin => {
+    const impact = rwItineraryImpacts?.[itin.id];
+    if (impact?.hasCritical) return `${itin.name} (${itin.from} → ${itin.to}) is critically affected`;
+    if (impact?.hasHigh) return `${itin.name} (${itin.from} → ${itin.to}) has delays`;
+    return null;
+  }).filter(Boolean);
+  const itinContext = rwItineraries.length > 0
+    ? '\nSaved routes to prioritise: ' + rwItineraries.map(i => i.name + ' (' + i.from + ' to ' + i.to + ')').join('; ')
+    + (itinImpacts.length ? '\nRoute impacts: ' + itinImpacts.join('; ') : '')
+    : '';
+
   const context = `Date/Time: ${dateStr}, ${timeStr}
 Total disruptions: ${rwDisruptions.length}
 Critical: ${critical.length} — ${critical.slice(0,3).map(d=>d.title+' at '+d.location).join('; ')}
@@ -2456,7 +2540,7 @@ Special events/protests: ${protests.length} — ${protests.slice(0,2).map(d=>d.t
 Road closures: ${closures.length}
 National Highways closures: ${nhClosures.length} — ${nhClosures.slice(0,3).map(d=>d.title).join('; ')}
 Delayed flights (30min+): ${delayedFlights.length} — ${delayedFlights.slice(0,2).map(f=>(f.airline_iata||'')+(f.flight_iata||'')+' '+(f._direction==='arrival'?'arriving':'departing')+' '+(f._airport||'')).join('; ')}
-News headlines: ${rwNews.slice(0,3).map(n=>n.title).join('; ')}`.trim();
+News headlines: ${rwNews.slice(0,3).map(n=>n.title).join('; ')}${itinContext}`.trim();
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
