@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.2.5 -->
+<!-- roadwatch v3.2.6 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1185,33 +1185,54 @@ async function rwCheckJourney() {
 
       // Google Maps link
       const gmapsUrl = `https://www.google.com/maps/dir/${fromGeo.lat},${fromGeo.lon}/${toGeo.lat},${toGeo.lon}`;
+      const normalMins=durationMins,currentMins=estimatedWithTraffic,deltaMins=currentMins-normalMins;
+      const fmtMins=m=>{const h=Math.floor(m/60),mn=m%60;return h>0?`${h}h ${String(mn).padStart(2,'0')}m`:`${m}m`;};
+      const dHrs=Math.floor(Math.abs(deltaMins)/60),dMn=Math.abs(deltaMins)%60;
+      const deltaStr=dHrs>0?`+${dHrs}h ${dMn}m`:`+${deltaMins}m`;
+      const dvColor=hasCritical?'#DC2626':hasHigh?'#D97706':'#16A34A';
+      const dvBg=hasCritical?'rgba(220,38,38,0.04)':hasHigh?'rgba(245,158,11,0.04)':'rgba(22,163,74,0.04)';
 
       result.innerHTML = `
-        <div style="background:${verdict.bg};border:1px solid ${verdict.color};border-radius:8px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
-          <span style="font-size:24px">${verdict.icon}</span>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="font-size:20px">${verdict.icon}</span>
           <div>
-            <div style="font-size:12px;font-weight:700;color:${verdict.color};letter-spacing:.03em">${verdict.text}</div>
-            <div style="font-size:13px;color:var(--rw-text,#111);margin-top:3px">${from} → ${to}</div>
-            <div style="font-size:11px;color:var(--rw-muted,#666);margin-top:2px">🚗 ${durationMins} min (clear) · ~${estimatedWithTraffic} min (with traffic est.) · ${distanceMiles} miles</div>
+            <div style="font-size:11px;font-weight:700;color:${verdict.color};letter-spacing:.04em">${verdict.text}</div>
+            <div style="font-size:12px;color:#374151;margin-top:1px">${esc(from)} → ${esc(to)}</div>
           </div>
         </div>
-        <div style="font-size:9px;color:var(--rw-muted,#666);margin-bottom:10px;padding:0 2px">
-          ⚡ Clear route time via OSRM · Traffic estimate based on time of day and active disruptions ·
+        <div style="display:flex;align-items:stretch;gap:0;margin-bottom:12px;border:1px solid #e5e5e5;border-radius:10px;overflow:hidden">
+          <div style="flex:1;padding:14px 16px;text-align:center;border-right:1px solid #e5e5e5">
+            <div style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Normal</div>
+            <div style="font-size:24px;font-weight:800;color:#111;letter-spacing:-0.03em;font-family:Georgia,serif">${fmtMins(normalMins)}</div>
+            <div style="font-size:9px;color:#9CA3AF;margin-top:3px">Clear roads</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 12px;background:#f9f9f9">
+            <div style="font-size:18px;color:#9CA3AF;line-height:1">→</div>
+            <div style="font-size:9px;color:#9CA3AF;margin-top:2px;white-space:nowrap">${distanceMiles} mi</div>
+          </div>
+          <div style="flex:1;padding:14px 16px;text-align:center;border-left:1px solid #e5e5e5;background:${dvBg}">
+            <div style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Current</div>
+            <div style="font-size:24px;font-weight:800;color:${dvColor};letter-spacing:-0.03em;font-family:Georgia,serif">${fmtMins(currentMins)}</div>
+            <div style="font-size:11px;font-weight:700;color:${dvColor};margin-top:3px;background:${dvBg};padding:2px 8px;border-radius:20px;display:inline-block">${deltaMins>0?deltaStr:'On Time'}</div>
+          </div>
+        </div>
+        <div style="font-size:9px;color:#9CA3AF;margin-bottom:10px">
+          ⚡ Clear time via OSRM · Traffic estimate from time of day + active disruptions ·
           <a href="${gmapsUrl}" target="_blank" style="color:inherit">Google Maps</a> for live traffic
         </div>
         ${affectedDisruptions.length ? `
           <div style="margin-bottom:10px">
-            <div style="font-size:9px;color:var(--rw-muted,#666);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">${affectedDisruptions.length} significant disruption${affectedDisruptions.length!==1?'s':''} on or near your route (high/critical only)</div>
+            <div style="font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">${affectedDisruptions.length} disruption${affectedDisruptions.length!==1?'s':''} on or near your route</div>
             ${affectedDisruptions.slice(0,3).map(d=>`
-              <div style="border-left:3px solid ${d.severity==='critical'?'#DC2626':d.severity==='high'?'#F59E0B':'#6B7280'};padding:7px 10px;margin-bottom:5px;background:var(--rw-bg2,#f9f9f9);border-radius:0 6px 6px 0">
-                <div style="font-size:10px;font-weight:600;color:var(--rw-text,#111)">${d.title}</div>
-                <div style="font-size:9px;color:var(--rw-muted,#666)">${d.location}</div>
+              <div style="border-left:3px solid ${d.severity==='critical'?'#DC2626':d.severity==='high'?'#F59E0B':'#6B7280'};padding:7px 10px;margin-bottom:5px;background:#f9f9f9;border-radius:0 6px 6px 0">
+                <div style="font-size:10px;font-weight:600;color:#111">${esc(d.title)}</div>
+                <div style="font-size:9px;color:#6B7280">${esc(d.location)}</div>
               </div>`).join('')}
           </div>` : '<div style="font-size:11px;color:#16A34A;margin-bottom:10px">✅ No significant disruptions on this route</div>'}
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <a href="${gmapsUrl}" target="_blank" rel="noopener" style="background:var(--rw-accent,#CC0000);color:white;border:none;border-radius:6px;padding:7px 14px;font-size:10px;font-weight:700;cursor:pointer;text-decoration:none;font-family:inherit">Open in Google Maps →</a>
-          <button onclick="rwCheckJourney()" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:7px 14px;color:var(--rw-muted,#666);font-size:10px;cursor:pointer;font-family:inherit">🔄 Refresh</button>
-          <button onclick="rwShareJourney('${from.replace(/'/g,"\\'")}','${to.replace(/'/g,"\\'")}',${durationMins})" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:7px 14px;color:var(--rw-muted,#666);font-size:10px;cursor:pointer;font-family:inherit">📤 Share</button>
+          <a href="${gmapsUrl}" target="_blank" rel="noopener" style="background:#CC0000;color:white;border:none;border-radius:6px;padding:7px 14px;font-size:10px;font-weight:700;cursor:pointer;text-decoration:none;font-family:inherit">Open in Google Maps →</a>
+          <button onclick="rwCheckJourney()" style="background:transparent;border:1px solid #e5e5e5;border-radius:6px;padding:7px 14px;color:#6B7280;font-size:10px;cursor:pointer;font-family:inherit">🔄 Refresh</button>
+          <button onclick="rwShareJourney('${from.replace(/'/g,"\\'")}','${to.replace(/'/g,"\\'")}',${durationMins})" style="background:transparent;border:1px solid #e5e5e5;border-radius:6px;padding:7px 14px;color:#6B7280;font-size:10px;cursor:pointer;font-family:inherit">📤 Share</button>
         </div>`;
       return;
     }
@@ -1247,60 +1268,91 @@ async function rwCheckJourney() {
                     hasHigh ? {color:'#F59E0B',icon:'⚠️',text:'DISRUPTION AHEAD',bg:'rgba(245,158,11,0.1)'} :
                     {color:'#10B981',icon:'✅',text:'ROUTE CLEAR',bg:'rgba(16,185,129,0.1)'};
 
-    const legsHtml = legs.slice(0,5).map(l => {
-      const mode = l.mode?.name || 'walk';
-      const modeIcon = mode==='walking'?'🚶':mode==='bus'?'🚌':mode==='tube'?'🚇':mode==='national-rail'?'🚂':mode==='elizabeth-line'?'🟣':'🚌';
-      const dep = l.departurePoint?.commonName || '';
-      const arr = l.arrivalPoint?.commonName || '';
-      const mins = l.duration || 0;
-      const line = l.routeOptions?.[0]?.name || '';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--rw-border)">
-        <span style="font-size:14px">${modeIcon}</span>
+    const normalPTMins=journeys.reduce((mn,j)=>Math.min(mn,j.duration||999),duration);
+    const ptDelta=duration-normalPTMins;
+    const fmtMins=m=>{const h=Math.floor(m/60),mn=m%60;return h>0?`${h}h ${String(mn).padStart(2,'0')}m`:`${m}m`;};
+    const ptDvColor=hasCritical?'#DC2626':hasHigh?'#D97706':'#16A34A';
+    const ptDvBg=hasCritical?'rgba(220,38,38,0.04)':hasHigh?'rgba(245,158,11,0.04)':'rgba(22,163,74,0.04)';
+
+    // journey bar
+    const modeColors={'walking':'#9CA3AF','bus':'#EF4444','tube':'#1D4ED8','national-rail':'#15803D','elizabeth-line':'#7C3AED','dlr':'#0E7490','overground':'#EA580C','tram':'#0F766E'};
+    const totalLegMins=legs.reduce((s,l)=>s+(l.duration||0),0)||1;
+    const journeyBarHtml=`<div style="display:flex;border-radius:6px;overflow:hidden;height:20px;margin-bottom:10px;border:1px solid #e5e5e5">
+      ${legs.slice(0,6).map(l=>{
+        const mode=l.mode?.name||'walking';
+        const pct=Math.round(((l.duration||0)/totalLegMins)*100);
+        const modeIcon=mode==='walking'?'🚶':mode==='bus'?'🚌':mode==='tube'?'🚇':mode==='national-rail'?'🚂':mode==='elizabeth-line'?'🟣':mode==='dlr'?'🔵':mode==='overground'?'🟠':'🚌';
+        return `<div title="${modeIcon} ${l.routeOptions?.[0]?.name||mode} · ${l.duration||0}min" style="flex:${pct||5};background:${modeColors[mode]||'#9CA3AF'};display:flex;align-items:center;justify-content:center;font-size:9px;color:white;overflow:hidden;white-space:nowrap">${pct>12?modeIcon:''}</div>`;
+      }).join('')}
+    </div>`;
+
+    const legsHtml=legs.slice(0,6).map(l=>{
+      const mode=l.mode?.name||'walking';
+      const modeIcon=mode==='walking'?'🚶':mode==='bus'?'🚌':mode==='tube'?'🚇':mode==='national-rail'?'🚂':mode==='elizabeth-line'?'🟣':mode==='dlr'?'🔵':mode==='overground'?'🟠':'🚌';
+      const dep=l.departurePoint?.commonName||'';
+      const arr=l.arrivalPoint?.commonName||'';
+      const mins=l.duration||0;
+      const line=l.routeOptions?.[0]?.name||'';
+      const mColor=modeColors[mode]||'#9CA3AF';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f3f4f6">
+        <span style="font-size:16px;width:20px;text-align:center">${modeIcon}</span>
         <div style="flex:1;min-width:0">
-          <div style="font-size:10px;color:var(--rw-text);font-weight:600">${line ? line+' · ' : ''}${dep} → ${arr}</div>
-          <div style="font-size:9px;color:var(--rw-muted)">${mins} min</div>
+          <div style="font-size:10px;font-weight:600;color:#111">${line?`<span style="background:${mColor};color:white;border-radius:3px;padding:1px 5px;font-size:8px;margin-right:4px">${esc(line)}</span>`:''}${esc(dep)} → ${esc(arr)}</div>
+          <div style="font-size:9px;color:#9CA3AF;margin-top:1px">${mins} min</div>
         </div>
+        <div style="width:3px;align-self:stretch;border-radius:3px;background:${mColor};opacity:0.5"></div>
       </div>`;
     }).join('');
 
-    const disruptHtml = affectedDisruptions.length ? `
-      <div style="margin-top:10px">
-        <div style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Disruptions on your route</div>
-        ${affectedDisruptions.slice(0,3).map(d => `
-          <div style="background:var(--rw-bg2);border-left:3px solid ${d.severity==='critical'?'#EF4444':d.severity==='high'?'#F59E0B':'#6B7280'};border-radius:4px;padding:7px 10px;margin-bottom:5px">
-            <div style="font-size:10px;font-weight:600;color:var(--rw-text)">${d.title}</div>
-            <div style="font-size:9px;color:var(--rw-muted)">${d.location}</div>
-          </div>
-        `).join('')}
-      </div>` : '';
-
-    const altHtml = journeys.length > 1 ? `
-      <div style="margin-top:10px">
-        <div style="font-size:9px;color:var(--rw-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Alternative routes</div>
-        ${journeys.slice(1,3).map((j,i) => `
-          <div style="background:var(--rw-bg2);border-radius:6px;padding:8px 10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:10px;color:var(--rw-text)">Option ${i+2}: ${(j.legs||[]).map(l=>l.mode?.name||'').filter(Boolean).join(' + ')}</span>
-            <span style="font-size:10px;color:var(--rw-accent);font-weight:700">${j.duration} min</span>
-          </div>
-        `).join('')}
-      </div>` : '';
-
-    const fromEsc = from.replace(/'/g,"\\'");
-    const toEsc = to.replace(/'/g,"\\'");
-    result.innerHTML = `
-      <div style="background:${verdict.bg};border:1px solid ${verdict.color};border-radius:8px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
-        <span style="font-size:22px">${verdict.icon}</span>
+    const fromEsc=from.replace(/'/g,"\\'");
+    const toEsc=to.replace(/'/g,"\\'");
+    result.innerHTML=`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:20px">${verdict.icon}</span>
         <div>
-          <div style="font-size:12px;font-weight:700;color:${verdict.color};letter-spacing:.05em">${verdict.text}</div>
-          <div style="font-size:11px;color:var(--rw-text);margin-top:2px">${esc(from)} → ${esc(to)} · <strong>${duration} minutes</strong></div>
+          <div style="font-size:11px;font-weight:700;color:${verdict.color};letter-spacing:.04em">${verdict.text}</div>
+          <div style="font-size:12px;color:#374151;margin-top:1px">${esc(from)} → ${esc(to)}</div>
         </div>
       </div>
-      <div style="margin-bottom:8px">${legsHtml}</div>
-      ${disruptHtml}
-      ${altHtml}
-      <div style="margin-top:10px;display:flex;gap:8px">
-        <button onclick="rwShareJourney('${fromEsc}','${toEsc}',${duration})" style="background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:6px;padding:6px 12px;color:var(--rw-muted);font-size:10px;cursor:pointer;font-family:'DM Mono',monospace">📤 Share result</button>
-        <button onclick="rwCheckJourney()" style="background:var(--rw-bg2);border:1px solid var(--rw-border);border-radius:6px;padding:6px 12px;color:var(--rw-muted);font-size:10px;cursor:pointer;font-family:'DM Mono',monospace">🔄 Refresh</button>
+      <div style="display:flex;align-items:stretch;gap:0;margin-bottom:12px;border:1px solid #e5e5e5;border-radius:10px;overflow:hidden">
+        <div style="flex:1;padding:14px 16px;text-align:center;border-right:1px solid #e5e5e5">
+          <div style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Fastest</div>
+          <div style="font-size:24px;font-weight:800;color:#111;letter-spacing:-0.03em;font-family:Georgia,serif">${fmtMins(normalPTMins)}</div>
+          <div style="font-size:9px;color:#9CA3AF;margin-top:3px">Best available</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 12px;background:#f9f9f9">
+          <div style="font-size:18px;color:#9CA3AF;line-height:1">→</div>
+          <div style="font-size:9px;color:#9CA3AF;margin-top:2px">PT</div>
+        </div>
+        <div style="flex:1;padding:14px 16px;text-align:center;border-left:1px solid #e5e5e5;background:${ptDvBg}">
+          <div style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">This Route</div>
+          <div style="font-size:24px;font-weight:800;color:${ptDvColor};letter-spacing:-0.03em;font-family:Georgia,serif">${fmtMins(duration)}</div>
+          <div style="font-size:11px;font-weight:700;color:${ptDvColor};margin-top:3px;background:${ptDvBg};padding:2px 8px;border-radius:20px;display:inline-block">${ptDelta>0?`+${ptDelta}m`:'Fastest'}</div>
+        </div>
+      </div>
+      ${journeyBarHtml}
+      <div style="margin-bottom:12px">${legsHtml}</div>
+      ${affectedDisruptions.length ? `
+        <div style="margin-bottom:10px">
+          <div style="font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">${affectedDisruptions.length} disruption${affectedDisruptions.length!==1?'s':''} on your route</div>
+          ${affectedDisruptions.slice(0,3).map(d=>`
+            <div style="background:#f9f9f9;border-left:3px solid ${d.severity==='critical'?'#DC2626':d.severity==='high'?'#F59E0B':'#6B7280'};border-radius:0 6px 6px 0;padding:7px 10px;margin-bottom:5px">
+              <div style="font-size:10px;font-weight:600;color:#111">${esc(d.title)}</div>
+              <div style="font-size:9px;color:#6B7280">${esc(d.location)}</div>
+            </div>`).join('')}
+        </div>` : ''}
+      ${journeys.length>1 ? `
+        <div style="margin-bottom:10px">
+          <div style="font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Alternatives</div>
+          ${journeys.slice(1,3).map((j,i)=>`
+            <div style="background:#f9f9f9;border-radius:6px;padding:8px 10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:10px;color:#374151">Option ${i+2}: ${[...new Set((j.legs||[]).map(l=>l.mode?.name||'').filter(Boolean))].join(' + ')}</span>
+              <span style="font-size:10px;color:#CC0000;font-weight:700">${fmtMins(j.duration||0)}</span>
+            </div>`).join('')}
+        </div>` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="rwShareJourney('${fromEsc}','${toEsc}',${duration})" style="background:transparent;border:1px solid #e5e5e5;border-radius:6px;padding:7px 14px;color:#6B7280;font-size:10px;cursor:pointer;font-family:inherit">📤 Share result</button>
+        <button onclick="rwCheckJourney()" style="background:transparent;border:1px solid #e5e5e5;border-radius:6px;padding:7px 14px;color:#6B7280;font-size:10px;cursor:pointer;font-family:inherit">🔄 Refresh</button>
       </div>`;
 
     if (rwMapShown && rwMap) {
