@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.2.9 -->
+<!-- roadwatch v3.3.0 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -172,6 +172,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
 .rw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px}
 .rw-news-col{padding:16px 18px;overflow-y:auto;max-height:calc(100vh - 250px);position:sticky;top:104px}
 @media(max-width:950px){.rw-news-col{position:static;max-height:none;border-top:1px solid var(--rw-border)}}
+@media(max-width:768px){#rw-map{height:300px!important}}
 
 /* Cards */
 .d-card-rw{background:#1E293B;border:1px solid #334155;border-radius:8px;padding:15px;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s;animation:fadeUp .3s ease both}
@@ -579,63 +580,8 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     </div>
   </div>
 
-  <!-- Stats -->
-  <div class="rw-stats" id="rw-stats">
-    <div class="stat-card-rw"><div class="stat-num" id="rw-s-total" style="color:#38BDF8">0</div><div class="stat-lbl">Total</div></div>
-    <div class="stat-card-rw"><div class="stat-num" id="rw-s-crit" style="color:#F87171">0</div><div class="stat-lbl">Critical</div></div>
-    <div class="stat-card-rw"><div class="stat-num" id="rw-s-high" style="color:#FB923C">0</div><div class="stat-lbl">High</div></div>
-    <div class="stat-card-rw"><div class="stat-num" id="rw-s-med" style="color:#FBBF24">0</div><div class="stat-lbl">Moderate</div></div>
-    <div class="stat-card-rw"><div class="stat-num" id="rw-s-news" style="color:#60A5FA">0</div><div class="stat-lbl">News</div></div>
-  </div>
-
-  <!-- Legend -->
-  <div class="rw-legend" id="rw-legend">
-    <span style="font-size:9px;color:var(--rw-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
-    <span class="src-pill"><span class="src-dot" style="background:#F59E0B"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">TfL Live</a></span>
-    <span class="src-pill"><span class="src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/road-closure-report/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">National Highways</a></span>
-    <span class="src-pill"><span class="src-dot" style="background:#F97316"></span><a href="https://opendata.nationalhighways.co.uk" target="_blank" style="color:var(--rw-muted);text-decoration:none">NH Open Data</a></span>
-    <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span><a href="https://webtris.highwaysengland.co.uk" target="_blank" style="color:var(--rw-muted);text-decoration:none">WebTRIS Live</a></span>
-    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span><a href="https://public.londonworks.gov.uk/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">London Works Register</a></span>
-    <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span>BBC News</span>
-    <span class="src-pill"><span class="src-dot" style="background:#0EA5E9"></span>Google News</span>
-    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Met Police</span>
-    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Gloucestershire Highways</span>
-    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Every 2 min</span>
-  </div>
-
-  <!-- Controls -->
-  <div class="rw-controls" id="rw-controls">
-    <span class="filter-label">Type:</span>
-    <div class="fg">
-      <button class="fbtn-rw active" onclick="rwSetFilter('type','all',this)">All</button>
-      <button class="fbtn-rw" onclick="rwSetFilter('type','RoadClosure',this)">🚫 Closures</button>
-      <button class="fbtn-rw" onclick="rwSetFilter('type','Works',this)">⚠️ Works</button>
-      <button class="fbtn-rw" onclick="rwSetFilter('type','Planned',this)">📋 Planned</button>
-      <button class="fbtn-rw" onclick="rwSetFilter('type','SpecialEvent',this)">🎪 Events</button>
-      <button class="fbtn-rw" onclick="rwSetFilter('type','Incident',this)">🔴 Incidents</button>
-    </div>
-    <div class="sep"></div>
-    <span class="filter-label">Severity:</span>
-    <div class="fg">
-      <button class="fbtn-rw active" onclick="rwSetFilter('sev','all',this)">All</button>
-      <button class="fbtn-rw" onclick="rwSetFilter('sev','critical',this)">Critical</button>
-      <button class="fbtn-rw" onclick="rwSetFilter('sev','high',this)">High</button>
-      <button class="fbtn-rw" onclick="rwSetFilter('sev','medium',this)">Moderate</button>
-    </div>
-    <div class="sep"></div>
-    <span class="filter-label">Area:</span>
-    <div class="fg">
-      <button class="fbtn-rw active" onclick="rwSetFilter('area','all',this)">All London</button>
-      <button class="fbtn-rw" onclick="rwSetFilter('area','cotswolds',this)">🌿 Cotswolds</button>
-      <button class="fbtn-rw" onclick="rwSetFilter('area','both',this)">All Areas</button>
-    </div>
-    <button id="rw-moderate-toggle" class="alerts-btn-rw" style="border-color:#F59E0B;color:#F59E0B" onclick="rwToggleModerate()">Show Moderate</button>
-    <button class="alerts-btn-rw" onclick="rwToggleAlerts()">🔔 Alerts</button>
-    <button onclick="rwToggleMap()" id="rw-map-btn" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--rw-muted,#666);font-family:inherit">🌡 Heatmap</button>
-    <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">2:00</span></button>
-  </div>
-
-  <div id="rw-journey-panel" style="display:none;margin:0 16px 14px;border:1px solid var(--rw-border);border-radius:12px;overflow:visible">
+  <!-- Journey Panel -->
+  <div id="rw-journey-panel" style="display:none;margin:10px 16px 0;border:1px solid var(--rw-border);border-radius:12px;overflow:visible">
     <div id="rw-journey-header" onclick="rwToggleJourney()" style="background:var(--rw-bg2);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:14px">🗺️</span>
@@ -676,8 +622,68 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     </div>
   </div>
 
-  <div id="rw-map-container" style="display:none;margin:0 0 16px;border-radius:12px;overflow:hidden;border:1px solid var(--rw-border,#ddd)">
-    <div id="rw-map" style="height:420px;width:100%"></div>
+  <!-- Map — hero element, always visible -->
+  <div id="rw-map-container" style="display:block;margin:10px 0 0;position:relative;border-top:1px solid var(--rw-border,#ddd);border-bottom:1px solid var(--rw-border,#ddd)">
+    <div id="rw-map" style="height:calc(100vh - 280px);min-height:480px;max-height:700px;width:100%"></div>
+    <div style="position:absolute;top:12px;left:12px;z-index:1000;background:rgba(0,0,0,0.75);color:white;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;pointer-events:none;backdrop-filter:blur(4px)">
+      🌡 Live Disruption Intensity — <span id="rw-map-count">loading…</span>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="rw-legend" id="rw-legend">
+    <span style="font-size:9px;color:var(--rw-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
+    <span class="src-pill"><span class="src-dot" style="background:#F59E0B"></span><a href="https://tfl.gov.uk/traffic/status/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">TfL Live</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#F97316"></span><a href="https://nationalhighways.co.uk/travel-updates/road-closure-report/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">National Highways</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#F97316"></span><a href="https://opendata.nationalhighways.co.uk" target="_blank" style="color:var(--rw-muted);text-decoration:none">NH Open Data</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span><a href="https://webtris.highwaysengland.co.uk" target="_blank" style="color:var(--rw-muted);text-decoration:none">WebTRIS Live</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span><a href="https://public.londonworks.gov.uk/" target="_blank" rel="noopener" style="color:var(--rw-muted);text-decoration:none">London Works Register</a></span>
+    <span class="src-pill"><span class="src-dot" style="background:#EF4444"></span>BBC News</span>
+    <span class="src-pill"><span class="src-dot" style="background:#0EA5E9"></span>Google News</span>
+    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Met Police</span>
+    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Gloucestershire Highways</span>
+    <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Every 2 min</span>
+  </div>
+
+  <!-- Stats -->
+  <div class="rw-stats" id="rw-stats">
+    <div class="stat-card-rw"><div class="stat-num" id="rw-s-total" style="color:#38BDF8">0</div><div class="stat-lbl">Total</div></div>
+    <div class="stat-card-rw"><div class="stat-num" id="rw-s-crit" style="color:#F87171">0</div><div class="stat-lbl">Critical</div></div>
+    <div class="stat-card-rw"><div class="stat-num" id="rw-s-high" style="color:#FB923C">0</div><div class="stat-lbl">High</div></div>
+    <div class="stat-card-rw"><div class="stat-num" id="rw-s-med" style="color:#FBBF24">0</div><div class="stat-lbl">Moderate</div></div>
+    <div class="stat-card-rw"><div class="stat-num" id="rw-s-news" style="color:#60A5FA">0</div><div class="stat-lbl">News</div></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="rw-controls" id="rw-controls">
+    <span class="filter-label">Type:</span>
+    <div class="fg">
+      <button class="fbtn-rw active" onclick="rwSetFilter('type','all',this)">All</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('type','RoadClosure',this)">🚫 Closures</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('type','Works',this)">⚠️ Works</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('type','Planned',this)">📋 Planned</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('type','SpecialEvent',this)">🎪 Events</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('type','Incident',this)">🔴 Incidents</button>
+    </div>
+    <div class="sep"></div>
+    <span class="filter-label">Severity:</span>
+    <div class="fg">
+      <button class="fbtn-rw active" onclick="rwSetFilter('sev','all',this)">All</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('sev','critical',this)">Critical</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('sev','high',this)">High</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('sev','medium',this)">Moderate</button>
+    </div>
+    <div class="sep"></div>
+    <span class="filter-label">Area:</span>
+    <div class="fg">
+      <button class="fbtn-rw active" onclick="rwSetFilter('area','all',this)">All London</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('area','cotswolds',this)">🌿 Cotswolds</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('area','both',this)">All Areas</button>
+    </div>
+    <button id="rw-moderate-toggle" class="alerts-btn-rw" style="border-color:#F59E0B;color:#F59E0B" onclick="rwToggleModerate()">Hide Moderate</button>
+    <button class="alerts-btn-rw" onclick="rwToggleAlerts()">🔔 Alerts</button>
+    <button onclick="rwMap&&rwMap.flyTo([51.505,-0.09],10,{duration:1})" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--rw-muted,#666);font-family:inherit">⟳ Reset Map</button>
+    <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">2:00</span></button>
   </div>
 
   <!-- Layout -->
@@ -946,7 +952,7 @@ let rwLastBriefing=0,rwBriefingText='';
 let rwRefTimer=null,rwCdTimer=null,rwCdSecs=300,rwAlerts={},rwAlertsPanelOpen=false,rwAudioCtx=null,rwTabTimer=null;
 let rwGChatUrl='',rwGChatSentIds=new Set(),rwAcTimer=null;
 let rwJourneyMode='driving';
-let rwMap=null,rwMapMarkers=[],rwMapShown=false,rwRouteLayer=null;
+let rwMap=null,rwMapMarkers=[],rwMapShown=true,rwRouteLayer=null;
 
 function rwGetAudio(){if(!rwAudioCtx)rwAudioCtx=new(window.AudioContext||window.webkitAudioContext)();return rwAudioCtx}
 function rwPlaySound(sev){try{const ctx=rwGetAudio();const freq=sev==='critical'?880:sev==='high'?660:520;const reps=sev==='critical'?3:2;let t=ctx.currentTime;for(let i=0;i<reps;i++){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=freq;o.type='sine';g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.35,t+.05);g.gain.linearRampToValueAtTime(0,t+.28);o.start(t);o.stop(t+.32);t+=.42}}catch{}}
@@ -959,12 +965,24 @@ function rwFlashTab(msg){let on=true;clearInterval(rwTabTimer);rwTabTimer=setInt
   rwApiKey=localStorage.getItem('tfl_api_key')||'3bb8014b0089484dbc8d72613e538d2a';
   localStorage.setItem('tfl_api_key',rwApiKey);
   rwLoadAlerts();rwUpdateNotifStatus();rwInitGChat();
-  if(rwApiKey){rwShowDash();rwRefreshAll()}
+  if(rwApiKey){
+    rwShowDash();
+    setTimeout(()=>{
+      const container=document.getElementById('rw-map-container');
+      if(container)container.style.display='block';
+      if(!rwMap){
+        rwMap=L.map('rw-map').setView([51.505,-0.09],10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(rwMap);
+      }
+      setTimeout(()=>{rwMap.invalidateSize();},200);
+    },500);
+    rwRefreshAll();
+  }
   if('Notification'in window&&Notification.permission==='default')document.getElementById('rw-notif-bar').style.display='flex';
 })();
 
 function rwSaveKey(){const v=(document.getElementById('rw-key-input').value||'').trim();if(!v){alert('Please paste your TfL API key.');return}rwApiKey=v;localStorage.setItem('tfl_api_key',rwApiKey);rwShowDash();rwRefreshAll()}
-function rwShowDash(){document.getElementById('rw-setup').style.display='none';document.getElementById('rw-legend').style.display='flex';document.getElementById('rw-threat-bar').style.display='flex';document.getElementById('rw-briefing-card').style.display='block';document.getElementById('rw-controls').style.display='flex';document.getElementById('rw-journey-panel').style.display='block';document.getElementById('rw-disrupt-col').style.display='block';document.getElementById('rw-news-col').style.display='block';document.getElementById('rw-stats').style.display='grid'}
+function rwShowDash(){document.getElementById('rw-setup').style.display='none';document.getElementById('rw-legend').style.display='flex';document.getElementById('rw-threat-bar').style.display='flex';document.getElementById('rw-briefing-card').style.display='block';document.getElementById('rw-controls').style.display='flex';document.getElementById('rw-journey-panel').style.display='block';document.getElementById('rw-disrupt-col').style.display='block';document.getElementById('rw-news-col').style.display='block';document.getElementById('rw-stats').style.display='grid';document.getElementById('rw-map-container').style.display='block'}
 
 function rwLoadAlerts(){try{const s=JSON.parse(localStorage.getItem('rw_alerts')||'{}');rwAlerts=s;if(s.banner!==undefined)document.getElementById('rw-tog-banner').checked=s.banner;if(s.sound!==undefined)document.getElementById('rw-tog-sound').checked=s.sound;if(s.tab!==undefined)document.getElementById('rw-tog-tab').checked=s.tab;if(s.ntfy!==undefined)document.getElementById('rw-tog-ntfy').checked=s.ntfy;if(s.ntfyTopic)document.getElementById('rw-ntfy-topic').value=s.ntfyTopic;if(s.browser!==undefined)document.getElementById('rw-tog-browser').checked=s.browser;if(s.sevCrit!==undefined)document.getElementById('rw-sev-crit').checked=s.sevCrit;if(s.sevHigh!==undefined)document.getElementById('rw-sev-high').checked=s.sevHigh;if(s.sevMed!==undefined)document.getElementById('rw-sev-med').checked=s.sevMed}catch{}}
 function rwSaveAlerts(){rwAlerts={banner:document.getElementById('rw-tog-banner').checked,sound:document.getElementById('rw-tog-sound').checked,tab:document.getElementById('rw-tog-tab').checked,ntfy:document.getElementById('rw-tog-ntfy').checked,ntfyTopic:document.getElementById('rw-ntfy-topic').value.trim(),browser:document.getElementById('rw-tog-browser').checked,sevCrit:document.getElementById('rw-sev-crit').checked,sevHigh:document.getElementById('rw-sev-high').checked,sevMed:document.getElementById('rw-sev-med').checked};localStorage.setItem('rw_alerts',JSON.stringify(rwAlerts))}
@@ -992,28 +1010,11 @@ function rwSetMode(btn, mode) {
 }
 
 function rwToggleMap() {
-  const container = document.getElementById('rw-map-container');
-  const btn = document.getElementById('rw-map-btn');
-  rwMapShown = !rwMapShown;
-  if (rwMapShown) {
-    container.style.display = 'block';
-    btn.style.background = 'var(--rw-accent,#CC0000)';
-    btn.style.color = 'white';
-    btn.style.borderColor = 'var(--rw-accent,#CC0000)';
-    if (!rwMap) {
-      rwMap = L.map('rw-map').setView([51.505, -0.09], 11);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors', maxZoom: 19
-      }).addTo(rwMap);
-    }
-    setTimeout(() => rwMap.invalidateSize(), 100);
-    rwPlotDisruptions();
-  } else {
-    container.style.display = 'none';
-    btn.style.background = 'transparent';
-    btn.style.color = 'var(--rw-muted,#666)';
-    btn.style.borderColor = 'var(--rw-border,#ddd)';
+  if(!rwMap){
+    rwMap=L.map('rw-map').setView([51.505,-0.09],10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(rwMap);
   }
+  setTimeout(()=>{rwMap.invalidateSize();rwPlotDisruptions();},150);
 }
 
 function rwPlotDisruptions() {
@@ -1190,6 +1191,9 @@ function rwPlotDisruptions() {
     };
     legend.addTo(rwMap);
   }
+
+  const countEl=document.getElementById('rw-map-count');
+  if(countEl)countEl.textContent=heatPoints.length+' incidents mapped';
 }
 
 function rwPointNearRoute(routeCoords, lat, lon, bufferKm = 2.0) {
@@ -2303,6 +2307,17 @@ function rwSetFilter(type,val,btn){rwFilters[type]=val;btn.closest('div').queryS
 
 function rwOpenModal(jsonStr){
   const d=JSON.parse(jsonStr),tc=RW_TYPE_CFG[d.category]||RW_TYPE_CFG.default,sc=RW_SEV_CFG[d.severity]||RW_SEV_CFG.low;
+  if(rwMapShown&&rwMap){
+    const RWM_PTS={'A400':[[51.549,-0.185]],'A12':[[51.551,0.056]],'A13':[[51.508,0.012]],'A2':[[51.465,-0.056]],'A3':[[51.441,-0.212]],'A4':[[51.495,-0.220]],'A40':[[51.518,-0.230]],'A41':[[51.568,-0.178]],'A10':[[51.565,-0.073]],'A11':[[51.528,-0.056]],'A20':[[51.456,0.123]],'A21':[[51.345,0.089]],'A23':[[51.456,-0.123]],'A24':[[51.423,-0.187]],'A30':[[51.467,-0.389]],'A102':[[51.487,-0.012]],'A200':[[51.504,-0.080]],'A205':[[51.456,-0.078]],'A316':[[51.467,-0.234]],'A406':[[51.568,-0.234]],'A1':[[51.565,-0.073]],'M25':[[51.389,-0.123]],'M4':[[51.502,-0.345]],'M40':[[51.530,-0.280]],'M1':[[51.600,-0.300]],'M3':[[51.389,-0.340]],'M11':[[51.623,0.123]],'M20':[[51.280,0.150]],'M23':[[51.200,-0.180]]};
+    const roads=[...(d.roads||[]),...((d.title+' '+d.location).match(/\b([AM]\d+[A-Z]?)\b/g)||[])].filter(Boolean);
+    let flew=false;
+    for(const road of roads){const pts=RWM_PTS[road.toUpperCase()];if(pts){rwMap.flyTo(pts[0],13,{duration:1.2});flew=true;break;}}
+    if(!flew){
+      const loc=(d.location||'').toLowerCase();
+      const guess=loc.includes('westminster')?[51.497,-0.137]:loc.includes('camden')?[51.529,-0.142]:loc.includes('city')?[51.515,-0.092]:loc.includes('southwark')?[51.504,-0.087]:loc.includes('hackney')?[51.545,-0.055]:loc.includes('islington')?[51.538,-0.103]:null;
+      if(guess)rwMap.flyTo(guess,13,{duration:1.2});
+    }
+  }
   document.getElementById('rw-m-badges').innerHTML=`<span class="badge" style="background:${tc.bg};color:${tc.color};font-size:10px">${tc.icon} ${tc.label}</span><span class="badge" style="background:#1F2937;color:${sc.color};border:1px solid ${sc.color}44;font-size:10px">● ${sc.label}</span>${d.isActive?'<span class="badge" style="background:#0f2617;color:#10B981;font-size:10px">● LIVE</span>':''}`;
   document.getElementById('rw-m-title').textContent=d.title;
   document.getElementById('rw-m-loc').textContent='📍 '+(d.location||'London');
