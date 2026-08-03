@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.3.2 -->
+<!-- roadwatch v3.3.3 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1956,44 +1956,64 @@ async function rwFetchNews(){
 async function fetchUKMotorwayIncidents(){
   try{
     const feeds=[
-      'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://m.highwaysengland.co.uk/feeds/rss/UnplannedEvents.xml'),
-      'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://m.highwaysengland.co.uk/feeds/rss/PlannedEvents.xml'),
+      'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://news.google.com/rss/search?q=motorway+accident+closed+UK+today&hl=en-GB&gl=GB&ceid=GB:en'),
+      'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://news.google.com/rss/search?q=M25+OR+M1+OR+M6+OR+M4+OR+M62+accident+closed+today&hl=en-GB&gl=GB&ceid=GB:en'),
+      'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://news.google.com/rss/search?q=motorway+major+incident+carriageway+closed+UK&hl=en-GB&gl=GB&ceid=GB:en'),
     ];
     let allItems=[];
     for(const feedUrl of feeds){
       try{const res=await fetch(feedUrl);if(!res.ok)continue;const json=await res.json();allItems=allItems.concat(json.items||[]);}catch(e){}
     }
-    if(!allItems.length){
-      try{
-        const res=await fetch('https://corsproxy.io/?'+encodeURIComponent('https://m.highwaysengland.co.uk/feeds/rss/UnplannedEvents.xml'));
-        const text=await res.text();
-        const doc=new DOMParser().parseFromString(text,'text/xml');
-        allItems=Array.from(doc.querySelectorAll('item')).map(item=>({
-          title:item.querySelector('title')?.textContent||'',
-          description:(item.querySelector('description')?.textContent||'').replace(/<[^>]+>/g,' ').trim(),
-          link:item.querySelector('link')?.textContent||'',
-          pubDate:item.querySelector('pubDate')?.textContent||''
-        }));
-      }catch(e){}
+    console.log('Total raw items from all feeds:',allItems.length);
+
+    // National Highways travel alerts page scrape
+    try{
+      const nhRes=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent('https://nationalhighways.co.uk/travel-updates/travel-alerts/'));
+      if(nhRes.ok){
+        const nhJson=await nhRes.json();
+        const nhText=(nhJson.contents||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+        const roadPattern=/\b(M\d+[A-Z]?)\b.{0,200}?(accident|collision|closed|incident|obstruction)/gi;
+        let match;
+        while((match=roadPattern.exec(nhText))!==null){
+          const context=nhText.slice(Math.max(0,match.index-50),match.index+200).trim();
+          if(context.length>20)allItems.push({title:match[1]+' — Traffic Alert',description:context,link:'https://nationalhighways.co.uk/travel-updates/travel-alerts/',pubDate:new Date().toISOString()});
+        }
+        console.log('NH travel alerts parsed:',allItems.length,'items after NH');
+      }
+    }catch(e){console.log('NH travel alerts error:',e.message);}
+
+    // INRIX blog as supplemental source
+    try{
+      const inrixRes=await fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://www.inrix.com/blog/feed/'));
+      if(inrixRes.ok){const inrixJson=await inrixRes.json();allItems=allItems.concat(inrixJson.items||[]);}
+    }catch(e){}
+
+    if(allItems.length){
+      console.log('After 24hr filter:',allItems.filter(item=>new Date(item.pubDate||'').getTime()>Date.now()-86400000).length);
+      console.log('Sample item:',JSON.stringify(allItems[0])?.slice(0,200));
     }
-    const MAJOR_KW=['accident','collision','serious accident','fatal','fatality','overturned','jackknifed','jack-knifed','spillage','fuel spillage','chemical','hazmat','multi-vehicle','multiple vehicles','road closed','carriageway closed','all lanes closed','bridge closed','tunnel closed','major incident','vehicle fire','lorry fire','car fire','debris across','large debris','flooding','emergency services','police incident','serious disruption'];
+
+    const MAJOR_KW=['accident','collision','serious accident','fatal','fatality','overturned','jackknifed','jack-knifed','spillage','fuel spillage','chemical','hazmat','multi-vehicle','multiple vehicles','road closed','carriageway closed','all lanes closed','bridge closed','tunnel closed','major incident','vehicle fire','lorry fire','car fire','debris across','large debris','flooding','emergency services','police incident','serious disruption','major delays','long delays','hours of delays','expect delays','avoid','severe disruption','road closure','lane closed','traffic held'];
     const MINOR_KW=['broken down vehicle','breakdown','lane one closed','lane 1 closed','monitoring','advisory','slow traffic','queuing traffic','temporary signals','roadworks','planned','maintenance','minor','slight','cleared','now clear','all clear','lane restriction','hard shoulder','caution'];
     const MWAY_MID={'M1':[52.500,-1.200],'M2':[51.330,0.620],'M3':[51.220,-1.280],'M4':[51.520,-1.800],'M5':[51.800,-2.300],'M6':[52.800,-1.800],'M8':[55.880,-3.800],'M9':[56.020,-3.600],'M11':[51.850,0.120],'M18':[53.530,-1.100],'M20':[51.200,0.800],'M23':[51.180,-0.180],'M25':[51.380,-0.300],'M26':[51.260,0.180],'M27':[50.920,-1.380],'M40':[51.750,-1.200],'M42':[52.380,-1.780],'M45':[52.370,-1.230],'M48':[51.590,-2.650],'M56':[53.360,-2.380],'M57':[53.430,-2.880],'M60':[53.470,-2.280],'M61':[53.600,-2.580],'M62':[53.680,-1.580],'M65':[53.770,-2.330],'M66':[53.680,-2.230],'M74':[55.500,-3.800],'M80':[56.020,-3.980],'M90':[56.250,-3.430],'A1':[53.000,-0.300],'A2':[51.280,0.580],'A3':[51.150,-0.550],'A14':[52.300,0.380],'A19':[54.500,-1.180],'A38':[52.500,-1.780],'A46':[52.650,-1.130],'A55':[53.180,-3.480],'A74':[55.200,-3.280]};
-    const MAJOR_AROADS=new Set(['A1','A2','A3','A14','A19','A38','A46','A47','A55','A74']);
-    const sixHoursAgo=Date.now()-(6*60*60*1000);
+    const cutoff=Date.now()-(24*60*60*1000);
+    const seen=new Set();
     const motorwayIncidents=[];
     allItems.forEach((item,i)=>{
       const title=(item.title||'').trim();
       const desc=(item.description||item.content||'').replace(/<[^>]+>/g,' ').trim();
       const combined=(title+' '+desc).toLowerCase();
       const pubDate=item.pubDate?new Date(item.pubDate).getTime():Date.now();
-      if(pubDate<sixHoursAgo)return;
+      if(pubDate<cutoff)return;
       if(!MAJOR_KW.some(kw=>combined.includes(kw)))return;
       if(MINOR_KW.some(kw=>combined.includes(kw)))return;
       const roadMatch=(title+' '+desc).match(/\b(M\d+[A-Z]?|A\d+[A-Z]?)\b/);
       const road=roadMatch?.[1]||'';
       if(!road)return;
-      if(!road.startsWith('M')&&!MAJOR_AROADS.has(road))return;
+      // Dedup by road + title key
+      const dedupeKey=(road+title.slice(0,40)).toLowerCase().replace(/\s+/g,'');
+      if(seen.has(dedupeKey))return;
+      seen.add(dedupeKey);
       const isCritical=/fatal|fatality|serious accident|road closed|carriageway closed|all lanes closed|vehicle fire|chemical|multi-vehicle|overturned|jackknifed/i.test(combined);
       const severity=isCritical?'critical':'high';
       let base=MWAY_MID[road]||[52.0,-1.5];
@@ -2003,7 +2023,7 @@ async function fetchUKMotorwayIncidents(){
         category:'Incident',
         title:road+' — '+(isCritical?'Major Incident':'Serious Incident'),
         desc:(title+'. '+desc).slice(0,300),
-        location:road+' Motorway — UK',
+        location:road+' — UK Motorway Network',
         startDate:new Date(pubDate).toISOString().split('T')[0],
         startTime:null,endDate:null,endTime:null,
         severity,roads:[road],
