@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.2.8 -->
+<!-- roadwatch v3.2.9 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -630,7 +631,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     </div>
     <button id="rw-moderate-toggle" class="alerts-btn-rw" style="border-color:#F59E0B;color:#F59E0B" onclick="rwToggleModerate()">Show Moderate</button>
     <button class="alerts-btn-rw" onclick="rwToggleAlerts()">🔔 Alerts</button>
-    <button onclick="rwToggleMap()" id="rw-map-btn" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--rw-muted,#666);font-family:inherit">🗺 Map View</button>
+    <button onclick="rwToggleMap()" id="rw-map-btn" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--rw-muted,#666);font-family:inherit">🌡 Heatmap</button>
     <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">2:00</span></button>
   </div>
 
@@ -1017,45 +1018,178 @@ function rwToggleMap() {
 
 function rwPlotDisruptions() {
   if (!rwMap) return;
-  rwMapMarkers.forEach(m => m.remove());
+
+  rwMapMarkers.forEach(m => rwMap.removeLayer(m));
   rwMapMarkers = [];
-  if (rwRouteLayer) { rwRouteLayer.remove(); rwRouteLayer = null; }
-  const disruptionsWithCoords = [];
-  rwDisruptions.forEach(d => {
-    if (d.lat && d.lon) disruptionsWithCoords.push(d);
+  if (window.rwHeatLayer) { rwMap.removeLayer(window.rwHeatLayer); window.rwHeatLayer = null; }
+  if (window.rwClusterLayer) { rwMap.removeLayer(window.rwClusterLayer); window.rwClusterLayer = null; }
+
+  const ROAD_POINTS = {
+    'A400':[[51.549,-0.185],[51.540,-0.180]],
+    'A12':[[51.551,0.056],[51.540,0.030]],
+    'A13':[[51.508,0.012],[51.515,0.060],[51.520,0.110]],
+    'A2':[[51.465,-0.056],[51.450,-0.020],[51.430,0.050]],
+    'A3':[[51.441,-0.212],[51.420,-0.190],[51.400,-0.170],[51.380,-0.150]],
+    'A4':[[51.495,-0.220],[51.492,-0.280],[51.489,-0.320],[51.487,-0.360]],
+    'A40':[[51.518,-0.230],[51.515,-0.270],[51.512,-0.320],[51.510,-0.360]],
+    'A41':[[51.568,-0.178],[51.580,-0.195],[51.600,-0.215]],
+    'A10':[[51.565,-0.073],[51.580,-0.072],[51.600,-0.071]],
+    'A11':[[51.528,-0.056],[51.540,-0.040],[51.550,-0.025]],
+    'A20':[[51.456,0.123],[51.440,0.080],[51.420,0.040]],
+    'A21':[[51.345,0.089],[51.370,0.060],[51.400,0.030]],
+    'A23':[[51.456,-0.123],[51.420,-0.120],[51.380,-0.100]],
+    'A24':[[51.423,-0.187],[51.400,-0.190],[51.370,-0.190]],
+    'A30':[[51.467,-0.389],[51.450,-0.420],[51.430,-0.450]],
+    'A102':[[51.487,-0.012],[51.500,-0.008],[51.510,-0.004]],
+    'A200':[[51.504,-0.080],[51.500,-0.060],[51.496,-0.040]],
+    'A205':[[51.456,-0.078],[51.458,-0.020],[51.455,0.040]],
+    'A316':[[51.467,-0.234],[51.454,-0.270],[51.440,-0.300]],
+    'A406':[[51.568,-0.234],[51.572,-0.150],[51.568,-0.060],[51.555,0.020]],
+    'A1':[[51.565,-0.073],[51.600,-0.080],[51.630,-0.090]],
+    'M25':[[51.450,-0.300],[51.389,-0.123],[51.350,-0.080],[51.310,0.050],[51.330,0.180],[51.400,0.280],[51.460,0.250],[51.480,0.180]],
+    'M4':[[51.502,-0.345],[51.495,-0.280],[51.490,-0.220],[51.488,-0.180]],
+    'M40':[[51.530,-0.280],[51.560,-0.320],[51.600,-0.380]],
+    'M1':[[51.600,-0.300],[51.650,-0.330],[51.700,-0.350]],
+    'M3':[[51.389,-0.340],[51.350,-0.380],[51.300,-0.410]],
+    'M11':[[51.623,0.123],[51.650,0.140],[51.680,0.160]],
+    'M20':[[51.280,0.150],[51.250,0.200],[51.220,0.250]],
+    'M23':[[51.200,-0.180],[51.170,-0.160],[51.140,-0.140]],
+  };
+
+  const heatPoints = [];
+  const sevWeight = {critical:1.0, high:0.7, medium:0.4, moderate:0.4, low:0.2};
+
+  const toRender = rwDisruptions.filter(d => {
+    if (!rwShowModerate && d.severity === 'moderate') return false;
+    if (rwFilters.type !== 'all') {
+      if (rwFilters.type === 'closures' && d.category !== 'RoadClosure') return false;
+      if (rwFilters.type === 'works' && d.category !== 'Works') return false;
+      if (rwFilters.type === 'events' && d.category !== 'SpecialEvent') return false;
+      if (rwFilters.type === 'incidents' && d.category !== 'Incident') return false;
+    }
+    return true;
   });
-  if (!disruptionsWithCoords.length) {
-    const geocodeNext = async (list) => {
-      for (const d of list.slice(0, 20)) {
-        if (!d.lat && d.location) {
-          const geo = await rwGeocode(d.location);
-          if (geo) { d.lat = geo.lat; d.lon = geo.lon; }
-        }
-        if (d.lat && d.lon) {
-          const color = d.severity==='critical'?'#EF4444':d.severity==='high'?'#F59E0B':d.severity==='medium'?'#3B82F6':'#6B7280';
-          const icon = L.divIcon({
-            html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,.4)"></div>`,
-            className: '', iconSize: [12,12], iconAnchor: [6,6]
-          });
-          const marker = L.marker([d.lat, d.lon], {icon}).addTo(rwMap)
-            .bindPopup(`<b>${d.title}</b><br><small>${d.location}</small>`);
-          rwMapMarkers.push(marker);
-        }
+
+  toRender.forEach(d => {
+    const weight = sevWeight[d.severity] || 0.3;
+    const roads = [
+      ...(d.roads || []),
+      ...((d.title + ' ' + d.location).match(/\b([AM]\d+[A-Z]?)\b/g) || [])
+    ].filter(Boolean);
+
+    let placed = false;
+    for (const road of roads) {
+      const pts = ROAD_POINTS[road.toUpperCase()];
+      if (pts) {
+        const mid = pts[Math.floor(pts.length / 2)];
+        heatPoints.push([mid[0] + (Math.random()-0.5)*0.01, mid[1] + (Math.random()-0.5)*0.01, weight]);
+        placed = true;
+        break;
       }
-    };
-    geocodeNext(rwDisruptions);
-    return;
+    }
+    if (!placed) {
+      const locLower = (d.location || '').toLowerCase();
+      const areaGuess =
+        locLower.includes('camden') ? [51.529,-0.142] :
+        locLower.includes('westminster') ? [51.497,-0.137] :
+        locLower.includes('city of london') ? [51.515,-0.092] :
+        locLower.includes('southwark') ? [51.504,-0.087] :
+        locLower.includes('hackney') ? [51.545,-0.055] :
+        locLower.includes('islington') ? [51.538,-0.103] :
+        locLower.includes('lambeth') ? [51.461,-0.114] :
+        locLower.includes('wandsworth') ? [51.456,-0.192] :
+        locLower.includes('tower hamlets') ? [51.515,-0.033] :
+        locLower.includes('greenwich') ? [51.483,0.009] :
+        locLower.includes('ealing') ? [51.513,-0.302] :
+        locLower.includes('bromley') ? [51.406,0.014] :
+        locLower.includes('croydon') ? [51.374,-0.098] :
+        locLower.includes('brent') ? [51.559,-0.262] :
+        locLower.includes('haringey') ? [51.577,-0.110] :
+        locLower.includes('enfield') ? [51.652,-0.082] :
+        locLower.includes('barnet') ? [51.614,-0.195] :
+        locLower.includes('richmond') ? [51.461,-0.306] :
+        locLower.includes('hounslow') ? [51.467,-0.361] :
+        locLower.includes('newham') ? [51.508,0.035] :
+        locLower.includes('havering') ? [51.579,0.214] :
+        locLower.includes('hillingdon') ? [51.521,-0.448] :
+        locLower.includes('harrow') ? [51.579,-0.335] :
+        locLower.includes('kingston') ? [51.412,-0.306] :
+        locLower.includes('merton') ? [51.411,-0.188] :
+        null;
+      if (areaGuess) {
+        heatPoints.push([areaGuess[0]+(Math.random()-0.5)*0.02, areaGuess[1]+(Math.random()-0.5)*0.02, weight]);
+      }
+    }
+  });
+
+  console.log('Heatmap points:', heatPoints.length);
+
+  if (heatPoints.length && typeof L.heatLayer === 'function') {
+    window.rwHeatLayer = L.heatLayer(heatPoints, {
+      radius: 35,
+      blur: 25,
+      maxZoom: 14,
+      max: 1.0,
+      gradient: {
+        0.0: '#10B981',
+        0.3: '#84CC16',
+        0.5: '#F59E0B',
+        0.7: '#EF4444',
+        1.0: '#7F1D1D'
+      }
+    }).addTo(rwMap);
   }
-  disruptionsWithCoords.slice(0, 20).forEach(d => {
-    const color = d.severity==='critical'?'#EF4444':d.severity==='high'?'#F59E0B':d.severity==='medium'?'#3B82F6':'#6B7280';
+
+  toRender.filter(d => d.severity === 'critical').slice(0, 20).forEach(d => {
+    const roads = [...(d.roads || []), ...((d.title+' '+d.location).match(/\b([AM]\d+[A-Z]?)\b/g) || [])].filter(Boolean);
+    let coords = null;
+    for (const road of roads) {
+      const pts = ROAD_POINTS[road.toUpperCase()];
+      if (pts) { coords = pts[Math.floor(pts.length/2)]; break; }
+    }
+    if (!coords) {
+      const locLower = (d.location||'').toLowerCase();
+      coords = locLower.includes('westminster') ? [51.497,-0.137] :
+               locLower.includes('city') ? [51.515,-0.092] :
+               [51.505+(Math.random()-0.5)*0.1, -0.09+(Math.random()-0.5)*0.15];
+    }
     const icon = L.divIcon({
-      html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,.4)"></div>`,
-      className: '', iconSize: [12,12], iconAnchor: [6,6]
+      html: `<div style="background:#DC2626;color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;border:2px solid white;box-shadow:0 2px 8px rgba(220,38,38,0.5);cursor:pointer">!</div>`,
+      className: '', iconSize: [22,22], iconAnchor: [11,11]
     });
-    const marker = L.marker([d.lat, d.lon], {icon}).addTo(rwMap)
-      .bindPopup(`<b>${d.title}</b><br><small>${d.location}</small>`);
+    const marker = L.marker([coords[0]+(Math.random()-0.5)*0.008, coords[1]+(Math.random()-0.5)*0.008], {icon}).addTo(rwMap);
+    marker.bindPopup(`
+      <div style="font-family:Georgia,serif;min-width:220px;padding:4px">
+        <div style="font-weight:700;font-size:13px;color:#DC2626;margin-bottom:4px">${esc(d.title)}</div>
+        <div style="font-size:11px;color:#555;margin-bottom:6px">📍 ${esc((d.location||'').replace(/\[.*?\]/g,'').trim().slice(0,60))}</div>
+        <div style="font-size:11px;color:#333;line-height:1.5;margin-bottom:8px">${esc((d.desc||'').slice(0,150))}</div>
+        ${d.sourceUrl?`<a href="${d.sourceUrl}" target="_blank" style="font-size:10px;color:#DC2626;text-decoration:none;font-weight:600">View source →</a>`:''}
+      </div>`, {maxWidth:280});
     rwMapMarkers.push(marker);
   });
+
+  const btn = document.getElementById('rw-map-btn');
+  if (btn) btn.textContent = rwMapShown ? '✕ Hide Map' : '🌡 Heatmap';
+
+  if (!document.getElementById('rw-heat-legend')) {
+    const legend = L.control({position:'bottomright'});
+    legend.onAdd = () => {
+      const div = L.DomUtil.create('div');
+      div.id = 'rw-heat-legend';
+      div.innerHTML = `
+        <div style="background:white;padding:10px 14px;border-radius:8px;font-size:11px;box-shadow:0 2px 12px rgba(0,0,0,.15);font-family:Georgia,serif">
+          <div style="font-weight:700;margin-bottom:8px;font-size:12px">Disruption Intensity</div>
+          <div style="width:120px;height:8px;border-radius:4px;background:linear-gradient(to right,#10B981,#84CC16,#F59E0B,#EF4444,#7F1D1D);margin-bottom:4px"></div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:#666;margin-bottom:8px"><span>Low</span><span>High</span></div>
+          <div style="border-top:1px solid #f0f0f0;padding-top:8px;display:flex;align-items:center;gap:6px;font-size:10px;color:#DC2626">
+            <div style="width:14px;height:14px;background:#DC2626;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(220,38,38,.4);flex-shrink:0"></div>
+            Critical incident
+          </div>
+        </div>`;
+      return div;
+    };
+    legend.addTo(rwMap);
+  }
 }
 
 function rwPointNearRoute(routeCoords, lat, lon, bufferKm = 2.0) {
