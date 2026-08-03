@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.4.0 -->
+<!-- roadwatch v3.4.1 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -588,9 +588,11 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
         <span style="font-size:16px">📍</span>
         <span style="font-family:Georgia,serif;font-size:12px;font-weight:700;color:#111;letter-spacing:.02em">MY ITINERARIES</span>
         <span style="font-size:9px;color:#9CA3AF;background:#F3F4F6;padding:2px 7px;border-radius:10px">SAVED ROUTES</span>
+        <span id="rw-itin-count" style="font-size:9px;color:#9CA3AF"></span>
       </div>
       <button onclick="rwShowAddItinerary()" style="background:#111;border:none;border-radius:6px;padding:5px 12px;font-size:10px;color:white;cursor:pointer;font-family:inherit;font-weight:600">+ Add Route</button>
     </div>
+    <div id="rw-itin-empty" style="display:none;padding:0 18px 12px;font-size:11px;color:#9CA3AF">No saved routes yet. Add your common journeys to track their status.</div>
     <div id="rw-itinerary-list" style="padding:0 18px 12px;display:flex;gap:8px;flex-wrap:wrap"></div>
     <div id="rw-itinerary-form" style="display:none;padding:12px 18px;background:#F9FAFB;border-top:1px solid #f0f0f0">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end">
@@ -1098,271 +1100,109 @@ function rwToggleMap() {
 function rwPlotDisruptions() {
   if (!rwMap) return;
 
-  rwMapMarkers.forEach(m => rwMap.removeLayer(m));
-  rwMapMarkers = [];
-  if (window.rwHeatLayer) { rwMap.removeLayer(window.rwHeatLayer); window.rwHeatLayer = null; }
-  if (window.rwClusterLayer) { rwMap.removeLayer(window.rwClusterLayer); window.rwClusterLayer = null; }
+  rwMapMarkers.forEach(m=>{try{rwMap.removeLayer(m)}catch(e){}});
+  rwMapMarkers=[];
+  if(window.rwHeatLayer){try{rwMap.removeLayer(window.rwHeatLayer)}catch(e){} window.rwHeatLayer=null;}
+  if(window.rwTourCorridors)window.rwTourCorridors.forEach(l=>{try{rwMap.removeLayer(l)}catch(e){}});
+  window.rwTourCorridors=[];
 
-  const ROAD_POINTS = {
-    'A400':[[51.549,-0.185],[51.540,-0.180]],
-    'A12':[[51.551,0.056],[51.540,0.030]],
-    'A13':[[51.508,0.012],[51.515,0.060],[51.520,0.110]],
-    'A2':[[51.465,-0.056],[51.450,-0.020],[51.430,0.050]],
-    'A3':[[51.441,-0.212],[51.420,-0.190],[51.400,-0.170],[51.380,-0.150]],
-    'A4':[[51.495,-0.220],[51.492,-0.280],[51.489,-0.320],[51.487,-0.360]],
-    'A40':[[51.518,-0.230],[51.515,-0.270],[51.512,-0.320],[51.510,-0.360]],
-    'A41':[[51.568,-0.178],[51.580,-0.195],[51.600,-0.215]],
-    'A10':[[51.565,-0.073],[51.580,-0.072],[51.600,-0.071]],
-    'A11':[[51.528,-0.056],[51.540,-0.040],[51.550,-0.025]],
-    'A20':[[51.456,0.123],[51.440,0.080],[51.420,0.040]],
-    'A21':[[51.345,0.089],[51.370,0.060],[51.400,0.030]],
-    'A23':[[51.456,-0.123],[51.420,-0.120],[51.380,-0.100]],
-    'A24':[[51.423,-0.187],[51.400,-0.190],[51.370,-0.190]],
-    'A30':[[51.467,-0.389],[51.450,-0.420],[51.430,-0.450]],
-    'A102':[[51.487,-0.012],[51.500,-0.008],[51.510,-0.004]],
-    'A200':[[51.504,-0.080],[51.500,-0.060],[51.496,-0.040]],
-    'A205':[[51.456,-0.078],[51.458,-0.020],[51.455,0.040]],
-    'A316':[[51.467,-0.234],[51.454,-0.270],[51.440,-0.300]],
-    'A406':[[51.568,-0.234],[51.572,-0.150],[51.568,-0.060],[51.555,0.020]],
-    'A1':[[51.565,-0.073],[51.600,-0.080],[51.630,-0.090]],
-    'M25':[[51.450,-0.300],[51.389,-0.123],[51.350,-0.080],[51.310,0.050],[51.330,0.180],[51.400,0.280],[51.460,0.250],[51.480,0.180]],
-    'M4':[[51.502,-0.345],[51.495,-0.280],[51.490,-0.220],[51.488,-0.180]],
-    'M40':[[51.530,-0.280],[51.560,-0.320],[51.600,-0.380]],
-    'M1':[[51.600,-0.300],[51.650,-0.330],[51.700,-0.350]],
-    'M3':[[51.389,-0.340],[51.350,-0.380],[51.300,-0.410]],
-    'M11':[[51.623,0.123],[51.650,0.140],[51.680,0.160]],
-    'M20':[[51.280,0.150],[51.250,0.200],[51.220,0.250]],
-    'M23':[[51.200,-0.180],[51.170,-0.160],[51.140,-0.140]],
+  // Tour route lines
+  const TOUR1_WP=[[55.950,-3.362],[56.817,-5.105],[57.413,-6.196],[56.817,-5.105],[56.679,-5.102],[54.325,-2.742],[54.369,-2.902],[54.325,-2.742],[53.293,-3.727],[53.189,-2.891],[53.118,-4.128],[53.189,-2.891],[52.052,-1.692],[51.884,-1.756],[51.559,-0.279],[50.769,0.099]];
+  const TOUR2_WP=[[53.354,-2.275],[53.479,-2.245],[53.003,-2.273],[51.748,-1.138],[51.494,-0.158],[51.460,-0.448]];
+  const TOUR3_WP=[[51.477,-0.461],[51.752,-1.257],[51.884,-1.756],[52.476,-1.905],[52.671,-2.270],[53.400,-2.992],[53.479,-2.245],[54.369,-2.902],[55.864,-4.252],[56.679,-5.102],[57.142,-4.682],[57.192,-3.825],[55.950,-3.188],[55.864,-4.252],[54.978,-1.613],[53.959,-1.082],[53.800,-1.549],[52.205,0.119],[51.477,-0.461],[51.484,-0.604],[50.769,0.099],[51.477,-0.461],[51.500,-0.126]];
+  [[TOUR1_WP,'#DC2626','Scotland/Wales Tour Aug'],[TOUR2_WP,'#2563EB','Osaka Phil Jun'],[TOUR3_WP,'#16A34A','UK Grand Tour Jun-Jul']].forEach(([wp,color,name])=>{
+    const line=L.polyline(wp,{color,weight:2,opacity:0.3,dashArray:'4,8'}).addTo(rwMap);
+    line.bindTooltip(name,{sticky:true,direction:'top'});
+    window.rwTourCorridors.push(line);
+  });
+
+  const ROAD_POINTS={
+    'A400':[[51.549,-0.185]],'A12':[[51.551,0.056]],'A13':[[51.508,0.012]],
+    'A2':[[51.465,-0.056]],'A3':[[51.441,-0.212]],'A4':[[51.495,-0.220]],
+    'A40':[[51.518,-0.230]],'A41':[[51.568,-0.178]],'A10':[[51.565,-0.073]],
+    'A82':[[56.679,-5.102]],'A9':[[57.192,-3.825]],'A830':[[56.877,-5.431]],
+    'A87':[[57.280,-5.600]],'M74':[[55.500,-3.800]],'M6':[[53.500,-2.500]],
+    'M40':[[51.748,-1.138]],'M4':[[51.502,-0.345]],'M25':[[51.389,-0.123]],
+    'M1':[[52.500,-1.200]],'M56':[[53.360,-2.380]],'A55':[[53.180,-3.480]],
+    'A591':[[54.459,-2.956]],'A65':[[54.100,-2.600]],'M62':[[53.680,-1.580]],
+    'A1':[[53.000,-0.300]],'A14':[[52.300,0.380]],'M11':[[51.850,0.120]],
+    'M23':[[51.180,-0.180]],'A27':[[50.850,-0.500]],'A34':[[51.700,-1.300]],
+    'A46':[[52.650,-1.130]],'M42':[[52.380,-1.780]],'M8':[[55.864,-4.252]],
+    'A68':[[55.500,-2.200]],'A64':[[53.959,-1.082]],'M60':[[53.470,-2.280]],
+    'M9':[[56.116,-3.937]],'A429':[[51.884,-1.756]],'A23':[[51.456,-0.123]],
+    'A259':[[50.800,0.200]],'M90':[[56.250,-3.430]],'A332':[[51.484,-0.604]],
   };
 
-  const heatPoints = [];
-  const sevWeight = {critical:1.0, high:0.7, medium:0.4, moderate:0.4, low:0.2};
-
-  const toRender = rwDisruptions.filter(d => {
-    if(d._isMotorwayIncident)return true;
-    if(!rwShowModerate&&(d.severity==='moderate'||d.severity==='medium'||d.severity==='low'))return false;
-    if(rwFilters.area==='london')return !d.area||d.area==='london'||d.area==='tfl';
-    if(rwFilters.area==='cotswolds')return d.area==='cotswolds';
-    if(rwFilters.area==='motorways')return d._isMotorwayIncident||d.source==='National Highways';
-    return true;
+  const heatPoints=[];
+  const sevWeight={critical:1.0,high:0.7,medium:0.4};
+  const toPlot=rwDisruptions.filter(d=>{
+    if(d.severity==='low')return false;
+    return rwItineraries.length===0||rwIsDisruptionRelevantToItineraries(d);
   });
 
-  toRender.forEach(d => {
-    const baseWeight = sevWeight[d.severity] || 0.3;
-    const itinBoost = (rwItineraries.length>0 && rwIsDisruptionRelevantToItineraries(d)) ? 0.4 : 0;
-    const weight = Math.min(1.0, baseWeight + itinBoost);
-
-    // Fast path: use stored coords for motorway incidents
-    if (d._lat && d._lon) {
-      heatPoints.push([d._lat+(Math.random()-0.5)*0.01, d._lon+(Math.random()-0.5)*0.01, weight]);
-      return;
-    }
-
-    const roads = [
-      ...(d.roads || []),
-      ...((d.title + ' ' + d.location).match(/\b([AM]\d+[A-Z]?)\b/g) || [])
-    ].filter(Boolean);
-
-    let placed = false;
-    for (const road of roads) {
-      const pts = ROAD_POINTS[road.toUpperCase()];
-      if (pts) {
-        const mid = pts[Math.floor(pts.length / 2)];
-        heatPoints.push([mid[0] + (Math.random()-0.5)*0.01, mid[1] + (Math.random()-0.5)*0.01, weight]);
-        placed = true;
-        break;
+  toPlot.forEach(d=>{
+    const weight=Math.min(1.0,(sevWeight[d.severity]||0.3)+(rwItineraries.length>0&&rwIsDisruptionRelevantToItineraries(d)?0.4:0));
+    const roads=[...(d.roads||[]),...((d.title+' '+d.location).match(/\b([AM]\d+[A-Z]?)\b/g)||[])].filter(Boolean);
+    let coords=null;
+    if(d._lat&&d._lon){coords=[d._lat+(Math.random()-0.5)*0.01,d._lon+(Math.random()-0.5)*0.01];}
+    else{
+      for(const road of roads){const pts=ROAD_POINTS[road.toUpperCase()];if(pts){coords=[pts[0][0]+(Math.random()-0.5)*0.02,pts[0][1]+(Math.random()-0.5)*0.02];break;}}
+      if(!coords){
+        const loc=(d.location||'').toLowerCase();
+        const b=loc.includes('camden')?[51.529,-0.142]:loc.includes('westminster')?[51.497,-0.137]:loc.includes('city of london')?[51.515,-0.092]:loc.includes('hackney')?[51.545,-0.055]:loc.includes('islington')?[51.538,-0.103]:loc.includes('lambeth')?[51.461,-0.114]:loc.includes('wandsworth')?[51.456,-0.192]:loc.includes('southwark')?[51.504,-0.087]:null;
+        if(b)coords=[b[0]+(Math.random()-0.5)*0.015,b[1]+(Math.random()-0.5)*0.015];
       }
     }
-    if (!placed) {
-      const locLower = (d.location || '').toLowerCase();
-      const areaGuess =
-        locLower.includes('camden') ? [51.529,-0.142] :
-        locLower.includes('westminster') ? [51.497,-0.137] :
-        locLower.includes('city of london') ? [51.515,-0.092] :
-        locLower.includes('southwark') ? [51.504,-0.087] :
-        locLower.includes('hackney') ? [51.545,-0.055] :
-        locLower.includes('islington') ? [51.538,-0.103] :
-        locLower.includes('lambeth') ? [51.461,-0.114] :
-        locLower.includes('wandsworth') ? [51.456,-0.192] :
-        locLower.includes('tower hamlets') ? [51.515,-0.033] :
-        locLower.includes('greenwich') ? [51.483,0.009] :
-        locLower.includes('ealing') ? [51.513,-0.302] :
-        locLower.includes('bromley') ? [51.406,0.014] :
-        locLower.includes('croydon') ? [51.374,-0.098] :
-        locLower.includes('brent') ? [51.559,-0.262] :
-        locLower.includes('haringey') ? [51.577,-0.110] :
-        locLower.includes('enfield') ? [51.652,-0.082] :
-        locLower.includes('barnet') ? [51.614,-0.195] :
-        locLower.includes('richmond') ? [51.461,-0.306] :
-        locLower.includes('hounslow') ? [51.467,-0.361] :
-        locLower.includes('newham') ? [51.508,0.035] :
-        locLower.includes('havering') ? [51.579,0.214] :
-        locLower.includes('hillingdon') ? [51.521,-0.448] :
-        locLower.includes('harrow') ? [51.579,-0.335] :
-        locLower.includes('kingston') ? [51.412,-0.306] :
-        locLower.includes('merton') ? [51.411,-0.188] :
-        null;
-      if (areaGuess) {
-        heatPoints.push([areaGuess[0]+(Math.random()-0.5)*0.02, areaGuess[1]+(Math.random()-0.5)*0.02, weight]);
-      }
+    if(!coords)return;
+    heatPoints.push([coords[0],coords[1],weight]);
+    if(d.severity==='critical'||d.severity==='high'){
+      const color=d.severity==='critical'?'#DC2626':'#F59E0B';
+      const sz=d.severity==='critical'?16:11;
+      const isItinRelevant=rwItineraries.length>0&&rwIsDisruptionRelevantToItineraries(d);
+      const icon=L.divIcon({html:`<div style="background:${color};border-radius:50%;width:${sz}px;height:${sz}px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);${isItinRelevant?'outline:2px solid #111;outline-offset:2px':''}"></div>`,className:'',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+      const marker=L.marker(coords,{icon}).addTo(rwMap);
+      marker.bindPopup(`<div style="font-family:Georgia,serif;min-width:220px;padding:4px">${isItinRelevant?'<div style="background:#111;color:white;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;margin-bottom:6px;display:inline-block">📍 AFFECTS YOUR ROUTE</div><br>':''}<div style="font-weight:700;font-size:13px;color:${color};margin-bottom:4px">${esc(d.title)}</div><div style="font-size:11px;color:#555;margin-bottom:6px">📍 ${esc((d.location||'').replace(/\[.*?\]/g,'').trim().slice(0,60))}</div><div style="font-size:11px;color:#333;line-height:1.5;margin-bottom:8px">${esc((d.desc||'').slice(0,160))}</div>${d.sourceUrl?`<a href="${esc(d.sourceUrl)}" target="_blank" style="font-size:10px;color:#DC2626;font-weight:600">Source →</a>`:''}</div>`,{maxWidth:280});
+      rwMapMarkers.push(marker);
     }
   });
 
-  console.log('Heatmap points:', heatPoints.length);
-
-  if (heatPoints.length && typeof L.heatLayer === 'function') {
-    window.rwHeatLayer = L.heatLayer(heatPoints, {
-      radius: 35,
-      blur: 25,
-      maxZoom: 14,
-      max: 1.0,
-      gradient: {
-        0.0: '#10B981',
-        0.3: '#84CC16',
-        0.5: '#F59E0B',
-        0.7: '#EF4444',
-        1.0: '#7F1D1D'
-      }
-    }).addTo(rwMap);
+  if(heatPoints.length>0){
+    window.rwHeatLayer=L.heatLayer(heatPoints,{radius:30,blur:20,maxZoom:14,max:1.0,gradient:{0.0:'#10B981',0.4:'#F59E0B',0.7:'#EF4444',1.0:'#7F1D1D'}}).addTo(rwMap);
   }
 
-  toRender.filter(d => d.severity === 'critical').slice(0, 20).forEach(d => {
-    const roads = [...(d.roads || []), ...((d.title+' '+d.location).match(/\b([AM]\d+[A-Z]?)\b/g) || [])].filter(Boolean);
-    let coords = null;
-    for (const road of roads) {
-      const pts = ROAD_POINTS[road.toUpperCase()];
-      if (pts) { coords = pts[Math.floor(pts.length/2)]; break; }
-    }
-    if (!coords) {
-      const locLower = (d.location||'').toLowerCase();
-      coords = locLower.includes('westminster') ? [51.497,-0.137] :
-               locLower.includes('city') ? [51.515,-0.092] :
-               [51.505+(Math.random()-0.5)*0.1, -0.09+(Math.random()-0.5)*0.15];
-    }
-    const icon = L.divIcon({
-      html: `<div style="background:#DC2626;color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;border:2px solid white;box-shadow:0 2px 8px rgba(220,38,38,0.5);cursor:pointer">!</div>`,
-      className: '', iconSize: [22,22], iconAnchor: [11,11]
-    });
-    const marker = L.marker([coords[0]+(Math.random()-0.5)*0.008, coords[1]+(Math.random()-0.5)*0.008], {icon}).addTo(rwMap);
-    marker.bindPopup(`
-      <div style="font-family:Georgia,serif;min-width:220px;padding:4px">
-        <div style="font-weight:700;font-size:13px;color:#DC2626;margin-bottom:4px">${esc(d.title)}</div>
-        <div style="font-size:11px;color:#555;margin-bottom:6px">📍 ${esc((d.location||'').replace(/\[.*?\]/g,'').trim().slice(0,60))}</div>
-        <div style="font-size:11px;color:#333;line-height:1.5;margin-bottom:8px">${esc((d.desc||'').slice(0,150))}</div>
-        ${d.sourceUrl?`<a href="${d.sourceUrl}" target="_blank" style="font-size:10px;color:#DC2626;text-decoration:none;font-weight:600">View source →</a>`:''}
-      </div>`, {maxWidth:280});
-    rwMapMarkers.push(marker);
-  });
+  const countEl=document.getElementById('rw-map-count');
+  if(countEl){
+    const relevant=toPlot.filter(d=>rwItineraries.length>0&&rwIsDisruptionRelevantToItineraries(d)).length;
+    countEl.textContent=relevant+' route-relevant disruptions · '+toPlot.length+' total';
+  }
 
-  // Motorway incident markers (use stored _lat/_lon, skip critical-only London markers)
-  const motorwayItems = toRender.filter(d => d._isMotorwayIncident && d._lat && d._lon);
-  motorwayItems.forEach(d => {
-    const color = d.severity==='critical'?'#DC2626':'#F59E0B';
-    const size = d.severity==='critical'?20:14;
-    const pulse = d.severity==='critical'?';animation:majorPulse 2s infinite':'';
-    const icon = L.divIcon({
-      html:`<div style="background:${color};border-radius:50%;width:${size}px;height:${size}px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:${d.severity==='critical'?9:7}px;font-weight:800;color:white${pulse}">!</div>`,
-      className:'',iconSize:[size,size],iconAnchor:[size/2,size/2]
-    });
-    const marker=L.marker([d._lat,d._lon],{icon}).addTo(rwMap);
-    marker.bindPopup(`
-      <div style="font-family:Georgia,serif;min-width:220px;padding:4px">
-        <div style="font-weight:700;font-size:13px;color:${color};margin-bottom:4px">${esc(d.title)}</div>
-        <div style="font-size:11px;color:#333;line-height:1.5;margin-bottom:6px">${esc((d.desc||'').slice(0,160))}</div>
-        <a href="${esc(d.sourceUrl)}" target="_blank" style="font-size:10px;color:#DC2626;font-weight:600;text-decoration:none">Traffic England →</a>
-      </div>`,{maxWidth:280});
-    rwMapMarkers.push(marker);
-  });
-
-  if (!document.getElementById('rw-heat-legend')) {
-    const legend = L.control({position:'bottomright'});
-    legend.onAdd = () => {
-      const div = L.DomUtil.create('div');
-      div.id = 'rw-heat-legend';
-      div.innerHTML = `
-        <div style="background:white;padding:10px 14px;border-radius:8px;font-size:11px;box-shadow:0 2px 12px rgba(0,0,0,.15);font-family:Georgia,serif">
-          <div style="font-weight:700;margin-bottom:8px;font-size:12px">Disruption Intensity</div>
-          <div style="width:120px;height:8px;border-radius:4px;background:linear-gradient(to right,#10B981,#84CC16,#F59E0B,#EF4444,#7F1D1D);margin-bottom:4px"></div>
-          <div style="display:flex;justify-content:space-between;font-size:9px;color:#666;margin-bottom:8px"><span>Low</span><span>High</span></div>
-          <div style="border-top:1px solid #f0f0f0;padding-top:8px;display:flex;align-items:center;gap:6px;font-size:10px;color:#DC2626;margin-bottom:4px">
-            <div style="width:14px;height:14px;background:#DC2626;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(220,38,38,.4);flex-shrink:0"></div>
-            Critical incident
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#F59E0B">
-            <div style="width:14px;height:14px;background:#F59E0B;border-radius:50%;border:2px solid white;display:flex;align-items:center;justify-content:center;font-size:7px;color:white;font-weight:800;flex-shrink:0">!</div>
-            Major UK incident
-          </div>
-          <div style="border-top:1px solid #f0f0f0;padding-top:8px;margin-top:4px">
-            <div style="font-weight:700;font-size:10px;margin-bottom:5px">Active Tour Routes</div>
-            <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#DC2626;margin-bottom:3px">
-              <div style="width:16px;height:2px;border-top:2px dashed #DC2626;flex-shrink:0"></div> Scotland/Wales (Aug)
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#2563EB;margin-bottom:3px">
-              <div style="width:16px;height:2px;border-top:2px dashed #2563EB;flex-shrink:0"></div> Osaka Phil (Jun)
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#16A34A">
-              <div style="width:16px;height:2px;border-top:2px dashed #16A34A;flex-shrink:0"></div> UK Grand Tour (Jun-Jul)
-            </div>
-          </div>
-        </div>`;
+  if(!document.getElementById('rw-heat-legend')){
+    const legend=L.control({position:'bottomright'});
+    legend.onAdd=()=>{
+      const div=L.DomUtil.create('div');
+      div.id='rw-heat-legend';
+      div.innerHTML=`<div style="background:white;padding:10px 14px;border-radius:8px;font-size:11px;box-shadow:0 2px 12px rgba(0,0,0,.15);font-family:Georgia,serif;min-width:160px">
+        <div style="font-weight:700;margin-bottom:8px">Disruption Intensity</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:50px;height:6px;border-radius:3px;background:linear-gradient(to right,#10B981,#F59E0B,#EF4444,#7F1D1D)"></div><span style="font-size:9px;color:#666">Low → High</span></div>
+        <div style="border-top:1px solid #f0f0f0;padding-top:8px;margin-top:4px">
+          <div style="display:flex;align-items:center;gap:6px;font-size:10px;margin-bottom:3px"><div style="width:12px;height:12px;background:#DC2626;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3)"></div>Critical</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:10px;margin-bottom:6px"><div style="width:9px;height:9px;background:#F59E0B;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3)"></div>High</div>
+          <div style="font-size:9px;color:#666;border-top:1px solid #f0f0f0;padding-top:6px"><span style="display:inline-block;width:9px;height:9px;background:#F59E0B;border-radius:50%;border:2px solid white;outline:2px solid #111;outline-offset:1px;margin-right:4px"></span>Affects your route</div>
+        </div>
+        <div style="border-top:1px solid #f0f0f0;padding-top:8px;margin-top:6px">
+          <div style="font-weight:700;font-size:10px;margin-bottom:5px">Tour Routes</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#DC2626;margin-bottom:3px"><div style="width:16px;height:0;border-top:2px dashed #DC2626"></div>Scotland/Wales Aug</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#2563EB;margin-bottom:3px"><div style="width:16px;height:0;border-top:2px dashed #2563EB"></div>Osaka Phil Jun</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#16A34A"><div style="width:16px;height:0;border-top:2px dashed #16A34A"></div>UK Grand Tour Jun-Jul</div>
+        </div>
+      </div>`;
       return div;
     };
     legend.addTo(rwMap);
   }
-
-  const motorwayCount=toRender.filter(d=>d._isMotorwayIncident).length;
-  const countEl=document.getElementById('rw-map-count');
-  if(countEl)countEl.textContent=heatPoints.length+' disruptions mapped'+(motorwayCount>0?' · '+motorwayCount+' major UK incidents':'');
-
-  // Draw tour route lines
-  const TOUR1_WAYPOINTS=[[55.950,-3.362],[56.116,-3.937],[56.817,-5.105],[57.006,-5.829],[57.413,-6.196],[57.419,-5.642],[56.877,-5.431],[56.817,-5.105],[56.679,-5.102],[54.325,-2.742],[54.459,-2.956],[54.369,-2.902],[54.325,-2.742],[53.293,-3.727],[52.972,-3.157],[53.189,-2.891],[53.118,-4.128],[53.189,-2.891],[52.052,-1.692],[51.884,-1.756],[51.559,-0.279],[50.769,0.099]];
-  const TOUR2_WAYPOINTS=[[53.354,-2.275],[53.479,-2.245],[53.003,-2.273],[51.748,-1.138],[51.494,-0.158],[51.460,-0.448]];
-  const TOUR3_WAYPOINTS=[[51.477,-0.461],[51.752,-1.257],[51.884,-1.756],[52.476,-1.905],[52.671,-2.270],[53.400,-2.992],[53.479,-2.245],[54.369,-2.902],[55.864,-4.252],[56.679,-5.102],[57.142,-4.682],[57.192,-3.825],[55.950,-3.188],[55.864,-4.252],[54.978,-1.613],[53.959,-1.082],[53.800,-1.549],[52.205,0.119],[51.477,-0.461],[51.484,-0.604],[50.769,0.099],[51.477,-0.461],[51.500,-0.126]];
-  const tourDefs=[
-    {points:TOUR1_WAYPOINTS,color:'#DC2626',name:'Scotland/Wales Tour (Aug)'},
-    {points:TOUR2_WAYPOINTS,color:'#2563EB',name:'Osaka Phil Tour (Jun)'},
-    {points:TOUR3_WAYPOINTS,color:'#16A34A',name:'UK Grand Tour (Jun-Jul)'},
-  ];
-  if(window.rwTourCorridors)window.rwTourCorridors.forEach(l=>{try{rwMap.removeLayer(l)}catch(e){}});
-  window.rwTourCorridors=[];
-  tourDefs.forEach(t=>{
-    const line=L.polyline(t.points,{color:t.color,weight:2,opacity:0.4,dashArray:'6,8'}).addTo(rwMap);
-    line.bindTooltip(t.name,{sticky:true});
-    window.rwTourCorridors.push(line);
-  });
-  const ALL_STOPS=[
-    {coords:[55.950,-3.362],label:'Edinburgh',day:'T1 Day 1',color:'#DC2626'},
-    {coords:[56.817,-5.105],label:'Fort William',day:'T1 Day 1-3',color:'#DC2626'},
-    {coords:[57.413,-6.196],label:'Portree Skye',day:'T1 Day 2',color:'#DC2626'},
-    {coords:[54.325,-2.742],label:'Kendal',day:'T1 Day 3-5',color:'#DC2626'},
-    {coords:[53.189,-2.891],label:'Chester',day:'T1 Day 5-7',color:'#DC2626'},
-    {coords:[51.884,-1.756],label:'Bourton on Water',day:'T1 Day 7',color:'#DC2626'},
-    {coords:[51.559,-0.279],label:'London Wembley',day:'T1 Day 7-8',color:'#DC2626'},
-    {coords:[53.354,-2.275],label:'Manchester Airport',day:'T2 Day 5',color:'#2563EB'},
-    {coords:[53.003,-2.273],label:'Keele Services',day:'T2 Day 6',color:'#2563EB'},
-    {coords:[51.748,-1.138],label:'Oxford Services M40',day:'T2 Day 6',color:'#2563EB'},
-    {coords:[51.460,-0.448],label:'Heathrow T4',day:'T2 Day 6-7',color:'#2563EB'},
-    {coords:[51.477,-0.461],label:'Heathrow (Base)',day:'T3 Day 1,7-10',color:'#16A34A'},
-    {coords:[51.752,-1.257],label:'Oxford',day:'T3 Day 1',color:'#16A34A'},
-    {coords:[52.476,-1.905],label:'Birmingham',day:'T3 Day 1-2',color:'#16A34A'},
-    {coords:[53.400,-2.992],label:'Liverpool',day:'T3 Day 2',color:'#16A34A'},
-    {coords:[53.479,-2.245],label:'Manchester',day:'T3 Day 2-3',color:'#16A34A'},
-    {coords:[54.369,-2.902],label:'Windermere',day:'T3 Day 3',color:'#16A34A'},
-    {coords:[55.864,-4.252],label:'Glasgow',day:'T3 Day 3-6',color:'#16A34A'},
-    {coords:[57.192,-3.825],label:'Aviemore',day:'T3 Day 4-5',color:'#16A34A'},
-    {coords:[55.950,-3.188],label:'Edinburgh',day:'T3 Day 5',color:'#16A34A'},
-    {coords:[54.978,-1.613],label:'Newcastle',day:'T3 Day 6',color:'#16A34A'},
-    {coords:[53.959,-1.082],label:'York',day:'T3 Day 6',color:'#16A34A'},
-    {coords:[52.205,0.119],label:'Cambridge',day:'T3 Day 7',color:'#16A34A'},
-    {coords:[51.484,-0.604],label:'Windsor',day:'T3 Day 8',color:'#16A34A'},
-    {coords:[50.769,0.099],label:'Eastbourne/Seven Sisters',day:'T3 Day 8',color:'#16A34A'},
-  ];
-  ALL_STOPS.forEach(stop=>{
-    const marker=L.circleMarker(stop.coords,{radius:5,fillColor:stop.color,color:'white',weight:2,opacity:1,fillOpacity:0.9}).addTo(rwMap);
-    marker.bindTooltip(`<b>${stop.label}</b><br><span style="font-size:10px">${stop.day}</span>`,{permanent:false,direction:'top'});
-    window.rwTourCorridors.push(marker);
-  });
 }
+
+
 
 function rwPointNearRoute(routeCoords, lat, lon, bufferKm = 2.0) {
   for (let i = 0; i < routeCoords.length - 1; i++) {
@@ -2329,27 +2169,106 @@ function rwDeleteItinerary(id){
 
 function rwRenderItineraries(){
   const list=document.getElementById('rw-itinerary-list');
+  const empty=document.getElementById('rw-itin-empty');
+  const count=document.getElementById('rw-itin-count');
   if(!list)return;
   if(!rwItineraries.length){
-    list.innerHTML='<div style="font-size:11px;color:#9CA3AF;padding:4px 0">No saved routes yet. Add your common journeys to track their status.</div>';
+    if(empty)empty.style.display='block';
+    list.style.display='none';
     return;
   }
-  list.innerHTML=rwItineraries.map(itin=>{
-    const impact=rwItineraryImpacts[itin.id];
-    const statusColor=impact?.hasCritical?'#DC2626':impact?.hasHigh?'#F59E0B':'#16A34A';
-    const statusText=impact?.hasCritical?'🚨 Affected':impact?.hasHigh?'⚠️ Delays':'✅ Clear';
-    const statusBg=impact?.hasCritical?'rgba(220,38,38,0.06)':impact?.hasHigh?'rgba(245,158,11,0.06)':'rgba(22,163,74,0.06)';
-    return`<div style="border:1px solid ${statusColor}30;border-left:3px solid ${statusColor};border-radius:8px;padding:10px 12px;background:${statusBg};min-width:180px;max-width:220px;cursor:pointer" onclick="rwLoadItinerary(${itin.id})">
-      <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:4px">${esc(itin.name)}</div>
-      <div style="font-size:10px;color:#6B7280;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(itin.from)} → ${esc(itin.to)}</div>
-      <div style="font-size:10px;font-weight:600;color:${statusColor}">${statusText}</div>
-      ${impact?.count?`<div style="font-size:9px;color:#9CA3AF;margin-top:2px">${impact.count} disruption${impact.count!==1?'s':''} on route</div>`:''}
-      <div style="display:flex;gap:4px;margin-top:6px">
-        <button onclick="event.stopPropagation();rwCheckItineraryJourney(${itin.id})" style="background:#111;border:none;border-radius:4px;padding:3px 8px;font-size:9px;color:white;cursor:pointer;font-family:inherit">Check →</button>
-        <button onclick="event.stopPropagation();rwDeleteItinerary(${itin.id})" style="background:transparent;border:1px solid #e5e5e5;border-radius:4px;padding:3px 6px;font-size:9px;color:#9CA3AF;cursor:pointer;font-family:inherit">✕</button>
+  if(empty)empty.style.display='none';
+  list.style.display='flex';
+  const todayId=rwGetTodaysTourDay();
+  const todayIdx=rwItineraries.findIndex(i=>i.id===todayId);
+  let visibleItins;
+  if(todayIdx>=0){
+    const start=Math.max(0,todayIdx-1);
+    const end=Math.min(rwItineraries.length,todayIdx+4);
+    visibleItins=rwItineraries.slice(start,end);
+  }else{
+    visibleItins=rwItineraries.slice(0,5);
+  }
+  const hiddenCount=rwItineraries.length-visibleItins.length;
+  if(count)count.textContent=rwItineraries.length+' legs · showing '+visibleItins.length;
+  list.innerHTML=visibleItins.map(itin=>{
+    const impact=rwItineraryImpacts?.[itin.id];
+    const hasCritical=impact?.hasCritical;
+    const hasHigh=impact?.hasHigh;
+    const isToday=itin.id===todayId;
+    const statusColor=hasCritical?'#DC2626':hasHigh?'#D97706':'#16A34A';
+    const statusDot=hasCritical?'🔴':hasHigh?'🟡':'🟢';
+    const statusText=hasCritical?'Critical':hasHigh?'Delays':'Clear';
+    return`<div style="border:1px solid ${isToday?'#111':'#e5e5e5'};border-left:3px solid ${isToday?'#111':statusColor};border-radius:8px;padding:10px 14px;background:${isToday?'#fafafa':'white'};min-width:180px;max-width:220px;position:relative">
+      ${isToday?`<div style="position:absolute;top:-8px;left:12px;background:#111;color:white;font-size:8px;font-weight:700;padding:1px 7px;border-radius:3px;letter-spacing:.06em">TODAY</div>`:''}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:5px">
+        <span style="font-size:11px;font-weight:700;color:#111;line-height:1.3">${esc(itin.name)}</span>
+        <span style="font-size:10px;color:${statusColor};font-weight:600;white-space:nowrap">${statusDot} ${statusText}</span>
+      </div>
+      <div style="font-size:9px;color:#9CA3AF;margin-bottom:8px;line-height:1.4">${esc(itin.from.split(' ').slice(0,3).join(' '))} → ${esc(itin.to.split(' ').slice(0,3).join(' '))}</div>
+      ${impact?.count?`<div style="font-size:9px;color:${statusColor};margin-bottom:6px">${impact.count} disruption${impact.count!==1?'s':''} on route</div>`:''}
+      <div style="display:flex;gap:5px">
+        <button onclick="rwCheckItineraryJourney('${itin.id}')" style="flex:1;background:${isToday?'#111':'#f9f9f9'};border:1px solid ${isToday?'#111':'#e5e5e5'};border-radius:5px;padding:5px 0;font-size:9px;color:${isToday?'white':'#374151'};cursor:pointer;font-family:inherit;font-weight:600">Check route</button>
+        <button onclick="rwFocusItinOnMap('${itin.id}')" style="background:#f9f9f9;border:1px solid #e5e5e5;border-radius:5px;padding:5px 8px;font-size:9px;cursor:pointer;font-family:inherit" title="Show on map">🗺</button>
+        <button onclick="rwDeleteItinerary('${itin.id}')" style="background:transparent;border:1px solid #f0f0f0;border-radius:5px;padding:5px 6px;font-size:9px;color:#d1d5db;cursor:pointer;font-family:inherit" title="Remove">✕</button>
       </div>
     </div>`;
   }).join('');
+  if(hiddenCount>0){
+    list.innerHTML+=`<div style="display:flex;align-items:center;justify-content:center;min-width:120px;border:1px dashed #e5e5e5;border-radius:8px;padding:10px 14px;cursor:pointer;color:#9CA3AF;font-size:10px" onclick="rwShowAllItineraries()">+ ${hiddenCount} more legs</div>`;
+  }
+}
+
+let rwShowingAllItins=false;
+function rwShowAllItineraries(){
+  rwShowingAllItins=true;
+  const list=document.getElementById('rw-itinerary-list');
+  const count=document.getElementById('rw-itin-count');
+  if(count)count.textContent=rwItineraries.length+' legs · all shown';
+  const todayId=rwGetTodaysTourDay();
+  list.innerHTML=rwItineraries.map(itin=>{
+    const impact=rwItineraryImpacts?.[itin.id];
+    const hasCritical=impact?.hasCritical;
+    const hasHigh=impact?.hasHigh;
+    const isToday=itin.id===todayId;
+    const statusColor=hasCritical?'#DC2626':hasHigh?'#D97706':'#16A34A';
+    const statusDot=hasCritical?'🔴':hasHigh?'🟡':'🟢';
+    const statusText=hasCritical?'Critical':hasHigh?'Delays':'Clear';
+    return`<div style="border:1px solid ${isToday?'#111':'#e5e5e5'};border-left:3px solid ${isToday?'#111':statusColor};border-radius:8px;padding:10px 14px;background:white;min-width:180px;max-width:220px;position:relative">
+      ${isToday?`<div style="position:absolute;top:-8px;left:12px;background:#111;color:white;font-size:8px;font-weight:700;padding:1px 7px;border-radius:3px">TODAY</div>`:''}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:5px">
+        <span style="font-size:11px;font-weight:700;color:#111">${esc(itin.name)}</span>
+        <span style="font-size:10px;color:${statusColor};font-weight:600">${statusDot} ${statusText}</span>
+      </div>
+      <div style="font-size:9px;color:#9CA3AF;margin-bottom:8px">${esc(itin.from.split(' ').slice(0,3).join(' '))} → ${esc(itin.to.split(' ').slice(0,3).join(' '))}</div>
+      ${impact?.count?`<div style="font-size:9px;color:${statusColor};margin-bottom:6px">${impact.count} disruption${impact.count!==1?'s':''}</div>`:''}
+      <div style="display:flex;gap:5px">
+        <button onclick="rwCheckItineraryJourney('${itin.id}')" style="flex:1;background:#f9f9f9;border:1px solid #e5e5e5;border-radius:5px;padding:5px 0;font-size:9px;color:#374151;cursor:pointer;font-family:inherit;font-weight:600">Check</button>
+        <button onclick="rwFocusItinOnMap('${itin.id}')" style="background:#f9f9f9;border:1px solid #e5e5e5;border-radius:5px;padding:5px 8px;font-size:9px;cursor:pointer">🗺</button>
+      </div>
+    </div>`;
+  }).join('')+`<div style="display:flex;align-items:center;justify-content:center;min-width:100px;border:1px dashed #e5e5e5;border-radius:8px;padding:10px;cursor:pointer;color:#9CA3AF;font-size:10px" onclick="rwShowingAllItins=false;rwRenderItineraries()">Show less ↑</div>`;
+}
+
+async function rwFocusItinOnMap(id){
+  const itin=rwItineraries.find(i=>i.id===id);
+  if(!itin||!rwMap)return;
+  if(!rwMapShown){
+    rwMapShown=true;
+    document.getElementById('rw-map-container').style.display='block';
+    setTimeout(()=>{rwMap.invalidateSize();},100);
+  }
+  try{
+    const fromGeo=await rwGeocode(itin.from);
+    const toGeo=await rwGeocode(itin.to);
+    if(fromGeo&&toGeo){
+      const bounds=L.latLngBounds([[fromGeo.lat,fromGeo.lon],[toGeo.lat,toGeo.lon]]);
+      rwMap.fitBounds(bounds,{padding:[60,60],maxZoom:10});
+    }else if(fromGeo){
+      rwMap.flyTo([fromGeo.lat,fromGeo.lon],10,{duration:1});
+    }
+  }catch(e){}
+  document.getElementById('rw-map-container')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function rwCheckItineraryImpacts(){
