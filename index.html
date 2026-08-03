@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.3.0 -->
+<!-- roadwatch v3.3.1 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -676,11 +676,12 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     <div class="sep"></div>
     <span class="filter-label">Area:</span>
     <div class="fg">
-      <button class="fbtn-rw active" onclick="rwSetFilter('area','all',this)">All London</button>
+      <button class="fbtn-rw active" onclick="rwSetFilter('area','london',this)">🏙 London</button>
       <button class="fbtn-rw" onclick="rwSetFilter('area','cotswolds',this)">🌿 Cotswolds</button>
-      <button class="fbtn-rw" onclick="rwSetFilter('area','both',this)">All Areas</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('area','motorways',this)">🛣 Motorways UK</button>
+      <button class="fbtn-rw" onclick="rwSetFilter('area','all',this)">All Areas</button>
     </div>
-    <button id="rw-moderate-toggle" class="alerts-btn-rw" style="border-color:#F59E0B;color:#F59E0B" onclick="rwToggleModerate()">Hide Moderate</button>
+    <button id="rw-moderate-toggle" class="alerts-btn-rw" style="border-color:#F59E0B;color:#F59E0B" onclick="rwToggleModerate()">Show All</button>
     <button class="alerts-btn-rw" onclick="rwToggleAlerts()">🔔 Alerts</button>
     <button onclick="rwMap&&rwMap.flyTo([51.505,-0.09],10,{duration:1})" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--rw-muted,#666);font-family:inherit">⟳ Reset Map</button>
     <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">2:00</span></button>
@@ -946,8 +947,8 @@ const RW_RSS_FEEDS=[
   {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+road+closure+motorway+today&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
 
-let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all',area:'all'},rwApiKey='';
-let rwShowModerate=true;
+let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all',area:'london'},rwApiKey='';
+let rwShowModerate=false;
 let rwLastBriefing=0,rwBriefingText='';
 let rwRefTimer=null,rwCdTimer=null,rwCdSecs=300,rwAlerts={},rwAlertsPanelOpen=false,rwAudioCtx=null,rwTabTimer=null;
 let rwGChatUrl='',rwGChatSentIds=new Set(),rwAcTimer=null;
@@ -1061,13 +1062,10 @@ function rwPlotDisruptions() {
   const sevWeight = {critical:1.0, high:0.7, medium:0.4, moderate:0.4, low:0.2};
 
   const toRender = rwDisruptions.filter(d => {
-    if (!rwShowModerate && d.severity === 'moderate') return false;
-    if (rwFilters.type !== 'all') {
-      if (rwFilters.type === 'closures' && d.category !== 'RoadClosure') return false;
-      if (rwFilters.type === 'works' && d.category !== 'Works') return false;
-      if (rwFilters.type === 'events' && d.category !== 'SpecialEvent') return false;
-      if (rwFilters.type === 'incidents' && d.category !== 'Incident') return false;
-    }
+    if(d.severity!=='critical'&&d.severity!=='high')return false;
+    if(rwFilters.area==='london')return !d.area||d.area==='london'||d.area==='tfl';
+    if(rwFilters.area==='cotswolds')return d.area==='cotswolds';
+    if(rwFilters.area==='motorways')return d.source==='National Highways'||d.id?.startsWith('nh-group-');
     return true;
   });
 
@@ -1647,18 +1645,35 @@ function rwBuildTitle(d){
                'Works';
   return road?road+' — '+action:action;
 }
+function rwAssignSeverity(d){
+  const desc=(d.comments||d.description||d.additionalInfo||'').toLowerCase();
+  const loc=(d.location||'').toLowerCase();
+  const isMotorway=/m25|m1\b|m4\b|m3\b|m11|m40/.test(loc);
+  const isMajorARoad=/\ba1\b|\ba2\b|\ba3\b|\ba4\b|\ba10\b|\ba11\b|\ba12\b|\ba13\b|\ba20\b|\ba23\b|\ba40\b|\ba41\b|\ba406\b|\ba205\b|\ba316\b/.test(loc);
+  const isFullClosure=/road is closed|road closed|full closure|carriageway closed|tunnel.*closed|bridge.*closed/.test(desc);
+  const isLaneClosure=/lane.*clos|clos.*lane|contraflow/.test(desc);
+  const isTempSignals=/temporary signals|traffic lights|traffic signals/.test(desc)&&!isFullClosure;
+  const isEmergency=/burst|water main|gas leak|emergency/.test(desc);
+  const isMinor=/bus lane|advisory|monitoring|no restriction/.test(desc);
+  if(isMinor)return'low';
+  if(isTempSignals&&!isMajorARoad&&!isMotorway)return'low';
+  if(isTempSignals&&(isMajorARoad||isMotorway))return'medium';
+  if(isLaneClosure&&!isMajorARoad)return'medium';
+  if(isLaneClosure&&isMajorARoad)return'high';
+  if(isEmergency&&isFullClosure)return'critical';
+  if(isEmergency)return'high';
+  if(isFullClosure&&(isMotorway||isMajorARoad))return'critical';
+  if(isFullClosure)return'high';
+  return'medium';
+}
 function rwNormActive(d){
   const roads=(d.roads||[]).map(r=>r.displayName||r.id).filter(Boolean);
   const desc=[d.comments,d.additionalInfo].filter(Boolean).join(' ').trim()||d.description||'';
   const dl=desc.toLowerCase();
-  let sev=rwMapSev(d.severity);
-  if(d.levelOfInterest==='High'||d.severity==='Serious'){sev='critical';}
-  else if(dl.includes('severe')||dl.includes('major delay')||dl.includes('long delays')){sev='critical';}
-  else{const em=dl.match(/expect delays of\s+(\d+)/);if(em&&parseInt(em[1])>30)sev='critical';}
   let delayMinutes=0;
   const dm=dl.match(/(\d+)\s*(?:minute|min)/);if(dm)delayMinutes=parseInt(dm[1]);
-  if(d.comments||d.description){const text=((d.comments||'')+' '+(d.description||'')).toLowerCase();const delayMatch=text.match(/(\d+)\s*(?:minute|min)/);if(delayMatch){d._delayMinutes=parseInt(delayMatch[1]);if(d._delayMinutes>=60&&sev!=='critical')sev='critical';else if(d._delayMinutes>=30&&sev==='low')sev='high';}}
-  return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:rwBuildTitle(d)||d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:sev,roads,source:'TfL Traffic Control',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:d.hasDiversions||false,isActive:true,delayMinutes}
+  const sev=rwAssignSeverity({...d,location:d.location||(roads[0]||'')});
+  return{id:d.id||d.disruptionId||rnd(),category:rwMapCat(d.category),title:rwBuildTitle(d)||d.description||d.summary||'Road disruption',desc,location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:sev,roads,source:'TfL Traffic Control',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:d.hasDiversions||false,isActive:true,delayMinutes,area:'tfl'}
 }
 function rwNormPlanned(d){const roads=(d.streets||[]).map(s=>s.name).filter(Boolean);return{id:d.id||rnd(),category:'Planned',title:d.description||'Planned works',desc:d.additionalInfo||d.description||'',location:d.location||(roads[0]||'London'),startDate:splitT(d.startDateTime,0),startTime:splitT(d.startDateTime,1),endDate:splitT(d.endDateTime,0),endTime:splitT(d.endDateTime,1),severity:rwMapSev(d.severity),roads,source:'TfL Street Works',sourceUrl:'https://tfl.gov.uk/travel-information/status-updates/major-works-and-events/',hasDiversion:false,isActive:false}}
 
@@ -1830,9 +1845,10 @@ async function fetchNHOpenData(){
       });
       // Remove ALL individual NH Open Data items AND stale group cards before adding fresh groups
       rwDisruptions=rwDisruptions.filter(d=>d.source!=='National Highways Open Data'&&!d.id?.startsWith('nh-group-'));
-      // Add one summary card per region (unshift so they appear near the top)
+      // Add one summary card per region — tag area so London filter can exclude non-London ones
       Object.entries(nhByRegion).forEach(([region,items])=>{
         const roads=[...new Set(items.map(d=>d.roads?.[0]).filter(Boolean))].slice(0,8).join(' · ');
+        const isLondonRegion=region.includes('M25')||region.includes('London');
         rwDisruptions.unshift({
           id:'nh-group-'+region.replace(/[\s&]/g,'-'),
           category:'RoadClosure',
@@ -1845,7 +1861,8 @@ async function fetchNHOpenData(){
           roads:[...new Set(items.flatMap(d=>d.roads||[]))].slice(0,6),
           source:'National Highways',
           sourceUrl:'https://nationalhighways.co.uk/travel-updates/road-closure-report/',
-          hasDiversion:true,isActive:true
+          hasDiversion:true,isActive:true,
+          area:isLondonRegion?'london':'national'
         });
       });
       rwRenderDisruptions();rwRenderStats();rwRenderTicker();
@@ -1930,6 +1947,8 @@ async function fetchCotswoldsData(){
           const link=item.link||'';
           const id='cotswolds-'+i+'-'+Date.now();
           if(rwDisruptions.find(d=>d.title===title.slice(0,80)))return;
+          const isActualClosure=/road.*clos|clos.*road|closure|blocked|accident|collision|diversion/i.test(title+desc);
+          if(!isActualClosure)return;
           const isClosure=/clos|blocked/i.test(title+desc);
           const isSevere=/severe|major|serious|long delay/i.test(title+desc);
           const road=(title+desc).match(/A40\b|A429|A417|A419|A46\b|B4425|M5\b/)?.[0]||'';
@@ -2060,6 +2079,7 @@ function rwBuildCard(d,i){
 function rwRenderDisruptions(){
   console.log('Rendering disruptions:',rwDisruptions.length,'filters:',JSON.stringify(rwFilters),'showModerate:',rwShowModerate);
   let f=rwDisruptions.filter(d=>{
+    // Type filter
     let typeOk=rwFilters.type==='all';
     if(!typeOk){
       if(rwFilters.type==='events')typeOk=d.category==='SpecialEvent';
@@ -2069,17 +2089,31 @@ function rwRenderDisruptions(){
       else if(rwFilters.type==='planned')typeOk=d.category==='PlannedWorks';
       else typeOk=d.category===rwFilters.type;
     }
+    // Severity filter (manual sev button)
     const sevOk=rwFilters.sev==='all'||d.severity===rwFilters.sev;
-    const areaOk=rwFilters.area==='all'?(!d.area||d.area!=='cotswolds'):rwFilters.area==='cotswolds'?d.area==='cotswolds':true;
+    // Area filter
+    let areaOk=true;
+    if(rwFilters.area==='london')areaOk=!d.area||d.area==='london'||d.area==='tfl';
+    else if(rwFilters.area==='cotswolds')areaOk=d.area==='cotswolds';
+    else if(rwFilters.area==='motorways')areaOk=d.source==='National Highways'||d.id?.startsWith('nh-group-');
+    // 'all' — show everything
     return typeOk&&sevOk&&areaOk;
   });
-  if(!rwShowModerate)f=f.filter(d=>d.severity!=='medium');
-  const moderateCount=rwDisruptions.filter(d=>d.severity==='medium').length;
+  // Default: only critical + high; Show All button reveals medium + low
+  if(!rwShowModerate)f=f.filter(d=>d.severity==='critical'||d.severity==='high');
+  const hiddenCount=rwDisruptions.filter(d=>d.severity==='medium'||d.severity==='low').length;
   const btn=document.getElementById('rw-moderate-toggle');
-  if(btn)btn.textContent=rwShowModerate?'Hide Moderate':'Show Moderate ('+moderateCount+')';
-  document.getElementById('rw-disrupt-cnt').textContent=`${f.length} disruption${f.length!==1?'s':''}`;
+  if(btn)btn.textContent=rwShowModerate?'Hide Lower':'Show All ('+hiddenCount+')';
+  const total=rwDisruptions.length;
+  document.getElementById('rw-disrupt-cnt').textContent=f.length===total?`${f.length} disruption${f.length!==1?'s':''}`:`${f.length} of ${total} disruptions`;
+  // Update stats to reflect visible items
+  const visSev={critical:0,high:0,medium:0,low:0};f.forEach(d=>{visSev[d.severity]=(visSev[d.severity]||0)+1});
+  document.getElementById('rw-s-total').textContent=f.length;
+  document.getElementById('rw-s-crit').textContent=visSev.critical;
+  document.getElementById('rw-s-high').textContent=visSev.high;
+  document.getElementById('rw-s-med').textContent=visSev.medium;
   const grid=document.getElementById('rw-grid');
-  if(!f.length){grid.innerHTML=`<div class="state-panel"><div class="state-icon">${rwDisruptions.length?'🔍':'✅'}</div><div class="state-title-rw">${rwDisruptions.length?'No matches':'No active disruptions'}</div><div class="state-sub-rw">${rwDisruptions.length?'Adjust filters.':'TfL reports no disruptions right now.'}</div></div>`;return}
+  if(!f.length){grid.innerHTML=`<div class="state-panel"><div class="state-icon">${rwDisruptions.length?'🔍':'✅'}</div><div class="state-title-rw">${rwDisruptions.length?'No matches':'No active disruptions'}</div><div class="state-sub-rw">${rwDisruptions.length?'Try "Show All" or adjust filters.':'TfL reports no disruptions right now.'}</div></div>`;return}
   grid.innerHTML=f.map((d,i)=>rwBuildCard(d,i)).join('');
   if(rwMapShown)rwPlotDisruptions();
 }
@@ -2104,11 +2138,8 @@ function rwRenderNews(){
 }
 
 function rwRenderStats(){
-  const c={critical:0,high:0,medium:0,low:0};rwDisruptions.forEach(d=>{c[d.severity]=(c[d.severity]||0)+1});
-  document.getElementById('rw-s-total').textContent=rwDisruptions.length;
-  document.getElementById('rw-s-crit').textContent=c.critical;
-  document.getElementById('rw-s-high').textContent=c.high;
-  document.getElementById('rw-s-med').textContent=c.medium;
+  // Stat cards for counts are updated by rwRenderDisruptions() to reflect visible items
+  // This function handles news count + threat bar
   document.getElementById('rw-s-news').textContent=rwNews.length;
   rwUpdateThreatBar();
 }
@@ -2253,10 +2284,11 @@ News headlines: ${rwNews.slice(0,3).map(n=>n.title).join('; ')}`.trim();
 }
 
 function rwGenerateLocalBriefing() {
-  const critical = rwDisruptions.filter(d => d.severity === 'critical');
-  const high = rwDisruptions.filter(d => d.severity === 'high');
-  const protests = rwDisruptions.filter(d => d.category === 'SpecialEvent');
-  const nhGroups = rwDisruptions.filter(d => d.id?.startsWith('nh-group-'));
+  const visible=rwDisruptions.filter(d=>(d.severity==='critical'||d.severity==='high')&&(!d.area||d.area==='london'||d.area==='tfl'));
+  const critical = visible.filter(d => d.severity === 'critical');
+  const high = visible.filter(d => d.severity === 'high');
+  const protests = visible.filter(d => d.category === 'SpecialEvent');
+  const nhGroups = rwDisruptions.filter(d => d.id?.startsWith('nh-group-')&&(d.area==='london'||!d.area));
   const flArr = typeof flFlights !== 'undefined' ? flFlights : [];
   const delayed = flArr.filter(f => (f.arr_delayed||0) >= 30 || (f.dep_delayed||0) >= 30);
 
@@ -2285,7 +2317,7 @@ function rwGenerateLocalBriefing() {
   }
 
   if (sentences.length < 2) {
-    sentences.push(`TfL reporting ${rwDisruptions.filter(d=>d.source?.includes('TfL')).length} live disruptions. Check specific routes before departure.`);
+    sentences.push(`TfL reporting ${visible.length} critical/high severity incidents on the London network. Check specific routes before departure.`);
   }
 
   if (critical.length >= 3 || (critical.length >= 1 && protests.length >= 1)) {
