@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.2.7 -->
+<!-- roadwatch v3.2.8 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -578,6 +578,15 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     </div>
   </div>
 
+  <!-- Stats -->
+  <div class="rw-stats" id="rw-stats">
+    <div class="stat-card-rw"><div class="stat-num" id="rw-s-total" style="color:#38BDF8">0</div><div class="stat-lbl">Total</div></div>
+    <div class="stat-card-rw"><div class="stat-num" id="rw-s-crit" style="color:#F87171">0</div><div class="stat-lbl">Critical</div></div>
+    <div class="stat-card-rw"><div class="stat-num" id="rw-s-high" style="color:#FB923C">0</div><div class="stat-lbl">High</div></div>
+    <div class="stat-card-rw"><div class="stat-num" id="rw-s-med" style="color:#FBBF24">0</div><div class="stat-lbl">Moderate</div></div>
+    <div class="stat-card-rw"><div class="stat-num" id="rw-s-news" style="color:#60A5FA">0</div><div class="stat-lbl">News</div></div>
+  </div>
+
   <!-- Legend -->
   <div class="rw-legend" id="rw-legend">
     <span style="font-size:9px;color:var(--rw-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
@@ -591,15 +600,6 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Met Police</span>
     <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Gloucestershire Highways</span>
     <span class="src-pill"><span class="src-dot" style="background:#10B981"></span>Every 2 min</span>
-  </div>
-
-  <!-- Stats -->
-  <div class="rw-stats" id="rw-stats">
-    <div class="stat-card-rw"><div class="stat-num" id="rw-s-total" style="color:#38BDF8">0</div><div class="stat-lbl">Total</div></div>
-    <div class="stat-card-rw"><div class="stat-num" id="rw-s-crit" style="color:#F87171">0</div><div class="stat-lbl">Critical</div></div>
-    <div class="stat-card-rw"><div class="stat-num" id="rw-s-high" style="color:#FB923C">0</div><div class="stat-lbl">High</div></div>
-    <div class="stat-card-rw"><div class="stat-num" id="rw-s-med" style="color:#FBBF24">0</div><div class="stat-lbl">Moderate</div></div>
-    <div class="stat-card-rw"><div class="stat-num" id="rw-s-news" style="color:#60A5FA">0</div><div class="stat-lbl">News</div></div>
   </div>
 
   <!-- Controls -->
@@ -856,7 +856,16 @@ function daysUntilNum(s){if(!s)return 999;try{const t=new Date();t.setHours(0,0,
 function timeAgo(ts){if(!ts)return'';const d=Math.floor((Date.now()-ts)/1000);if(d<60)return'Just now';if(d<3600)return`${Math.floor(d/60)}m ago`;if(d<86400)return`${Math.floor(d/3600)}h ago`;return`${Math.floor(d/86400)}d ago`}
 function splitT(dt,i){if(!dt)return null;const p=dt.split('T');return i===0?p[0]:(p[1]?p[1].slice(0,5):null)}
 const HIGH_IMPACT_KW=['m25','motorway','tunnel closure','bridge closure','national highways','tube strike','underground strike','rmt strike','major disruption','severe delays','road closed','highway closed'];
-function scoreRelevance(it){const t=(it.title+' '+(it.desc||'')).toLowerCase();let s=0;ROAD_KW.forEach(k=>{if(t.includes(k))s++});if(t.includes('london'))s+=2;HIGH_IMPACT_KW.forEach(k=>{if(t.includes(k))s+=2});return s}
+const NEGATIVE_KW=['nottingham','nottinghamshire','manchester','birmingham','leeds','bristol','edinburgh','cardiff','womb','surgery','baby','celebrity','music festival','film festival','graveyard','drops out','musical production'];
+function scoreRelevance(it){
+  const textLower=(it.title+' '+(it.desc||'')).toLowerCase();
+  for(const neg of NEGATIVE_KW){if(textLower.includes(neg))return -1;}
+  let s=0;
+  ROAD_KW.forEach(k=>{if(textLower.includes(k))s++;});
+  if(textLower.includes('london'))s+=2;
+  HIGH_IMPACT_KW.forEach(k=>{if(textLower.includes(k))s+=2;});
+  return s;
+}
 function dedupeNews(items){const seen=new Set();return items.filter(it=>{const k=it.title.toLowerCase().replace(/\s+/g,'').slice(0,50);if(seen.has(k))return false;seen.add(k);return true})}
 
 async function fetchRss(feed){
@@ -924,27 +933,14 @@ const RW_TYPE_CFG={RoadClosure:{icon:'🚫',color:'#DC2626',bg:'#FEE2E2',label:'
 const RW_SEV_CFG={critical:{color:'#DC2626',label:'Critical'},high:{color:'#EF4444',label:'High'},medium:{color:'#F59E0B',label:'Moderate'},low:{color:'#10B981',label:'Low'}};
 const RW_RSS_FEEDS=[
   {name:'BBC News',cls:'bbc',url:'https://feeds.bbci.co.uk/news/england/london/rss.xml'},
-  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+disruption+traffic&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+protest+march+road+closed&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+next+week+planned&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+event+road+closure+diversion+upcoming&hl=en-GB&gl=GB&ceid=GB:en'},
-
-  {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=London+M25+road+closure+motorway+disruption+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Yahoo News UK',cls:'google',url:'https://news.google.com/rss/search?q=M25+closure+National+Highways+London+motorway+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+M25+M1+M3+M4+M11+London+closure&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'London Roads',cls:'google',url:'https://news.google.com/rss/search?q=London+motorway+closure+roadworks+overnight+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'This is Local London',cls:'google',url:'https://news.google.com/rss/search?q=M25+roadworks+closure+junction+overnight+London+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Tube Strike',cls:'google',url:'https://news.google.com/rss/search?q=London+tube+strike+underground+RMT+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'London Events',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+event+march+protest+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Motorway News',cls:'google',url:'https://news.google.com/rss/search?q=M25+London+closure+delay&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Traffic News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+accident+today&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Gloucestershire Live',cls:'google',url:'https://news.google.com/rss/search?q=Cotswolds+road+closure+roadworks+Gloucestershire+2026&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Bibury Traffic',cls:'google',url:'https://news.google.com/rss/search?q=Bibury+Cirencester+road+closure+traffic+Cotswolds&hl=en-GB&gl=GB&ceid=GB:en'},
-  {name:'Oxfordshire Roads',cls:'google',url:'https://news.google.com/rss/search?q=Oxfordshire+Gloucestershire+road+closure+A40+A429+A417+2026&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+road+closure+disruption+traffic+today&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=M25+closure+motorway+London+today&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'Google News',cls:'google',url:'https://news.google.com/rss/search?q=London+protest+march+road+closed+today&hl=en-GB&gl=GB&ceid=GB:en'},
+  {name:'National Highways',cls:'google',url:'https://news.google.com/rss/search?q=National+Highways+road+closure+motorway+today&hl=en-GB&gl=GB&ceid=GB:en'},
 ];
 
 let rwDisruptions=[],rwNews=[],rwKnownIds=new Set(),rwFilters={type:'all',sev:'all',area:'all'},rwApiKey='';
-let rwShowModerate=false;
+let rwShowModerate=true;
 let rwLastBriefing=0,rwBriefingText='';
 let rwRefTimer=null,rwCdTimer=null,rwCdSecs=300,rwAlerts={},rwAlertsPanelOpen=false,rwAudioCtx=null,rwTabTimer=null;
 let rwGChatUrl='',rwGChatSentIds=new Set(),rwAcTimer=null;
@@ -1767,8 +1763,8 @@ function processTrafficItems(items){
 async function rwFetchNews(){
   const results=await Promise.allSettled(RW_RSS_FEEDS.map(f=>fetchRss(f)));
   let items=[];results.forEach(r=>{if(r.status==='fulfilled')items=items.concat(r.value)});
-  const ageCutoff=Date.now()-(3*24*60*60*1000);const freshCutoff=Date.now()-(3*24*60*60*1000);
-  items=dedupeNews(items);items=items.filter(it=>it.pubDate&&it.pubDate>ageCutoff);items=items.map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>0).filter(it=>it.pubDate>freshCutoff||it.score>=4).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,40);
+  const cutoff=Date.now()-(24*60*60*1000);
+  items=dedupeNews(items);items=items.filter(it=>it.pubDate&&it.pubDate>cutoff);items=items.map(it=>({...it,score:scoreRelevance(it)})).filter(it=>it.score>=2).sort((a,b)=>b.score!==a.score?b.score-a.score:(b.pubDate||0)-(a.pubDate||0)).slice(0,40);
   rwNews=items;rwRenderNews();rwRenderStats();
 }
 
@@ -1924,8 +1920,17 @@ function rwBuildCard(d,i){
 }
 
 function rwRenderDisruptions(){
+  console.log('Rendering disruptions:',rwDisruptions.length,'filters:',JSON.stringify(rwFilters),'showModerate:',rwShowModerate);
   let f=rwDisruptions.filter(d=>{
-    const typeOk=rwFilters.type==='all'||d.category===rwFilters.type;
+    let typeOk=rwFilters.type==='all';
+    if(!typeOk){
+      if(rwFilters.type==='events')typeOk=d.category==='SpecialEvent';
+      else if(rwFilters.type==='incidents')typeOk=d.category==='Incident';
+      else if(rwFilters.type==='closures')typeOk=d.category==='RoadClosure';
+      else if(rwFilters.type==='works')typeOk=d.category==='Works';
+      else if(rwFilters.type==='planned')typeOk=d.category==='PlannedWorks';
+      else typeOk=d.category===rwFilters.type;
+    }
     const sevOk=rwFilters.sev==='all'||d.severity===rwFilters.sev;
     const areaOk=rwFilters.area==='all'?(!d.area||d.area!=='cotswolds'):rwFilters.area==='cotswolds'?d.area==='cotswolds':true;
     return typeOk&&sevOk&&areaOk;
