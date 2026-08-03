@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.2.3 -->
+<!-- roadwatch v3.2.4 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1499,8 +1499,26 @@ async function rwFetchTfl(){
       if(r2.ok){const d=await r2.json();if(Array.isArray(d)){const ids=new Set(list.map(x=>x.id));list=list.concat(d.map(rwNormPlanned).filter(x=>!ids.has(x.id)));}}
     }catch(e){console.log('TfL planned error:',e.message);}
     list=list.filter((item,index,self)=>index===self.findIndex(x=>x.id===item.id));
-    const seen=new Set();list=list.filter(d=>{const key=(d.title+'|'+d.location).toLowerCase().trim();if(seen.has(key))return false;seen.add(key);return true});
-    const seenLoc=new Set();list=list.filter(d=>{const key=(d.location||'').toLowerCase().replace(/\s+/g,'').slice(0,40);if(!key||seenLoc.has(key))return false;seenLoc.add(key);return true});
+    // Stronger dedup: normalised location key + road code + title similarity
+    const seen=new Set();const seenRoads=new Map();
+    list=list.filter(d=>{
+      const locKey=(d.location||'').toLowerCase().replace(/[\s\[\]\(\),]/g,'').slice(0,50);
+      const roadCode=(d.location||'').match(/[A-Z]\d{2,4}/)?.[0]||'';
+      const titleKey=(d.title||'').toLowerCase().replace(/\s+/g,'').slice(0,30);
+      const key=locKey||(roadCode+titleKey);
+      if(!key)return true;
+      if(seen.has(key))return false;
+      seen.add(key);
+      if(roadCode&&seenRoads.has(roadCode)){
+        const existing=seenRoads.get(roadCode);
+        if((d.desc||'').length>(existing.desc||'').length)seenRoads.set(roadCode,d);
+        return false;
+      }
+      if(roadCode)seenRoads.set(roadCode,d);
+      return true;
+    });
+    // Drop empty planned-works stubs that have no real description
+    list=list.filter(d=>!(d.category==='Planned'&&(d.desc||'').trim().toLowerCase()==='planned works'));
     list.sort((a,b)=>{const o={critical:0,high:1,medium:2,low:3};const dd=(o[a.severity]??4)-(o[b.severity]??4);if(dd!==0)return dd;if(a.isActive!==b.isActive)return a.isActive?-1:1;return(a.startDate||'').localeCompare(b.startDate||'')});
 
     // ── Inject verified ongoing disruptions (add items here when needed) ──
@@ -1607,37 +1625,37 @@ async function fetchNHOpenData(){
     });
     console.log('NH OpenData London relevant:',newItems.length);
     if(newItems.length>0){
-      // Group by region, replace individual items with one summary card per region
+      // Group by region using road-code matching on title+location
       const nhByRegion={};
       newItems.forEach(d=>{
-        const loc=(d.location||d.title||'').toLowerCase();
-        const region=loc.includes('m25')?'M25 Orbital':
-                     (loc.includes('m1')||loc.includes('m6'))?'Midlands/North':
-                     (loc.includes('m4')||loc.includes('m3')||loc.includes('m27'))?'South West':
-                     (loc.includes('m20')||loc.includes('m2')||loc.includes('a2'))?'South East/Kent':
+        const t=(d.title+' '+d.location).toUpperCase();
+        const region=t.match(/M25/)?'M25 Orbital':
+                     t.match(/M1\b|M6\b|M62|M18|M42|M45|A1\b|A14|A46|A631/)?'Midlands & North':
+                     t.match(/M4\b|M3\b|M5\b|M48|M32|A34|A419|A417|A303/)?'South West & Wales':
+                     t.match(/M20|M2\b|M23|M26|A2\b|A20|A21|A249|A1089/)?'South East & Kent':
+                     t.match(/M11|M40|A40\b|A404|A414|A1M|A1307/)?'London Orbital & M40':
                      'National Network';
         if(!nhByRegion[region])nhByRegion[region]=[];
         nhByRegion[region].push(d);
       });
-      // Remove old individual NH Open Data items and old group cards
-      rwDisruptions=rwDisruptions.filter(d=>d.source!=='National Highways Open Data'||d._nhGroup);
-      rwDisruptions=rwDisruptions.filter(d=>!d.id||!d.id.startsWith('nh-group-'));
-      // Add one summary card per region
+      // Remove ALL individual NH Open Data items AND stale group cards before adding fresh groups
+      rwDisruptions=rwDisruptions.filter(d=>d.source!=='National Highways Open Data'&&!d.id?.startsWith('nh-group-'));
+      // Add one summary card per region (unshift so they appear near the top)
       Object.entries(nhByRegion).forEach(([region,items])=>{
-        const roads=[...new Set(items.map(d=>d.roads?.[0]).filter(Boolean))].slice(0,6).join(', ');
-        rwDisruptions.push({
-          id:'nh-group-'+region.replace(/\s/g,'-'),
+        const roads=[...new Set(items.map(d=>d.roads?.[0]).filter(Boolean))].slice(0,8).join(' · ');
+        rwDisruptions.unshift({
+          id:'nh-group-'+region.replace(/[\s&]/g,'-'),
           category:'RoadClosure',
-          title:region+' — '+items.length+' Overnight Closures',
-          desc:'National Highways planned overnight maintenance on '+(roads||'various roads')+'. All closures 22:00–05:30 with signed diversions.',
-          location:region,
-          startDate:items[0]?.startDate,
+          title:'🛣 '+region+' — '+items.length+' Planned Closures Tonight',
+          desc:'National Highways overnight maintenance 22:00–05:30. Roads affected: '+(roads||'various')+'. Signed diversions in place on all routes.',
+          location:region+' — National Highways Network',
+          startDate:items[0]?.startDate||isoNow(),
           startTime:'22:00',endDate:null,endTime:'05:30',
           severity:'high',
-          roads:[...new Set(items.flatMap(d=>d.roads||[]))].slice(0,8),
+          roads:[...new Set(items.flatMap(d=>d.roads||[]))].slice(0,6),
           source:'National Highways',
           sourceUrl:'https://nationalhighways.co.uk/travel-updates/road-closure-report/',
-          hasDiversion:true,isActive:true,_nhGroup:items
+          hasDiversion:true,isActive:true
         });
       });
       rwRenderDisruptions();rwRenderStats();rwRenderTicker();
