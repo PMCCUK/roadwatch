@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- roadwatch v3.2.6 -->
+<!-- roadwatch v3.2.7 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -176,6 +176,7 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
 .d-card-rw{background:#1E293B;border:1px solid #334155;border-radius:8px;padding:15px;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s;animation:fadeUp .3s ease both}
 .d-card-rw:hover{transform:translateY(-2px);border-color:var(--rw-border2);box-shadow:0 4px 16px rgba(0,0,0,.35)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:8px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
 .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px;gap:5px}
 .badge-row{display:flex;gap:4px;flex-wrap:wrap}
@@ -558,6 +559,25 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     </div>
   </div>
 
+  <!-- AI Briefing Card -->
+  <div id="rw-briefing-card" style="margin:10px 16px 0;border-radius:14px;overflow:hidden;display:none;animation:fadeUp .3s ease both;box-shadow:0 2px 16px rgba(0,0,0,0.07)">
+    <div style="background:#111;padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:28px;height:28px;border-radius:8px;background:#CC0000;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🧠</div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#fff;letter-spacing:.06em">INTELLIGENCE BRIEFING</div>
+          <div id="rw-briefing-time" style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:1px"></div>
+        </div>
+      </div>
+      <button onclick="rwGenerateBriefing(true)" id="rw-briefing-refresh" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:5px 10px;font-size:9px;color:rgba(255,255,255,0.7);cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.18)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">↻ Refresh</button>
+    </div>
+    <div id="rw-briefing-body" style="padding:16px;background:#fff;border:1px solid #e5e5e5;border-top:none;border-radius:0 0 14px 14px">
+      <div id="rw-briefing-greeting" style="font-size:10px;font-weight:700;color:#9CA3AF;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px"></div>
+      <div id="rw-briefing-text" style="min-height:44px;font-family:Georgia,serif;font-size:13px;line-height:1.75;color:#111;border-left:3px solid #CC0000;padding-left:14px"></div>
+      <div id="rw-briefing-tags" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px"></div>
+    </div>
+  </div>
+
   <!-- Legend -->
   <div class="rw-legend" id="rw-legend">
     <span style="font-size:9px;color:var(--rw-muted2);text-transform:uppercase;letter-spacing:.1em">Sources:</span>
@@ -612,22 +632,6 @@ body{font-family:var(--font-sans);font-size:13px;min-height:100vh;-webkit-font-s
     <button class="alerts-btn-rw" onclick="rwToggleAlerts()">🔔 Alerts</button>
     <button onclick="rwToggleMap()" id="rw-map-btn" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--rw-muted,#666);font-family:inherit">🗺 Map View</button>
     <button class="refresh-btn-rw" onclick="rwRefreshAll()">↺ Refresh <span class="cd" id="rw-cd">2:00</span></button>
-  </div>
-
-  <!-- AI Briefing Card -->
-  <div id="rw-briefing-card" style="margin:12px 16px;border:1px solid var(--rw-border,#e5e5e5);border-radius:12px;overflow:hidden;display:none">
-    <div style="padding:10px 16px;background:var(--rw-bg2,#f8f9fa);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--rw-border,#e5e5e5)">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:14px">🧠</span>
-        <span style="font-family:'Syne',Georgia,serif;font-size:11px;font-weight:700;color:var(--rw-accent,#CC0000);letter-spacing:.05em">INTELLIGENCE BRIEFING</span>
-        <span id="rw-briefing-time" style="font-size:9px;color:var(--rw-muted,#666)"></span>
-      </div>
-      <button onclick="rwGenerateBriefing(true)" id="rw-briefing-refresh" style="background:transparent;border:1px solid var(--rw-border,#ddd);border-radius:6px;padding:4px 10px;font-size:9px;color:var(--rw-muted,#666);cursor:pointer;font-family:inherit">↻ Refresh</button>
-    </div>
-    <div id="rw-briefing-body" style="padding:14px 16px;font-size:12px;line-height:1.8;color:var(--rw-text,#111)">
-      <div id="rw-briefing-text" style="min-height:40px"></div>
-      <div id="rw-briefing-tags" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"></div>
-    </div>
   </div>
 
   <div id="rw-journey-panel" style="display:none;margin:0 16px 14px;border:1px solid var(--rw-border);border-radius:12px;overflow:visible">
@@ -2016,14 +2020,19 @@ async function rwGenerateBriefing(force = false) {
   const textEl = document.getElementById('rw-briefing-text');
   const tagsEl = document.getElementById('rw-briefing-tags');
   const timeEl = document.getElementById('rw-briefing-time');
+  const greetEl = document.getElementById('rw-briefing-greeting');
   if (!card || !textEl) return;
 
-  textEl.innerHTML = '<span style="color:var(--rw-muted,#999);font-style:italic">Generating intelligence briefing...</span>';
-  tagsEl.innerHTML = '';
-
   const now = new Date();
+  const h = now.getHours();
+  const greeting = h < 5 ? 'Late Night Briefing' : h < 12 ? 'Morning Briefing' : h < 17 ? 'Afternoon Briefing' : h < 21 ? 'Evening Briefing' : 'Night Briefing';
   const timeStr = now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
   const dateStr = now.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long'});
+  if (greetEl) greetEl.textContent = greeting;
+
+  textEl.innerHTML = '<span style="color:#9CA3AF;font-style:italic;font-size:12px">Analysing London network data<span style="animation:blink 1s infinite;display:inline-block;margin-left:2px">▋</span></span>';
+  tagsEl.innerHTML = '';
+
   const critical = rwDisruptions.filter(d => d.severity === 'critical');
   const high = rwDisruptions.filter(d => d.severity === 'high');
   const protests = rwDisruptions.filter(d => d.category === 'SpecialEvent');
@@ -2034,12 +2043,12 @@ async function rwGenerateBriefing(force = false) {
 
   const context = `Date/Time: ${dateStr}, ${timeStr}
 Total disruptions: ${rwDisruptions.length}
-Critical: ${critical.length} - ${critical.slice(0,3).map(d=>d.title+' at '+d.location).join('; ')}
-High severity: ${high.length} - ${high.slice(0,3).map(d=>d.title+' at '+d.location).join('; ')}
-Special events/protests: ${protests.length} - ${protests.slice(0,2).map(d=>d.title).join('; ')}
+Critical: ${critical.length} — ${critical.slice(0,3).map(d=>d.title+' at '+d.location).join('; ')}
+High severity: ${high.length} — ${high.slice(0,3).map(d=>d.title+' at '+d.location).join('; ')}
+Special events/protests: ${protests.length} — ${protests.slice(0,2).map(d=>d.title).join('; ')}
 Road closures: ${closures.length}
-National Highways closures: ${nhClosures.length} - ${nhClosures.slice(0,3).map(d=>d.title).join('; ')}
-Delayed flights (30min+): ${delayedFlights.length} - ${delayedFlights.slice(0,2).map(f=>(f.airline_iata||'')+(f.flight_iata||'')+' '+(f._direction==='arrival'?'arriving':'departing')+' '+(f._airport||'')).join('; ')}
+National Highways closures: ${nhClosures.length} — ${nhClosures.slice(0,3).map(d=>d.title).join('; ')}
+Delayed flights (30min+): ${delayedFlights.length} — ${delayedFlights.slice(0,2).map(f=>(f.airline_iata||'')+(f.flight_iata||'')+' '+(f._direction==='arrival'?'arriving':'departing')+' '+(f._airport||'')).join('; ')}
 News headlines: ${rwNews.slice(0,3).map(n=>n.title).join('; ')}`.trim();
 
   try {
@@ -2048,10 +2057,10 @@ News headlines: ${rwNews.slice(0,3).map(n=>n.title).join('; ')}`.trim();
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
+        max_tokens: 300,
         messages: [{
           role: 'user',
-          content: `You are an intelligence briefing system for a London road disruption dashboard used by operations directors, logistics managers and travel professionals.\n\nBased on this real-time data, write a concise professional briefing of 2-3 sentences maximum. Use a factual, direct tone like a traffic control room officer. Start with the most critical information. Mention specific road names, flight numbers and times where available. End with a one-line operational recommendation if warranted.\n\nCurrent data:\n${context}\n\nWrite the briefing now. Do not use bullet points. Do not use headers. Just flowing professional prose.`
+          content: `You are a sharp intelligence analyst briefing an operations director on London road and transport conditions right now.\n\nWrite 4-5 short punchy sentences. Lead with the single most critical thing happening. Name specific roads, routes, and areas. Use confident declarative language — no hedging. End with a one-line action call if warranted.\n\nNo bullet points. No headers. No introductory phrases like "As of" or "Currently". Just direct intelligence prose.\n\nData:\n${context}`
         }]
       })
     });
@@ -2063,20 +2072,27 @@ News headlines: ${rwNews.slice(0,3).map(n=>n.title).join('; ')}`.trim();
       rwBriefingText = text;
       rwLastBriefing = Date.now();
 
-      textEl.innerHTML = '';
+      textEl.innerHTML = '<span id="rw-brf-cursor" style="animation:blink 1s infinite;display:inline-block">▋</span>';
       const words = text.split(' ');
-      let i = 0;
+      let wi = 0;
       const interval = setInterval(() => {
-        if (i < words.length) { textEl.innerHTML = words.slice(0,i+1).join(' '); i++; }
-        else clearInterval(interval);
-      }, 40);
+        if (wi < words.length) {
+          const cursor = document.getElementById('rw-brf-cursor');
+          if (cursor) cursor.before(document.createTextNode((wi===0?'':' ')+words[wi]));
+          wi++;
+        } else {
+          clearInterval(interval);
+          const cursor = document.getElementById('rw-brf-cursor');
+          if (cursor) cursor.remove();
+        }
+      }, 35);
 
       const tags = [];
-      if (critical.length > 0) tags.push({text:`${critical.length} Critical`, color:'#dc2626'});
-      if (protests.length > 0) tags.push({text:'Events/Protests', color:'#7c3aed'});
-      if (nhClosures.length > 0) tags.push({text:`${nhClosures.length} NH Closures`, color:'#f59e0b'});
-      if (delayedFlights.length > 0) tags.push({text:`${delayedFlights.length} Flights Delayed`, color:'#2563eb'});
-      if (rwDisruptions.length > 50) tags.push({text:'High Volume', color:'#666'});
+      if (critical.length > 0) tags.push({text:`${critical.length} Critical`, color:'#DC2626'});
+      if (protests.length > 0) tags.push({text:'Events/Protests', color:'#7C3AED'});
+      if (nhClosures.length > 0) tags.push({text:`${nhClosures.length} NH Closures`, color:'#F59E0B'});
+      if (delayedFlights.length > 0) tags.push({text:`${delayedFlights.length} Flights Delayed`, color:'#2563EB'});
+      if (rwDisruptions.length > 50) tags.push({text:'High Volume', color:'#6B7280'});
 
       tagsEl.innerHTML = tags.map(t =>
         `<span style="background:${t.color}18;color:${t.color};border:1px solid ${t.color}40;padding:2px 9px;border-radius:20px;font-size:9px;font-weight:600;letter-spacing:.06em">${t.text}</span>`
@@ -2086,37 +2102,54 @@ News headlines: ${rwNews.slice(0,3).map(n=>n.title).join('; ')}`.trim();
     }
   } catch(e) {
     textEl.innerHTML = rwGenerateLocalBriefing();
+    const cursor = document.getElementById('rw-brf-cursor');
+    if (cursor) cursor.remove();
     timeEl.textContent = `Generated ${timeStr} (local)`;
     console.log('AI briefing error:', e.message);
   }
 }
 
 function rwGenerateLocalBriefing() {
-  const now = new Date();
-  const hour = now.getHours();
-  const timeOfDay = hour < 12 ? 'This morning' : hour < 17 ? 'This afternoon' : 'This evening';
   const critical = rwDisruptions.filter(d => d.severity === 'critical');
+  const high = rwDisruptions.filter(d => d.severity === 'high');
   const protests = rwDisruptions.filter(d => d.category === 'SpecialEvent');
-  const nhClosures = rwDisruptions.filter(d => d.source === 'National Highways Open Data');
+  const nhGroups = rwDisruptions.filter(d => d.id?.startsWith('nh-group-'));
   const flArr = typeof flFlights !== 'undefined' ? flFlights : [];
-  const delayedFlights = flArr.filter(f => (f.arr_delayed||0) >= 30 || (f.dep_delayed||0) >= 30);
+  const delayed = flArr.filter(f => (f.arr_delayed||0) >= 30 || (f.dep_delayed||0) >= 30);
 
-  let briefing = `${timeOfDay}: `;
-  const parts = [];
+  const sentences = [];
 
-  if (critical.length > 0) parts.push(`${critical.length} critical disruption${critical.length>1?'s':''} active including ${critical[0]?.title || 'road closures'}`);
-  if (nhClosures.length > 0) parts.push(`${nhClosures.length} National Highways planned closure${nhClosures.length>1?'s':''} on the strategic road network`);
-  if (protests.length > 0) parts.push(`${protests.length} special event${protests.length>1?'s':''} or protest${protests.length>1?'s':''} affecting central London`);
-  if (delayedFlights.length > 0) parts.push(`${delayedFlights.length} Asia-London flight${delayedFlights.length>1?'s':''} delayed 30+ minutes`);
-  if (parts.length === 0) parts.push(`${rwDisruptions.length} active disruptions across the London road network — no critical incidents at this time`);
-
-  briefing += parts.join('. ') + '.';
-
-  if (critical.length >= 3 || (critical.length >= 1 && protests.length >= 1)) {
-    briefing += ' Operational recommendation: allow 30+ minutes additional journey time for central London routes.';
+  if (critical.length > 0) {
+    const top = critical[0];
+    sentences.push(`${critical.length} critical incident${critical.length>1?'s are':' is'} active right now — ${top?.title||'major disruption'} is the lead concern.`);
+  } else if (high.length > 0) {
+    sentences.push(`${high.length} high-severity disruption${high.length>1?'s':''} on the network, no critical incidents at this time.`);
+  } else {
+    sentences.push(`Network running at low disruption — ${rwDisruptions.length} active items, none critical.`);
   }
 
-  return briefing;
+  if (nhGroups.length > 0) {
+    const roads = nhGroups.flatMap(g => g.roads||[]).slice(0,4).join(', ');
+    sentences.push(`National Highways overnight closures in effect across ${nhGroups.length} region${nhGroups.length>1?'s':''}${roads?' ('+roads+')':''} — signed diversions in place.`);
+  }
+
+  if (protests.length > 0) {
+    sentences.push(`${protests.length} event${protests.length>1?'s or protests are':' or protest is'} active in central London — expect pedestrian and vehicle delays in the City and West End.`);
+  }
+
+  if (delayed.length > 0) {
+    sentences.push(`${delayed.length} flight${delayed.length>1?'s':''} delayed 30+ minutes — factor additional transfer time if routing to Heathrow or Gatwick.`);
+  }
+
+  if (sentences.length < 2) {
+    sentences.push(`TfL reporting ${rwDisruptions.filter(d=>d.source?.includes('TfL')).length} live disruptions. Check specific routes before departure.`);
+  }
+
+  if (critical.length >= 3 || (critical.length >= 1 && protests.length >= 1)) {
+    sentences.push(`Allow 30+ minutes additional time on any central London route.`);
+  }
+
+  return sentences.join(' ');
 }
 
 function rwRenderTicker(){
